@@ -12,6 +12,7 @@ import styled from "styled-components";
 import { useEffect, useState } from 'react';
 import { Game, GameSetup, Country, getCountry, RequestAction } from "../src/game.types"
 import Autocomplete  from 'react-autocomplete'
+import { PlusCircleFill } from 'react-bootstrap-icons';
 
 
 // const Container = styled.div`
@@ -32,24 +33,28 @@ const TableCellInner = styled.div`
   width: 150px;
   height: 150px;
   .field-flex {
-    position: absolute;
-    top: 0; bottom: 0; left: 0; right: 0;
+    padding: 5px;
     display: flex;
     flex-direction: column;
     justify-content: center;
     align-items: center;
-    .label {
+    > span {
+      display: block;
+      width: 100%;
       margin-top: 5px;
       text-align: center;
-      .iso {
-        color: var(--bs-secondary);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      &.label {
+        .iso {
+          color: var(--bs-secondary);
+        }
       }
-    }
-    .capital {
-      margin-top: 5px;
-      text-align: center;
-      color: var(--bs-secondary);
-      font-size: 75%;
+      &.capital {
+        color: var(--bs-secondary);
+        font-size: 75%;
+      }
     }
   }
   .field-abs-top-left {
@@ -57,6 +62,31 @@ const TableCellInner = styled.div`
     top: 5px;
     left: 5px;
   }
+  .field-center-50 {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 50px;
+    height: 50px;
+    margin-top: -25px;
+    margin-left: -25px;
+  }
+  .field-bottom {
+    position: absolute;
+    left: 0; bottom: 0;
+    width: 100%; height: 50px;
+  }
+`
+const MarkingBackground = styled.div<{ $player: number }>`
+  background: ${props => props.$player == 0 ? "var(--bs-blue)" : "var(--bs-red)"};
+  display: ${props => props.$player == -1 ? "none" : "block"};
+  opacity: .25;
+  position: absolute;
+  left: 0;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  z-index: -10;
 `
 const RowHeading = styled.td`
 `
@@ -77,8 +107,8 @@ const TableHeading = styled.span`
 `
 
 const countryFlagPath = (country: Country) => `/circle-flags-gh-pages/flags/${country.iso.toLowerCase()}.svg`
-const CountryFlag = ({ country, size }: { country: Country, size: number }) => (
-  <CircleFlag countryCode={country.iso.toLowerCase()} height={size} />
+const CountryFlag = ({ country, size, onClick }: { country: Country | null, size: number, onClick?: any }) => (
+  <CircleFlag countryCode={country?.iso?.toLowerCase() ?? "xx"} height={size} onClick={onClick} />
   // <Image src={countryFlagPath(country)} width={size} height={size} alt={country.name} />
 );
 
@@ -95,8 +125,10 @@ function formatTableHeading(heading: string) {
 //    - or total number of cells with just one solution
 //    - limit maximum difficulty score
 // TODO gold = yellow (same solution as ambiguous continents: alternative solutions to NominalCategory that do not create new cells)
+// TODO ambiguous capitals / capital names (Pretoria, Astana, Washington DC etc.)
 // TODO add info icon in solved cell to clarify alternative names etc.
 // TODO force flag reload when creating new game
+// TODO category common neighbor
 
 
 export default function GameComponent(props: any) {
@@ -109,7 +141,13 @@ export default function GameComponent(props: any) {
   const [userIdentifier, setUserIdentifier] = useState("")
   
   const [game, setGame] = useState(null as Game | null)
+  const [playerIndex, setPlayerIndex] = useState(0)  // who am i? 0/1
+  const [playerTurn, setPlayerTurn] = useState(0)  // whose turn is it? 0/1
   const [gameData, setGameData] = useState({ isNewGame: true, game: null } as GameData)
+
+  // TODO game logic
+  // let hasTurn = playerIndex == playerTurn
+  const [hasTurn, setHasTurn] = useState(true)
 
   function newGame() {
     apiRequest(RequestAction.NewGame)
@@ -122,6 +160,10 @@ export default function GameComponent(props: any) {
     .then(data => {
       setGameData(data)
       setGame(data.game)
+      const userIndex = data.game.users.indexOf(userIdentifier)
+      if (userIndex != -1) {
+        setPlayerIndex(userIndex)
+      }
     })
   }
 
@@ -147,12 +189,15 @@ export default function GameComponent(props: any) {
   })
 
   function updateSettings(e: React.ChangeEvent<HTMLInputElement>) {
-    console.log([e.target.id, e.target.checked])
-    setSettings({
+    const newSettings = {
       showIso: e.target.id == "settings-show-iso" ? e.target.checked : settings.showIso,
       showNumSolutions: e.target.id == "settings-show-num-solutions" ? e.target.checked : settings.showNumSolutions,
       showNumSolutionsHint: e.target.id == "settings-show-num-solutions-hint" ? e.target.checked : settings.showNumSolutionsHint,
-    })
+    }
+    if (!newSettings.showNumSolutions) {
+      newSettings.showNumSolutionsHint = false
+    }
+    setSettings(newSettings)
   }
 
   return (
@@ -166,7 +211,7 @@ export default function GameComponent(props: any) {
         <div>
           <Form.Check type="switch" onChange={updateSettings} id="settings-show-iso" label="Show country ISO codes" />
           <Form.Check type="switch" onChange={updateSettings} id="settings-show-num-solutions" label="Show number of solutions" />
-          <Form.Check type="switch" onChange={updateSettings} id="settings-show-num-solutions-hint" label="Show number of solutions before guess" />
+          <Form.Check type="switch" onChange={updateSettings} checked={settings.showNumSolutionsHint} disabled={!settings.showNumSolutions} id="settings-show-num-solutions-hint" label="Show number of solutions before guess" />
         </div>
         <table>
           <thead>
@@ -186,11 +231,16 @@ export default function GameComponent(props: any) {
                   const guess = null
                   return (<TableCell key={j}>
                     <Field
-                    countries={game.setup.values}
+                    playerTurn={playerTurn}
+                    setPlayerTurn={setPlayerTurn}
+                    hasTurn={hasTurn}
+                    game={game}
                     solutions={solutions}
-                    guess={guess}
+                    initialGuess={guess}
+                    initialMarkedBy={game.marking[i][j]}
                     showIso={settings.showIso}
                     showNumSolutions={settings.showNumSolutions}
+                    showNumSolutionsHint={settings.showNumSolutionsHint}
                     />
                   </TableCell>)
                 })}
@@ -206,56 +256,121 @@ export default function GameComponent(props: any) {
 
 
 type FieldProps = {
-  countries: Country[];
+  playerTurn: number;
+  setPlayerTurn: any;
+  hasTurn: boolean;
+  // pos: number[];
+  game: Game;
   solutions: Country[];
-  guess: Country | null;
+  initialGuess: Country | null;
+  initialMarkedBy: number;
   showIso: boolean;
   showNumSolutions: boolean;
+  showNumSolutionsHint: boolean;
 }
 
-const Field = ({ countries, solutions, guess, showIso, showNumSolutions }: FieldProps) => {
-  // const [guess, setGuess] = useState(solutions ? solutions[0] : null)
-  // const [guess, setGuess] = useState(solutions ? randomChoice(solutions) : null)
-  // const guess = solutions ? solutions[0] : null
+enum FieldMode {
+  INITIAL = 0,
+  SEARCH = 1,
+  FILLED = 2
+}
 
-  // const [value, setValue] = useState("nA")
+const Field = ({ playerTurn, setPlayerTurn, hasTurn, game, solutions, initialGuess, initialMarkedBy, showIso, showNumSolutions, showNumSolutionsHint }: FieldProps) => {
 
-  const shouldItemRender = (country: Country, query: string) => {
-    return query.length >= 3 && country.name.toLowerCase().startsWith(query.toLowerCase());
-  };
+  const [mode, setMode] = useState(initialGuess ? FieldMode.FILLED : FieldMode.INITIAL)
+  const [searchValue, setSearchValue] = useState("")
+  const [guess, setGuess] = useState(initialGuess ?? null)
+  const [markedBy, setMarkedBy] = useState(initialMarkedBy ?? -1)
+
+  const countries = game.setup.values
+
+  const NumSolutions = () => (<div className="field-abs-top-left">
+    <Badge bg={solutions.length == 1 ? "danger" : "secondary"}>{solutions.length}</Badge>
+  </div>)
+
+  const makeGuess = (country: Country) => {
+    if (solutions.map(c => c.iso).includes(country.iso)) {
+      setGuess(country)
+      setMarkedBy(playerTurn)
+      setMode(FieldMode.FILLED)
+    } else {
+      console.log("Wrong guess!" + ` (${country.iso} not in [${solutions.map(c => c.iso).join(", ")}]})`)
+      setSearchValue("")
+    }
+    setPlayerTurn(1 - playerTurn)
+  }
+
 
   return (
     <TableCellInner>
-      {guess && (
+      {/* <span>pt: {playerTurn}, has: {hasTurn ? "y" : "n"}</span> */}
+      {mode == FieldMode.INITIAL && (
         <>
-          <div className="field-flex">
-            <CountryFlag country={guess} size={50} />
-            <span className="label">
-              {guess.name + (showIso ? " " : "")}
-              {showIso && <span className="iso">({guess.iso})</span>}
-            </span>
-            <span className="capital">{guess.capital}</span>
-          </div>
-          {showNumSolutions && <div className="field-abs-top-left">
-            <Badge bg={solutions.length == 1 ? "danger" : "secondary"}>{solutions.length}</Badge>
+          {hasTurn && <div className="field-center-50">
+            <PlusCircleFill
+              size={50}
+              style={{ cursor: "pointer" }}
+              color="var(--bs-secondary)"
+              onClick={() => {
+                setMode(FieldMode.SEARCH)
+              }}
+            />
           </div>}
+          {showNumSolutionsHint && <NumSolutions />}
         </>
       )}
-      {!guess && (
-        <div className="field-flex">
-          <p>Hi</p>
-          <Autocomplete
-            getItemValue={(country: Country) => country.iso}
-            items={countries}
-            renderItem={(country: Country, isHighlighted: boolean) =>
-              <div style={{ background: isHighlighted ? 'lightgray' : 'white' }}>
-                {country.name}
-              </div>
-            }
-            value={""}
-            onSelect={(val: Country["iso"]) => console.log("onSelect " + val)}
-          />
-        </div>
+      {(mode == FieldMode.SEARCH && hasTurn) && (
+        <>
+          <div className="field-flex">
+            <Autocomplete
+              items={countries}
+              getItemValue={(country: Country) => country.iso}
+              renderItem={(country: Country, isHighlighted: boolean) =>
+                <div style={{ background: isHighlighted ? 'lightgray' : 'white' }}>
+                  {country.name}
+                </div>
+              }
+              value={searchValue}
+              onChange={(e, q) => setSearchValue(q)}
+              onSelect={(val: Country["iso"]) => {
+                const country = countries.find(c => c.iso == val)
+                if (country) {
+                  console.log(`Make guess: '${country.name}'`)
+                  makeGuess(country)
+                }
+              }}
+              shouldItemRender={(country: Country, q: string) => {
+                return q.length >= 3 && (country as Country).name.toLowerCase().startsWith(q.toLowerCase())
+              }}
+              wrapperStyle={{ width: "100%", padding: "5px" }}
+              inputProps={{
+                style: { width: "100%" },
+                onBlur: () => setMode(FieldMode.INITIAL),
+                autoFocus: 1
+              }}
+            />
+          </div>
+          {showNumSolutionsHint && <NumSolutions />}
+        </>
+      )}
+      {(mode == FieldMode.FILLED && guess) && (
+        <>
+          <MarkingBackground $player={markedBy} />
+          {/* <span>{markedBy == 0 ? "O" : (markedBy == 1 ? "X" : "???")}</span> */}
+          <div className="field-center-50">
+            <CountryFlag country={guess} size={50} />
+          </div>
+          <div className="field-bottom">
+            <div className="field-flex">
+              <span className="label">
+                {guess.name + (showIso ? " " : "")}
+                {showIso && <span className="iso">({guess.iso})</span>}
+              </span>
+              <span className="capital">{guess.capital}</span>
+            </div>
+          </div>
+          {showNumSolutions && <NumSolutions />}
+        </>
       )}
     </TableCellInner>
   )

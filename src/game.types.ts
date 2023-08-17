@@ -31,7 +31,7 @@ export class Game {
   constructor(setup: GameSetup, users: string[]) {
     this.setup = setup
     this.users = users
-    this.marking = Array(setup.size).map(x => Array(setup.size).map(y => 2))
+    this.marking = [...Array(setup.size)].map(x => [...Array(setup.size)].map(y => -1))
   }
 }
 
