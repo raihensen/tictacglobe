@@ -20,6 +20,7 @@
     "next": "13.4.15",
     "postcss": "8.4.27",
     "react": "18.2.0",
+    "react-autocomplete": "^1.8.1",
     "react-bootstrap": "^2.8.0",
     "react-circle-flags": "^0.0.18",
     "react-dom": "18.2.0",

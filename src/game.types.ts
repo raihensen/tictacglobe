@@ -1,4 +1,10 @@
 
+export enum RequestAction {
+  ExistingOrNewGame = 0,
+  NewGame = 1
+}
+
+
 export interface Country {
   iso: string;
   name: string;
