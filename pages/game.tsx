@@ -129,6 +129,7 @@ function formatTableHeading(heading: string) {
 // TODO add info icon in solved cell to clarify alternative names etc.
 // TODO force flag reload when creating new game
 // TODO category common neighbor
+// TODO 3 difficulty levels
 
 
 export default function GameComponent(props: any) {
