@@ -125,8 +125,8 @@ function formatTableHeading(heading: string) {
 //    - prevent that a row has only cells with one equal solution
 //    - or total number of cells with just one solution
 //    - limit maximum difficulty score
-// TODO gold = yellow (same solution as ambiguous continents: alternative solutions to NominalCategory that do not create new cells)
-// TODO ambiguous capitals / capital names (Pretoria, Astana, Washington DC etc.)
+// DONE gold = yellow (same solution as ambiguous continents: alternative solutions to NominalCategory that do not create new cells)
+// TODO ambiguous capital names (Washington DC etc.)
 // TODO add info icon in solved cell to clarify alternative names etc.
 // TODO force flag reload when creating new game
 // TODO category common neighbor
