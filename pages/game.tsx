@@ -13,6 +13,7 @@ import { useEffect, useState } from 'react';
 import { Game, GameSetup, Country, getCountry, RequestAction } from "../src/game.types"
 import Autocomplete  from 'react-autocomplete'
 import { PlusCircleFill } from 'react-bootstrap-icons';
+import { capitalize } from "../src/util"
 
 
 // const Container = styled.div`
@@ -183,6 +184,10 @@ export default function GameComponent(props: any) {
     }
   }, [])
 
+  const getPlayerTurnColor = () => {
+    return playerTurn == 0 ? "red" : "blue"
+  }
+
   const [settings, setSettings] = useState({
     showIso: false,
     showNumSolutions: false,
@@ -217,7 +222,9 @@ export default function GameComponent(props: any) {
         <table>
           <thead>
             <tr>
-              <th></th>
+              <th>
+                <Badge bg={`player-${getPlayerTurnColor()}`}>{capitalize(getPlayerTurnColor())}'s turn</Badge>
+              </th>
               {game.setup.labels.cols.map((col, j) => (
                 <ColHeading key={j}><TableHeading>{formatTableHeading(col)}</TableHeading></ColHeading>
               ))}
