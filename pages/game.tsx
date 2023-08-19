@@ -26,7 +26,6 @@ import { capitalize } from "../src/util"
 // TODO force flag reload when creating new game
 // TODO 3 difficulty levels
 
-
 // const Container = styled.div`
 //   width: 100%;
 //   max-width: 600px;
