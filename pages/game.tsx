@@ -15,6 +15,17 @@ import Autocomplete  from 'react-autocomplete'
 import { PlusCircleFill } from 'react-bootstrap-icons';
 import { capitalize } from "../src/util"
 
+// TODO difficulty-limiting constraings
+//    - prevent that a row has only cells with one equal solution
+//    - or total number of cells with just one solution
+//    - limit maximum difficulty score
+// DONE gold = yellow (same solution as ambiguous continents: alternative solutions to NominalCategory that do not create new cells)
+// TODO ambiguous capital names (Washington DC etc.)
+// TODO category common neighbor
+// TODO add info icon in solved cell to clarify alternative names etc.
+// TODO force flag reload when creating new game
+// TODO 3 difficulty levels
+
 
 // const Container = styled.div`
 //   width: 100%;
@@ -120,17 +131,6 @@ function formatTableHeading(heading: string) {
   heading = heading.replace(/Ending letter: (\w)/i, "Name ..$1")
   return heading
 }
-
-// TODO difficulty-limiting constraings
-//    - prevent that a row has only cells with one equal solution
-//    - or total number of cells with just one solution
-//    - limit maximum difficulty score
-// DONE gold = yellow (same solution as ambiguous continents: alternative solutions to NominalCategory that do not create new cells)
-// TODO ambiguous capital names (Washington DC etc.)
-// TODO add info icon in solved cell to clarify alternative names etc.
-// TODO force flag reload when creating new game
-// TODO category common neighbor
-// TODO 3 difficulty levels
 
 
 export default function GameComponent(props: any) {
