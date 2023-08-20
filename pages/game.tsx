@@ -393,13 +393,7 @@ export default function GameComponent(props: any) {
                     setPlayerTurn={setPlayerTurn}
                     hasTurn={hasTurn}
                     countries={countries}
-                    solutions={solutions}
-                    alternativeSolutions={alternativeSolutions}
-                    initialGuess={guess}
-                    initialMarkedBy={game.marking[i][j]}
-                    showIso={settings.showIso}
-                    showNumSolutions={settings.showNumSolutions}
-                    showNumSolutionsHint={settings.showNumSolutionsHint}
+                    settings={settings}
                     preventSpoilers={[]}
                     />
                   </TableCell>)
@@ -424,13 +418,11 @@ type FieldProps = {
   setPlayerTurn: any;
   hasTurn: boolean;
   countries: Country[];
-  solutions: Country[];
-  alternativeSolutions: Country[];
-  initialGuess: Country | null;
-  initialMarkedBy: number;
-  showIso: boolean;
-  showNumSolutions: boolean;
-  showNumSolutionsHint: boolean;
+  settings: {
+    showIso: boolean;
+    showNumSolutions: boolean;
+    showNumSolutionsHint: boolean;
+  }
   preventSpoilers: string[];
 }
 
@@ -440,12 +432,15 @@ enum FieldMode {
   FILLED = 2
 }
 
-const Field = ({ pos, game, userIdentifier, apiRequest, playerTurn, setPlayerTurn, hasTurn, countries, solutions, alternativeSolutions, initialGuess, initialMarkedBy, showIso, showNumSolutions, showNumSolutionsHint, preventSpoilers }: FieldProps) => {
+const Field = ({ pos, game, userIdentifier, apiRequest, playerTurn, setPlayerTurn, hasTurn, countries, settings, preventSpoilers }: FieldProps) => {
 
-  const [mode, setMode] = useState(initialGuess ? FieldMode.FILLED : FieldMode.INITIAL)
-  
-  const [guess, setGuess] = useState(initialGuess ?? null)
-  const [markedBy, setMarkedBy] = useState(initialMarkedBy ?? -1)
+  const [i, j] = pos
+  const solutions = countries.filter(c => game.setup.solutions[i][j].includes(c.iso))
+  const alternativeSolutions = countries.filter(c => game.setup.alternativeSolutions[i][j].includes(c.iso))
+
+  const [mode, setMode] = useState(countries.find(c => c.iso == game.guesses[i][j]) ? FieldMode.FILLED : FieldMode.INITIAL)
+  const [guess, setGuess] = useState(countries.find(c => c.iso == game.guesses[i][j]) ?? null)
+  const [markedBy, setMarkedBy] = useState(game.marking[i][j] ?? -1)
 
   const NumSolutions = () => {
     const tooltipSolutions = (
@@ -521,7 +516,7 @@ const Field = ({ pos, game, userIdentifier, apiRequest, playerTurn, setPlayerTur
               }}
             />
           </div>}
-          {showNumSolutionsHint && <NumSolutions />}
+          {settings.showNumSolutionsHint && <NumSolutions />}
         </>
       )}
       {(mode == FieldMode.SEARCH && hasTurn) && (
@@ -533,7 +528,7 @@ const Field = ({ pos, game, userIdentifier, apiRequest, playerTurn, setPlayerTur
             onBlur={() => setMode(FieldMode.INITIAL)}
             />
           </div>
-          {showNumSolutionsHint && <NumSolutions />}
+          {settings.showNumSolutionsHint && <NumSolutions />}
         </>
       )}
       {(mode == FieldMode.FILLED && guess) && (
@@ -547,14 +542,14 @@ const Field = ({ pos, game, userIdentifier, apiRequest, playerTurn, setPlayerTur
             <div className="field-flex">
             <OverlayTrigger placement="right" overlay={<TooltipCountryInfo country={guess} />}>
               <span className="label">
-                {guess.name + (showIso ? " " : "")}
-                {showIso && <span className="iso">({guess.iso})</span>}
+                {guess.name + (settings.showIso ? " " : "")}
+                {settings.showIso && <span className="iso">({guess.iso})</span>}
               </span>
             </OverlayTrigger>
             {/* <span className="capital">{guess.capital}</span> */}
             </div>
           </div>
-          {showNumSolutions && <NumSolutions />}
+          {settings.showNumSolutions && <NumSolutions />}
         </>
       )}
     </TableCellInner>
@@ -604,20 +599,3 @@ const CountryAutoComplete = ({ countries, makeGuess, onBlur }: CountryAutoComple
   )
 }
 
-
-//<td class="sc-ilpitK etiGbc"><div style="position: relative;left: 0;top: 0;width: 150px;height: 150px;background: red;right: 0;/*! bottom: 0; */">
-
-//{/* <div class="abs-top-left"><span class="badge bg-info">1</span></div><div class="sc-jIJgYh cQewnF" style="position: absolute;top: 0;left: 0;"><img data-testid="circle-country-flag" height="50" title="fi" src="https://hatscripts.github.io/circle-flags/flags/fi.svg"><span class="label">Finland <span class="iso">(FI)</span></span><span class="capital">Helsinki</span></div></div></td> */}
-
-
-// let cols = ["Africa", "South America", "Green"]
-// let rows = [
-//   "Name C..",
-//   "Name ..U",
-//   "Capital ..A"
-// ]
-// let fields = [
-//   ["Central African Republic", "Chile", "Comoros"],
-//   ["Guinea-Bissau", "Peru", "Vanuatu"],
-//   ["Angola", "Colombia", "Brazil"]
-// ]
