@@ -31,6 +31,11 @@ export interface GameSetup {
     cols: string[];
   }
 }
+export enum GameState {
+  Initialized = 0,
+  Running = 1,
+  Finished = 2
+}
 
 export type GameData = {
   isNewGame: boolean;
@@ -49,6 +54,7 @@ export class Game {
   guesses: (Country["iso"] | null)[][];
   turn: number;
   playingMode: PlayingMode;
+  state: GameState;
 
   constructor(setup: GameSetup, users: string[], playingMode: PlayingMode) {
     this.setup = setup
@@ -57,6 +63,7 @@ export class Game {
     this.marking = [...Array(setup.size)].map(x => [...Array(setup.size)].map(y => -1))
     this.guesses = [...Array(setup.size)].map(x => [...Array(setup.size)].map(y => null))
     this.turn = 0
+    this.state = GameState.Running
   }
 
   static fromApi(data: Game): Game {

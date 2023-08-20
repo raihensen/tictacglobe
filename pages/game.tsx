@@ -37,9 +37,6 @@ const initUserIdentifier = () => {
     // Generate a random user identifier
     storedUserIdentifier = Math.random().toString(36).substring(10)
     localStorage.setItem('userIdentifier', storedUserIdentifier)
-    console.log(`Generated: ${storedUserIdentifier}`)
-  } else {
-    console.log(`userIdentifier "${storedUserIdentifier}" found in localStorage.`);
   }
   return storedUserIdentifier
 }
@@ -56,20 +53,15 @@ export default function GameComponent(props: any) {
   function apiRequest(query: Query) {
     // Fetch the game data from the server
     const { userIdentifier, action, playerIndex, countryId, pos } = query
-    console.log(`apiRequest with userIdentifier ${userIdentifier}`);
-    
     const search = Object.entries(query).filter(([key, val]) => val != undefined).map(([key, val]) => `${key}=${encodeURIComponent(val)}`).join("&")
     const url = "/api/game?" + search
-    console.log(search);
+    console.log(`API request: ${url}`);
     
     fetch(url)
     .then(response => response.json())
     .then(data => {
       const newGame = Game.fromApi(data.game)
-
-      const numFilled = newGame.guesses.flat(1).filter(x => x).length
-      console.log(`${numFilled} cells filled`);
-
+      
       if (newGame.playingMode == PlayingMode.Offline) {
 
         // in offline mode, userIndex != playerIndex (there's only one user at index 0)

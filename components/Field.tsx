@@ -98,23 +98,40 @@ enum FieldMode {
   SEARCH = 1,
   FILLED = 2
 }
+type FieldState = {
+  guess: Country | null;
+  markedBy: number;
+  mode: FieldMode;
+}
+
 
 export const Field = ({ pos, game, userIdentifier, apiRequest, hasTurn, countries, settings, preventSpoilers }: FieldProps) => {
-
   const [i, j] = pos
   const solutions = countries.filter(c => game.setup.solutions[i][j].includes(c.iso))
   const alternativeSolutions = countries.filter(c => game.setup.alternativeSolutions[i][j].includes(c.iso))
-  const [guess, setGuess] = useState(countries.find(c => c.iso == game.guesses[i][j]) ?? null)
-  const [markedBy, setMarkedBy] = useState(game.marking[i][j] ?? -1)
-  const [mode, setMode] = useState(guess ? FieldMode.FILLED : FieldMode.INITIAL)
+
+  const [fieldState, setFieldState] = useState({
+    guess: countries.find(c => c.iso == game.guesses[i][j]) ?? null,
+    markedBy: game.marking[i][j] ?? -1,
+    mode: countries.find(c => c.iso == game.guesses[i][j]) ? FieldMode.FILLED : FieldMode.INITIAL
+  } as FieldState)
+
   const updateStates = () => {
     if (game.guesses[i][j]) {
       console.log(`updateStates() (${i},${j}). Guess: ${game.guesses[i][j] ?? "--"}`);
     }
-    
-    setGuess(countries.find(c => c.iso == game.guesses[i][j]) ?? null)
-    setMarkedBy(game.marking[i][j] ?? -1)
-    setMode(guess ? FieldMode.FILLED : FieldMode.INITIAL)
+    setFieldState({
+      guess: countries.find(c => c.iso == game.guesses[i][j]) ?? null,
+      markedBy: game.marking[i][j] ?? -1,
+      mode: countries.find(c => c.iso == game.guesses[i][j]) ? FieldMode.FILLED : FieldMode.INITIAL
+    })
+  }
+  const setMode = (mode: FieldMode) => {
+    setFieldState({
+      guess: fieldState.guess,
+      markedBy: fieldState.markedBy,
+      mode: mode
+    })
   }
   
   useEffect(updateStates, [game])
@@ -144,9 +161,9 @@ export const Field = ({ pos, game, userIdentifier, apiRequest, hasTurn, countrie
     ))
     return (
       <div className="field-abs-top-left">
-        {mode == FieldMode.FILLED && <OverlayTrigger placement="right" overlay={tooltipSolutions}><NumBadge /></OverlayTrigger>}
-        {(mode != FieldMode.FILLED && alternativeSolutions.length != 0) && <OverlayTrigger placement="right" overlay={tooltipInfo}><NumBadge /></OverlayTrigger>}
-        {(mode != FieldMode.FILLED && alternativeSolutions.length == 0) && <NumBadge />}
+        {fieldState.mode == FieldMode.FILLED && <OverlayTrigger placement="right" overlay={tooltipSolutions}><NumBadge /></OverlayTrigger>}
+        {(fieldState.mode != FieldMode.FILLED && alternativeSolutions.length != 0) && <OverlayTrigger placement="right" overlay={tooltipInfo}><NumBadge /></OverlayTrigger>}
+        {(fieldState.mode != FieldMode.FILLED && alternativeSolutions.length == 0) && <NumBadge />}
       </div>
     )
   }
@@ -170,7 +187,7 @@ export const Field = ({ pos, game, userIdentifier, apiRequest, hasTurn, countrie
 
   let tooltipCountryInfo = null
   const tooltipCountryInfoId = useId()
-  if (mode == FieldMode.FILLED && guess) {
+  if (fieldState.mode == FieldMode.FILLED && fieldState.guess) {
     // tooltipCountryInfo = (
       
     // )
@@ -182,7 +199,7 @@ export const Field = ({ pos, game, userIdentifier, apiRequest, hasTurn, countrie
     <TableCellInner>
       {/* <span>{mode}</span> */}
       {/* <span>pt: {playerTurn}, has: {hasTurn ? "y" : "n"}</span> */}
-      {mode == FieldMode.INITIAL && (
+      {fieldState.mode == FieldMode.INITIAL && (
         <>
           {hasTurn && <div className="field-center-50">
             <PlusCircleFill
@@ -197,7 +214,7 @@ export const Field = ({ pos, game, userIdentifier, apiRequest, hasTurn, countrie
           {settings.showNumSolutionsHint && <NumSolutions />}
         </>
       )}
-      {(mode == FieldMode.SEARCH && hasTurn) && (
+      {(fieldState.mode == FieldMode.SEARCH && hasTurn) && (
         <>
           <div className="field-flex">
             <CountryAutoComplete
@@ -209,23 +226,23 @@ export const Field = ({ pos, game, userIdentifier, apiRequest, hasTurn, countrie
           {settings.showNumSolutionsHint && <NumSolutions />}
         </>
       )}
-      {(mode == FieldMode.FILLED && guess) && (
+      {(fieldState.mode == FieldMode.FILLED && fieldState.guess) && (
         <>
-          <MarkingBackground $player={markedBy} />
+          <MarkingBackground $player={fieldState.markedBy} />
           {/* <span>{markedBy == 0 ? "O" : (markedBy == 1 ? "X" : "???")}</span> */}
           <div className="field-center-50">
-            <CountryFlag country={guess} size={50} />
+            <CountryFlag country={fieldState.guess} size={50} />
           </div>
           <div className="field-bottom">
             <div className="field-flex">
             <OverlayTrigger placement="right" overlay={(
               <Tooltip id={`tooltipCountryInfo-${tooltipCountryInfoId}`}>
-                Capital: {guess.capital}
+                Capital: {fieldState.guess.capital}
               </Tooltip>
             )}>
               <span className="label">
-                {guess.name + (settings.showIso ? " " : "")}
-                {settings.showIso && <span className="iso">({guess.iso})</span>}
+                {fieldState.guess.name + (settings.showIso ? " " : "")}
+                {settings.showIso && <span className="iso">({fieldState.guess.iso})</span>}
               </span>
             </OverlayTrigger>
             {/* <span className="capital">{guess.capital}</span> */}

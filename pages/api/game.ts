@@ -2,7 +2,7 @@
 import { Game, GameSetup, Country, gameSetups, countries, randomChoice, RequestAction, Query, PlayingMode } from "@/src/game.types"
 
 
-const gameUserMap: {[x: string]: Game} = {}
+var gameUserMap: {[x: string]: Game} = {}
 
 // TODO fix userId
 
@@ -62,6 +62,7 @@ export default (req, res) => {
 
   // get the Game instance, or create a new one
   let game: Game | null = gameUserMap[userIdentifier]
+  console.log(`userIdentifier ${userIdentifier}: ` + (game ? "Found game. All games: " : "No game found") + JSON.stringify(Object.entries(gameUserMap).map(([k, v]) => k)))
   if (action == RequestAction.NewGame) {
     game = null
   }
