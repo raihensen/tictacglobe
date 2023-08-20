@@ -10,7 +10,7 @@ import { CircleFlag } from 'react-circle-flags'
 import 'bootstrap/dist/css/bootstrap.min.css';
 import styled from "styled-components";
 import { forwardRef, useEffect, useId, useState } from 'react';
-import { Game, Country, getCountry, RequestAction, countries } from "../src/game.types"
+import { Game, Country, getCountry, RequestAction, countries, Query } from "../src/game.types"
 import Autocomplete  from 'react-autocomplete'
 import { PlusCircleFill } from 'react-bootstrap-icons';
 import { FaBuildingColumns, FaFlag, FaEarthAmericas, FaEarthAfrica, FaEarthAsia, FaEarthEurope, FaEarthOceania } from "react-icons/fa6";
@@ -24,14 +24,9 @@ import { OverlayTrigger, Tooltip } from "react-bootstrap";
 //    - prevent that a row has only cells with one equal solution
 //    - or total number of cells with just one solution
 //    - limit maximum difficulty score
-// DONE gold = yellow (same solution as ambiguous continents: alternative solutions to NominalCategory that do not create new cells)
-// TODO ambiguous capital names (Washington DC etc.)
 // TODO category common neighbor
-// TODO add info icon in solved cell to clarify alternative names etc.
 // TODO force flag reload when creating new game
 // TODO 3 difficulty levels
-
-// TODO use country data from preprocessing! (for tooltips etc)
 
 const TableCell = styled.td`
   border: 1px solid rgba(0,0,0,.25);
@@ -131,9 +126,6 @@ const TableHeadingStartsWithChar = styled.span<{ $i: number, $mode: "first" | "l
   ${props => props.$i == 0 ? "" : "text-shadow: 0 0 3px white"};
   ${props => props.$i == 0 ? "" : "color: transparent"};
   ${props => props.$i == 0 ? `margin-${props.$mode == "first" ? "right" : "left"}: 3px` : ""};
-  -webkit-user-select: none; /* Safari */
-  -ms-user-select: none; /* IE 10 and IE 11 */
-  user-select: none; /* Standard syntax */
   align-self: ${props => props.$mode} baseline;
   ${props => props.$i == 0 ? `
     transform: scale(1.2);
@@ -148,9 +140,12 @@ const CategoryBadge = styled.span`
   align-items: center;
   background: var(--bs-secondary);
   color: white;
-
   padding: .5rem;
   border-radius: 5px;
+
+  -webkit-user-select: none; /* Safari */
+  -ms-user-select: none; /* IE 10 and IE 11 */
+  user-select: none; /* Standard syntax */
 
   svg {
     margin-right: 6px;
@@ -164,27 +159,35 @@ const CategoryBadge = styled.span`
 const TableHeading = (props: { catValue?: string, children: string }) => {
   if (props.catValue) {
     if (props.catValue.startsWith("Starting letter") || props.catValue.startsWith("Capital starting letter")) {
+      const isCapital = props.catValue.startsWith("Capital starting letter")
       const letter = props.catValue.substring(props.catValue.length - 1).toUpperCase()
       const word = [letter, "a", "b", "c", "d"]
+      const tooltipCategoryInfo = (<Tooltip id={`tooltipCategoryInfo-${useId()}`}>{isCapital ? "Capital" : "Country name"} starts with {"AEFHILMNORSX".includes(letter) ? "an" : "a"} {letter}</Tooltip>)
       return (
-        <CategoryBadge>
-          {props.catValue.startsWith("Capital starting letter") && (<>
-            <FaBuildingColumns className={styles.categoryIcon} />
-          </>)}
-          {word.map((c, i) => (<TableHeadingStartsWithChar $i={i} $mode="first">{i == 4 ? `${c}...` : c}</TableHeadingStartsWithChar>))}
-        </CategoryBadge>
+        <OverlayTrigger placement="top" overlay={tooltipCategoryInfo}>
+          <CategoryBadge>
+            {isCapital && (<>
+              <FaBuildingColumns className={styles.categoryIcon} />
+            </>)}
+            {word.map((c, i) => (<TableHeadingStartsWithChar $i={i} $mode="first">{i == 4 ? `${c}...` : c}</TableHeadingStartsWithChar>))}
+          </CategoryBadge>
+        </OverlayTrigger>
       )
     }
     if (props.catValue.startsWith("Ending letter") || props.catValue.startsWith("Capital ending letter")) {
+      const isCapital = props.catValue.startsWith("Capital ending letter")
       const letter = props.catValue.substring(props.catValue.length - 1).toUpperCase()
       const word = ["a", "b", "c", letter]
+      const tooltipCategoryInfo = (<Tooltip id={`tooltipCategoryInfo-${useId()}`}>{isCapital ? "Capital" : "Country name"} ends with {"AEFHILMNORSX".includes(letter) ? "an" : "a"} {letter}</Tooltip>)
       return (
-        <CategoryBadge>
-          {props.catValue.startsWith("Capital ending letter") && (<>
-            <FaBuildingColumns className={styles.categoryIcon} />
-          </>)}
-          {word.map((c, i) => (<TableHeadingStartsWithChar $i={3 - i} $mode="last">{i == 0 ? `...${c}` : c}</TableHeadingStartsWithChar>))}
-        </CategoryBadge>
+        <OverlayTrigger placement="top" overlay={tooltipCategoryInfo}>
+          <CategoryBadge>
+            {isCapital && (<>
+              <FaBuildingColumns className={styles.categoryIcon} />
+            </>)}
+            {word.map((c, i) => (<TableHeadingStartsWithChar $i={3 - i} $mode="last">{i == 0 ? `...${c}` : c}</TableHeadingStartsWithChar>))}
+          </CategoryBadge>
+        </OverlayTrigger>
       )
     }
     if (props.catValue.startsWith("Flag color")) {
@@ -199,15 +202,14 @@ const TableHeading = (props: { catValue?: string, children: string }) => {
         "Black": styles.flagColorBlack
       }
       const colorClass = _.get(colorMap, color, styles.flagColorBlack)
+      const tooltipCategoryInfo = (<Tooltip id={`tooltipCategoryInfo-${useId()}`}>Flag contains the color {color}</Tooltip>)
       return (
-        // <FlagColorBadge className={`flagColorBadge ${colorClass}`}>
-        //   <FaFlag />
-        //   <span class="color-name">{color.toUpperCase()}</span>
-        // </FlagColorBadge>
-        <CategoryBadge className={`flagColorBadge ${colorClass}`}>
-          <FaFlag className={styles.categoryIcon} />
-          <span className="color-name">{color.toUpperCase()}</span>
-        </CategoryBadge>
+        <OverlayTrigger placement="top" overlay={tooltipCategoryInfo}>
+          <CategoryBadge className={`flagColorBadge ${colorClass}`}>
+            <FaFlag className={styles.categoryIcon} />
+            <span className="color-name">{color.toUpperCase()}</span>
+          </CategoryBadge>
+        </OverlayTrigger>
       )
     }
     const continentIconMap = {
@@ -218,14 +220,22 @@ const TableHeading = (props: { catValue?: string, children: string }) => {
       "Africa": FaEarthAfrica,
       "Oceania": FaEarthOceania
     }
+    const continentNameMap = {
+      "N. America": "North America",
+      "S. America": "South America"
+    }
 
     if (props.catValue in continentIconMap) {
       const continent = props.catValue
+      const continentName = _.get(continentNameMap, continent, continent)
       const ContinentIcon = _.get(continentIconMap, continent, FaEarthAfrica)
-      return (<CategoryBadge>
-        <ContinentIcon className={styles.categoryIcon} />
-        <span className="continent-name">{continent}</span>
-      </CategoryBadge>)
+      const tooltipCategoryInfo = (<Tooltip id={`tooltipCategoryInfo-${useId()}`}>Continent: {continentName}</Tooltip>)
+      return (<OverlayTrigger placement="top" overlay={tooltipCategoryInfo}>
+        <CategoryBadge>
+          <ContinentIcon className={styles.categoryIcon} />
+          <span className="continent-name">{continent}</span>
+        </CategoryBadge>
+      </OverlayTrigger>)
     }
   }
   return <SimpleTableHeading>{props.children}</SimpleTableHeading>
@@ -274,12 +284,20 @@ export default function GameComponent(props: any) {
   const [hasTurn, setHasTurn] = useState(true)
 
   function newGame() {
-    apiRequest(RequestAction.NewGame)
+    apiRequest({
+      userIdentifier: userIdentifier,
+      action: RequestAction.NewGame,
+    })
   }
 
-  function apiRequest(action: RequestAction) {
+  function apiRequest(query: Query) {
     // Fetch the game data from the server
-    fetch(`/api/game?userIdentifier=${userIdentifier}&action=${action}`)
+    const { userIdentifier, action, countryId, pos } = query
+    const search = Object.entries(query).filter(([key, val]) => val != undefined).map(([key, val]) => `${key}=${encodeURIComponent(val)}`).join("&")
+    const url = "/api/game?" + search
+    console.log(search);
+    
+    fetch(url)
     .then(response => response.json())
     .then(data => {
       setGameData(data)
@@ -300,7 +318,10 @@ export default function GameComponent(props: any) {
       setUserIdentifier(storedUserIdentifier)
     }
 
-    apiRequest(RequestAction.ExistingOrNewGame)
+    apiRequest({
+      userIdentifier: userIdentifier,
+      action: RequestAction.ExistingOrNewGame,
+    })
     return () => {
       // this is called to finalize the effect hook, before it is triggered again
     }
@@ -364,10 +385,13 @@ export default function GameComponent(props: any) {
                   const guess = null
                   return (<TableCell key={j}>
                     <Field
+                    pos={[i, j]}
+                    game={game}
+                    userIdentifier={userIdentifier}
+                    apiRequest={apiRequest}
                     playerTurn={playerTurn}
                     setPlayerTurn={setPlayerTurn}
                     hasTurn={hasTurn}
-                    game={game}
                     countries={countries}
                     solutions={solutions}
                     alternativeSolutions={alternativeSolutions}
@@ -392,11 +416,13 @@ export default function GameComponent(props: any) {
 
 
 type FieldProps = {
+  pos: number[];
+  game: Game;
+  userIdentifier: string;
+  apiRequest: (query: Query) => any;
   playerTurn: number;
   setPlayerTurn: any;
   hasTurn: boolean;
-  // pos: number[];
-  game: Game;
   countries: Country[];
   solutions: Country[];
   alternativeSolutions: Country[];
@@ -414,7 +440,7 @@ enum FieldMode {
   FILLED = 2
 }
 
-const Field = ({ playerTurn, setPlayerTurn, hasTurn, game, countries, solutions, alternativeSolutions, initialGuess, initialMarkedBy, showIso, showNumSolutions, showNumSolutionsHint, preventSpoilers }: FieldProps) => {
+const Field = ({ pos, game, userIdentifier, apiRequest, playerTurn, setPlayerTurn, hasTurn, countries, solutions, alternativeSolutions, initialGuess, initialMarkedBy, showIso, showNumSolutions, showNumSolutionsHint, preventSpoilers }: FieldProps) => {
 
   const [mode, setMode] = useState(initialGuess ? FieldMode.FILLED : FieldMode.INITIAL)
   
@@ -453,8 +479,18 @@ const Field = ({ playerTurn, setPlayerTurn, hasTurn, game, countries, solutions,
   const makeGuess = (country: Country) => {
     const correct = solutions.concat(alternativeSolutions).map(c => c.iso).includes(country.iso)
     if (correct) {
+
+
       setGuess(country)
       setMarkedBy(playerTurn)
+
+      apiRequest({
+        userIdentifier: userIdentifier,
+        action: RequestAction.MakeGuess,
+        countryId: country.iso,
+        pos: pos.join(",")
+      })
+
       setMode(FieldMode.FILLED)
     } else {
       console.log("Wrong guess!" + ` (${country.iso} not in [${solutions.map(c => c.iso).join(", ")}]})`)
