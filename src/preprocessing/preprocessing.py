@@ -164,6 +164,7 @@ name_map = {
     'Bosnia And Herzegovina': 'Bosnia and Herzegovina',
     'Bouvet Island': None,
     'Brunei Darussalam': "Brunei",
+    "Czechia": "Czech Republic",
     'Cook Islands': None,
     'Curaçao': None,
     "Côte D'Ivoire": 'Ivory Coast',

@@ -9,6 +9,7 @@ type Query = {
   action: RequestAction;
 }
 
+// TODO post game actions to server
 
 export default (req, res) => {
 

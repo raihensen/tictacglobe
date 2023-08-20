@@ -9,11 +9,16 @@ import Badge from 'react-bootstrap/Badge';
 import { CircleFlag } from 'react-circle-flags'
 import 'bootstrap/dist/css/bootstrap.min.css';
 import styled from "styled-components";
-import { useEffect, useState } from 'react';
-import { Game, GameSetup, Country, getCountry, RequestAction } from "../src/game.types"
+import { forwardRef, useEffect, useId, useState } from 'react';
+import { Game, Country, getCountry, RequestAction, countries } from "../src/game.types"
 import Autocomplete  from 'react-autocomplete'
 import { PlusCircleFill } from 'react-bootstrap-icons';
+import { FaBuildingColumns, FaFlag, FaEarthAmericas, FaEarthAfrica, FaEarthAsia, FaEarthEurope, FaEarthOceania } from "react-icons/fa6";
 import { capitalize } from "../src/util"
+var _ = require('lodash');
+
+import styles from './Game.module.css'
+import { OverlayTrigger, Tooltip } from "react-bootstrap";
 
 // TODO difficulty-limiting constraings
 //    - prevent that a row has only cells with one equal solution
@@ -26,13 +31,8 @@ import { capitalize } from "../src/util"
 // TODO force flag reload when creating new game
 // TODO 3 difficulty levels
 
-// const Container = styled.div`
-//   width: 100%;
-//   max-width: 600px;
-// `
-const Row = styled.div`
-  width: 100%;
-`
+// TODO use country data from preprocessing! (for tooltips etc)
+
 const TableCell = styled.td`
   border: 1px solid rgba(0,0,0,.25);
   padding: 0;
@@ -100,36 +100,159 @@ const MarkingBackground = styled.div<{ $player: number }>`
   z-index: -10;
 `
 const RowHeading = styled.td`
-`
-const ColHeadings = styled.div`
-
-`
-const ColHeading = styled.th`
-  height: 150px;
-  & > span {
-    transform: rotate(-60deg);
-    display: block;
-    text-align: left;
+  & > div {
+    width: 150px;
+    height: 150px;
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    padding: 10px;
   }
 `
-const TableHeading = styled.span`
+
+const ColHeading = styled.th`
+  & > div {
+    width: 150px;
+    height: 100px;
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+    padding: 10px;
+  }
+`
+const SimpleTableHeading = styled.span`
   text-transform: uppercase;
   font-weight: bold;
 `
 
-const countryFlagPath = (country: Country) => `/circle-flags-gh-pages/flags/${country.iso.toLowerCase()}.svg`
-const CountryFlag = ({ country, size, onClick }: { country: Country | null, size: number, onClick?: any }) => (
-  <CircleFlag countryCode={country?.iso?.toLowerCase() ?? "xx"} height={size} onClick={onClick} />
-  // <Image src={countryFlagPath(country)} width={size} height={size} alt={country.name} />
-);
+const TableHeadingStartsWithChar = styled.span<{ $i: number, $mode: "first" | "last" }>`
+  font-weight: bold;
+  font-size: ${props => props.$i == 0 ? 100 : (1 - .5 * (props.$i - 1) / 3) * 100}%;
+  ${props => props.$i == 0 ? "" : "text-shadow: 0 0 3px white"};
+  ${props => props.$i == 0 ? "" : "color: transparent"};
+  ${props => props.$i == 0 ? `margin-${props.$mode == "first" ? "right" : "left"}: 3px` : ""};
+  -webkit-user-select: none; /* Safari */
+  -ms-user-select: none; /* IE 10 and IE 11 */
+  user-select: none; /* Standard syntax */
+  align-self: ${props => props.$mode} baseline;
+  ${props => props.$i == 0 ? `
+    transform: scale(1.2);
+    font-size: 1.25em;
+    margin-top: -.25em;
+    margin-bottom: -.25em;
+  ` : ""}
+`
 
-function formatTableHeading(heading: string) {
+const CategoryBadge = styled.span`
+  display: flex;
+  align-items: center;
+  background: var(--bs-secondary);
+  color: white;
+
+  padding: .5rem;
+  border-radius: 5px;
+
+  svg {
+    margin-right: 6px;
+    font-size: 24px;
+  }
+  .color-name {
+    font-size: 80%;
+  }
+`
+
+const TableHeading = (props: { catValue?: string, children: string }) => {
+  if (props.catValue) {
+    if (props.catValue.startsWith("Starting letter") || props.catValue.startsWith("Capital starting letter")) {
+      const letter = props.catValue.substring(props.catValue.length - 1).toUpperCase()
+      const word = [letter, "a", "b", "c", "d"]
+      return (
+        <CategoryBadge>
+          {props.catValue.startsWith("Capital starting letter") && (<>
+            <FaBuildingColumns className={styles.categoryIcon} />
+          </>)}
+          {word.map((c, i) => (<TableHeadingStartsWithChar $i={i} $mode="first">{i == 4 ? `${c}...` : c}</TableHeadingStartsWithChar>))}
+        </CategoryBadge>
+      )
+    }
+    if (props.catValue.startsWith("Ending letter") || props.catValue.startsWith("Capital ending letter")) {
+      const letter = props.catValue.substring(props.catValue.length - 1).toUpperCase()
+      const word = ["a", "b", "c", letter]
+      return (
+        <CategoryBadge>
+          {props.catValue.startsWith("Capital ending letter") && (<>
+            <FaBuildingColumns className={styles.categoryIcon} />
+          </>)}
+          {word.map((c, i) => (<TableHeadingStartsWithChar $i={3 - i} $mode="last">{i == 0 ? `...${c}` : c}</TableHeadingStartsWithChar>))}
+        </CategoryBadge>
+      )
+    }
+    if (props.catValue.startsWith("Flag color")) {
+      const color = props.catValue.replace(/^Flag color: (.+)$/i, "$1")
+      const colorMap = {
+        "Red": styles.flagColorRed,
+        "Yellow/Gold": styles.flagColorYellow,
+        "Orange": styles.flagColorOrange,
+        "Green": styles.flagColorGreen,
+        "Blue": styles.flagColorBlue,
+        "White": styles.flagColorWhite,
+        "Black": styles.flagColorBlack
+      }
+      const colorClass = _.get(colorMap, color, styles.flagColorBlack)
+      return (
+        // <FlagColorBadge className={`flagColorBadge ${colorClass}`}>
+        //   <FaFlag />
+        //   <span class="color-name">{color.toUpperCase()}</span>
+        // </FlagColorBadge>
+        <CategoryBadge className={`flagColorBadge ${colorClass}`}>
+          <FaFlag className={styles.categoryIcon} />
+          <span className="color-name">{color.toUpperCase()}</span>
+        </CategoryBadge>
+      )
+    }
+    const continentIconMap = {
+      "Asia": FaEarthAsia,
+      "N. America": FaEarthAmericas,
+      "S. America": FaEarthAmericas,
+      "Europe": FaEarthEurope,
+      "Africa": FaEarthAfrica,
+      "Oceania": FaEarthOceania
+    }
+
+    if (props.catValue in continentIconMap) {
+      const continent = props.catValue
+      const ContinentIcon = _.get(continentIconMap, continent, FaEarthAfrica)
+      return (<CategoryBadge>
+        <ContinentIcon className={styles.categoryIcon} />
+        <span className="continent-name">{continent}</span>
+      </CategoryBadge>)
+    }
+  }
+  return <SimpleTableHeading>{props.children}</SimpleTableHeading>
+}
+
+
+function formatTableHeading(heading: string, settings: { fancy?: boolean }) {
+
+  if (settings.fancy) {
+    if (heading.startsWith("Starting letter")) {
+      return heading.substring(heading.length - 1)
+    }
+    if (heading.startsWith("Ending letter")) {
+      return heading.substring(heading.length - 1)
+    }
+  }
+
   heading = heading.replace(/Capital starting letter: (\w)/i, "Capital $1..")
   heading = heading.replace(/Capital ending letter: (\w)/i, "Capital ..$1")
   heading = heading.replace(/Starting letter: (\w)/i, "Name $1..")
   heading = heading.replace(/Ending letter: (\w)/i, "Name ..$1")
   return heading
 }
+
+const CountryFlag = ({ country, size, onClick }: { country: Country | null, size: number, onClick?: any }) => (
+  <CircleFlag countryCode={country?.iso?.toLowerCase() ?? "xx"} height={size} onClick={onClick} />
+);
 
 
 export default function GameComponent(props: any) {
@@ -184,7 +307,7 @@ export default function GameComponent(props: any) {
   }, [])
 
   const getPlayerTurnColor = () => {
-    return playerTurn == 0 ? "red" : "blue"
+    return playerTurn == 0 ? "blue" : "red"
   }
 
   const [settings, setSettings] = useState({
@@ -222,19 +345,22 @@ export default function GameComponent(props: any) {
           <thead>
             <tr>
               <th>
-                <Badge bg={`player-${getPlayerTurnColor()}`}>{capitalize(getPlayerTurnColor())}'s turn</Badge>
+                <div style={{width: "100%", height: "100%"}}>
+                  <span className={styles["badge-player"] + " " + styles[`bg-player-${getPlayerTurnColor()}`]}>{capitalize(getPlayerTurnColor())}'s turn</span>
+                </div>
               </th>
               {game.setup.labels.cols.map((col, j) => (
-                <ColHeading key={j}><TableHeading>{formatTableHeading(col)}</TableHeading></ColHeading>
+                <ColHeading key={j}><div><TableHeading catValue={col}>{formatTableHeading(col, { fancy: true })}</TableHeading></div></ColHeading>
               ))}
             </tr>
           </thead>
           <tbody>
-            {game.setup.cells.map((row: string[][], i: number) => (
+            {game.setup.solutions.map((row: string[][], i: number) => (
               <tr key={i}>
-                <RowHeading><TableHeading>{formatTableHeading(game.setup.labels.rows[i])}</TableHeading></RowHeading>
+                <RowHeading><div><TableHeading catValue={game.setup.labels.rows[i]}>{formatTableHeading(game.setup.labels.rows[i], { fancy: true })}</TableHeading></div></RowHeading>
                 {row.map((countryCodes: string[], j: number) => {
                   const solutions = countryCodes.map(c => getCountry(c)).filter(c => c) as Country[]
+                  const alternativeSolutions = game.setup.alternativeSolutions[i][j].map(c => getCountry(c)).filter(c => c) as Country[]
                   const guess = null
                   return (<TableCell key={j}>
                     <Field
@@ -242,12 +368,15 @@ export default function GameComponent(props: any) {
                     setPlayerTurn={setPlayerTurn}
                     hasTurn={hasTurn}
                     game={game}
+                    countries={countries}
                     solutions={solutions}
+                    alternativeSolutions={alternativeSolutions}
                     initialGuess={guess}
                     initialMarkedBy={game.marking[i][j]}
                     showIso={settings.showIso}
                     showNumSolutions={settings.showNumSolutions}
                     showNumSolutionsHint={settings.showNumSolutionsHint}
+                    preventSpoilers={[]}
                     />
                   </TableCell>)
                 })}
@@ -268,12 +397,15 @@ type FieldProps = {
   hasTurn: boolean;
   // pos: number[];
   game: Game;
+  countries: Country[];
   solutions: Country[];
+  alternativeSolutions: Country[];
   initialGuess: Country | null;
   initialMarkedBy: number;
   showIso: boolean;
   showNumSolutions: boolean;
   showNumSolutionsHint: boolean;
+  preventSpoilers: string[];
 }
 
 enum FieldMode {
@@ -282,30 +414,60 @@ enum FieldMode {
   FILLED = 2
 }
 
-const Field = ({ playerTurn, setPlayerTurn, hasTurn, game, solutions, initialGuess, initialMarkedBy, showIso, showNumSolutions, showNumSolutionsHint }: FieldProps) => {
+const Field = ({ playerTurn, setPlayerTurn, hasTurn, game, countries, solutions, alternativeSolutions, initialGuess, initialMarkedBy, showIso, showNumSolutions, showNumSolutionsHint, preventSpoilers }: FieldProps) => {
 
   const [mode, setMode] = useState(initialGuess ? FieldMode.FILLED : FieldMode.INITIAL)
-  const [searchValue, setSearchValue] = useState("")
+  
   const [guess, setGuess] = useState(initialGuess ?? null)
   const [markedBy, setMarkedBy] = useState(initialMarkedBy ?? -1)
 
-  const countries = game.setup.values
-
-  const NumSolutions = () => (<div className="field-abs-top-left">
-    <Badge bg={solutions.length == 1 ? "danger" : "secondary"}>{solutions.length}</Badge>
-  </div>)
+  const NumSolutions = () => {
+    const tooltipSolutions = (
+      <Tooltip id={`tooltipNumSolutions-${useId()}`}>
+        <p>Solutions: {solutions.map(c => c.name).join(", ")}</p>
+        {alternativeSolutions.length != 0 && (<>
+          <p>Also accepted: {alternativeSolutions.map(c => c.name).join(", ")}</p>
+        </>)}
+      </Tooltip>
+    );
+    const tooltipInfo = (
+      <Tooltip id={`tooltipNumSolutions-${useId()}`}>
+        {alternativeSolutions.length != 0 && (<>
+          There {solutions.length > 1 ? `are ${solutions.length} regular solutions` : `is 1 regular solution`},
+          and {alternativeSolutions.length} more when using alternative values or spellings.
+        </>)}
+      </Tooltip>
+    );
+    const NumBadge = forwardRef((props, ref: any) => (
+      <Badge bg={solutions.length == 1 ? "danger" : "secondary"} ref={ref} {...props}>{solutions.length}{(alternativeSolutions.length ? "*" : "")}</Badge>
+    ))
+    return (
+      <div className="field-abs-top-left">
+        {mode == FieldMode.FILLED && <OverlayTrigger placement="right" overlay={tooltipSolutions}><NumBadge /></OverlayTrigger>}
+        {(mode != FieldMode.FILLED && alternativeSolutions.length != 0) && <OverlayTrigger placement="right" overlay={tooltipInfo}><NumBadge /></OverlayTrigger>}
+        {(mode != FieldMode.FILLED && alternativeSolutions.length == 0) && <NumBadge />}
+      </div>
+    )
+  }
 
   const makeGuess = (country: Country) => {
-    if (solutions.map(c => c.iso).includes(country.iso)) {
+    const correct = solutions.concat(alternativeSolutions).map(c => c.iso).includes(country.iso)
+    if (correct) {
       setGuess(country)
       setMarkedBy(playerTurn)
       setMode(FieldMode.FILLED)
     } else {
       console.log("Wrong guess!" + ` (${country.iso} not in [${solutions.map(c => c.iso).join(", ")}]})`)
-      setSearchValue("")
     }
     setPlayerTurn(1 - playerTurn)
+    return correct
   }
+
+  const TooltipCountryInfo = forwardRef((props: { country: Country}, ref: any) => (
+    <Tooltip id={`tooltipCountryInfo-${useId()}`} ref={ref}>
+      Capital: {props.country.capital}
+    </Tooltip>
+  ))
 
 
   return (
@@ -329,32 +491,10 @@ const Field = ({ playerTurn, setPlayerTurn, hasTurn, game, solutions, initialGue
       {(mode == FieldMode.SEARCH && hasTurn) && (
         <>
           <div className="field-flex">
-            <Autocomplete
-              items={countries}
-              getItemValue={(country: Country) => country.iso}
-              renderItem={(country: Country, isHighlighted: boolean) =>
-                <div style={{ background: isHighlighted ? 'lightgray' : 'white' }}>
-                  {country.name}
-                </div>
-              }
-              value={searchValue}
-              onChange={(e, q) => setSearchValue(q)}
-              onSelect={(val: Country["iso"]) => {
-                const country = countries.find(c => c.iso == val)
-                if (country) {
-                  console.log(`Make guess: '${country.name}'`)
-                  makeGuess(country)
-                }
-              }}
-              shouldItemRender={(country: Country, q: string) => {
-                return q.length >= 3 && (country as Country).name.toLowerCase().startsWith(q.toLowerCase())
-              }}
-              wrapperStyle={{ width: "100%", padding: "5px" }}
-              inputProps={{
-                style: { width: "100%" },
-                onBlur: () => setMode(FieldMode.INITIAL),
-                autoFocus: 1
-              }}
+            <CountryAutoComplete
+            countries={countries}
+            makeGuess={makeGuess}
+            onBlur={() => setMode(FieldMode.INITIAL)}
             />
           </div>
           {showNumSolutionsHint && <NumSolutions />}
@@ -369,11 +509,13 @@ const Field = ({ playerTurn, setPlayerTurn, hasTurn, game, solutions, initialGue
           </div>
           <div className="field-bottom">
             <div className="field-flex">
+            <OverlayTrigger placement="right" overlay={<TooltipCountryInfo country={guess} />}>
               <span className="label">
                 {guess.name + (showIso ? " " : "")}
                 {showIso && <span className="iso">({guess.iso})</span>}
               </span>
-              <span className="capital">{guess.capital}</span>
+            </OverlayTrigger>
+            {/* <span className="capital">{guess.capital}</span> */}
             </div>
           </div>
           {showNumSolutions && <NumSolutions />}
@@ -382,6 +524,48 @@ const Field = ({ playerTurn, setPlayerTurn, hasTurn, game, solutions, initialGue
     </TableCellInner>
   )
 
+}
+
+type CountryAutoCompleteProps = {
+  countries: Country[];
+  makeGuess: (country: Country) => boolean;
+  onBlur: () => void;
+}
+
+const CountryAutoComplete = ({ countries, makeGuess, onBlur }: CountryAutoCompleteProps) => {
+
+  const [searchValue, setSearchValue] = useState("")
+
+  return (
+    <Autocomplete
+      items={countries}
+      getItemValue={(country: Country) => country.iso}
+      renderItem={(country: Country, isHighlighted: boolean) =>
+        <div className={styles.autoCompleteItem} style={{ background: isHighlighted ? 'lightgray' : 'white' }}>
+          {country.name}
+        </div>
+      }
+      value={searchValue}
+      onChange={(e, q) => setSearchValue(q)}
+      onSelect={(val: Country["iso"]) => {
+        const country = countries.find(c => c.iso == val)
+        if (country) {
+          console.log(`Make guess: '${country.name}'`)
+          const correct = makeGuess(country)
+          setSearchValue("")
+        }
+      }}
+      shouldItemRender={(country: Country, q: string) => {
+        return q.length >= 3 && (country as Country).name.toLowerCase().startsWith(q.toLowerCase())
+      }}
+      wrapperStyle={{ width: "100%", padding: "5px" }}
+      inputProps={{
+        style: { width: "100%" },
+        onBlur: () => { onBlur() },
+        autoFocus: 1
+      }}
+    />
+  )
 }
 
 

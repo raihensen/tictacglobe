@@ -15,8 +15,8 @@ export interface Country {
 
 export interface GameSetup {
   size: number;
-  values: Country[];
-  cells: Country["iso"][][][];
+  solutions: Country["iso"][][][];
+  alternativeSolutions: Country["iso"][][][];
   labels: {
     rows: string[];
     cols: string[];
@@ -53,7 +53,7 @@ export function getCountry(q: string): Country | null {
 }
 
 import countryData from '../data/local/countries_processed.json'
-import gameData from '../data/games.json'
+import gameData from '../data/games1.json'
 
 export const countries: Country[] = countryData.map(x => ({ iso: x.ISO, name: x.Country, capital: x.Capital, continent: x.Continent }) as Country)
 export const gameSetups = gameData as GameSetup[]
