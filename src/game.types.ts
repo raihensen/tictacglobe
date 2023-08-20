@@ -8,6 +8,7 @@ export enum RequestAction {
 export type Query = {
   userIdentifier: string;
   action: RequestAction;
+  playerIndex?: number;
   countryId?: string;
   pos?: string;  // coords like "0,2"
 }
@@ -31,19 +32,39 @@ export interface GameSetup {
   }
 }
 
+export type GameData = {
+  isNewGame: boolean;
+  game: Game | null;
+}
+
+export enum PlayingMode {
+  Offline = 0,
+  Online = 1
+}
+
 export class Game {
   setup: GameSetup;
   users: string[];  // index 0 = O, 1 = X
   marking: number[][];  // 0 = O, 1 = X, -1 = empty
   guesses: (Country["iso"] | null)[][];
+  turn: number;
+  playingMode: PlayingMode;
 
-  numMoves?: number;
-
-  constructor(setup: GameSetup, users: string[]) {
+  constructor(setup: GameSetup, users: string[], playingMode: PlayingMode) {
     this.setup = setup
     this.users = users
+    this.playingMode = playingMode
     this.marking = [...Array(setup.size)].map(x => [...Array(setup.size)].map(y => -1))
     this.guesses = [...Array(setup.size)].map(x => [...Array(setup.size)].map(y => null))
+    this.turn = 0
+  }
+
+  static fromApi(data: Game): Game {
+    const game = new Game(data.setup, data.users, data.playingMode)
+    game.marking = data.marking
+    game.guesses = data.guesses
+    game.turn = data.turn
+    return game
   }
 
   isValidGuess(i: number, j: number, country: Country) {

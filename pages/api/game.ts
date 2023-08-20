@@ -1,12 +1,12 @@
 
-import { Game, GameSetup, Country, gameSetups, countries, randomChoice, RequestAction, Query } from "../../src/game.types"
+import { Game, GameSetup, Country, gameSetups, countries, randomChoice, RequestAction, Query, PlayingMode } from "../../src/game.types"
 
 
 const gameUserMap: {[x: string]: Game} = {}
 
 // TODO fix userId
 
-function makeGuess(game: Game, { userIdentifier, action, countryId, pos }: Query) {
+function makeGuess(game: Game, { userIdentifier, action, playerIndex, countryId, pos }: Query) {
   const match = (pos as string).match(/^(\d+),(\d+)$/)
   if (!match) {
     console.log(`Error: Invalid pos argument`);
@@ -26,17 +26,28 @@ function makeGuess(game: Game, { userIdentifier, action, countryId, pos }: Query
     console.log(`Error: Cell (${i},${j}) already occupied!`);
     return false
   }
+  const userIndex = game.users.indexOf(userIdentifier)
+  if (![0, 1].includes(userIndex)) {
+    console.log(`Error: User identifier not found!`);
+    return false
+  }
+  if (game.turn != playerIndex) {
+    console.log(`Error: It's not player ${playerIndex}'s turn!`);
+    return false
+  }
+
+  // check correct solution
+  if (!game.isValidGuess(i, j, country)) {
+    console.log(`Error: Wrong guess ((${i},${j}), ${country.name})`)
+    game.turn = 1 - game.turn
+    return true  // might return false?
+  }
 
   // execute
-  const userIndex = game.users.indexOf(userIdentifier)
-  game.marking[i][j] = userIndex
+  game.marking[i][j] = playerIndex
   game.guesses[i][j] = country.iso
-  console.log(`Set (${i},${j}) to ${country.iso} (user ${userIndex} / ${userIdentifier})`);
-  
-  if (!game.numMoves) {
-    game.numMoves = 0
-  }
-  game.numMoves += 1
+  game.turn = 1 - game.turn
+  console.log(`Set (${i},${j}) to ${country.iso} (player ${playerIndex} / user ${userIndex} / ${userIdentifier})`);
 
   // check win
   // TODO
@@ -56,7 +67,11 @@ export default (req, res) => {
   }
   const isNewGame = !game;
   if (!game) {
-    game = new Game(randomChoice(gameSetups), [userIdentifier, ""])
+    game = new Game(
+      randomChoice(gameSetups),
+      [userIdentifier],  // 1 element for offline game
+      PlayingMode.Offline
+    )
     gameUserMap[userIdentifier] = game
   }
 

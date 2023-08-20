@@ -2,6 +2,7 @@
 import Container from "react-bootstrap/Container";
 // import Row from "react-bootstrap/Row";
 // import Col from "react-bootstrap/Col";
+import Head from 'next/head';
 import Button from "react-bootstrap/Button";
 import Alert from 'react-bootstrap/Alert';
 import Form from 'react-bootstrap/Form';
@@ -10,7 +11,7 @@ import { CircleFlag } from 'react-circle-flags'
 import 'bootstrap/dist/css/bootstrap.min.css';
 import styled from "styled-components";
 import { forwardRef, useEffect, useId, useState } from 'react';
-import { Game, Country, getCountry, RequestAction, countries, Query } from "../src/game.types"
+import { Game, Country, getCountry, RequestAction, countries, Query, GameData, PlayingMode } from "../src/game.types"
 import Autocomplete  from 'react-autocomplete'
 import { PlusCircleFill } from 'react-bootstrap-icons';
 import { FaBuildingColumns, FaFlag, FaEarthAmericas, FaEarthAfrica, FaEarthAsia, FaEarthEurope, FaEarthOceania } from "react-icons/fa6";
@@ -115,12 +116,8 @@ const ColHeading = styled.th`
     padding: 10px;
   }
 `
-const SimpleTableHeading = styled.span`
-  text-transform: uppercase;
-  font-weight: bold;
-`
 
-const TableHeadingStartsWithChar = styled.span<{ $i: number, $mode: "first" | "last" }>`
+const TableHeadingLetter = styled.span<{ $i: number, $mode: "first" | "last" }>`
   font-weight: bold;
   font-size: ${props => props.$i == 0 ? 100 : (1 - .5 * (props.$i - 1) / 3) * 100}%;
   ${props => props.$i == 0 ? "" : "text-shadow: 0 0 3px white"};
@@ -164,12 +161,12 @@ const TableHeading = (props: { catValue?: string, children: string }) => {
       const word = [letter, "a", "b", "c", "d"]
       const tooltipCategoryInfo = (<Tooltip id={`tooltipCategoryInfo-${useId()}`}>{isCapital ? "Capital" : "Country name"} starts with {"AEFHILMNORSX".includes(letter) ? "an" : "a"} {letter}</Tooltip>)
       return (
-        <OverlayTrigger placement="top" overlay={tooltipCategoryInfo}>
+        <OverlayTrigger key="starting-letter" placement="top" overlay={tooltipCategoryInfo}>
           <CategoryBadge>
             {isCapital && (<>
               <FaBuildingColumns className={styles.categoryIcon} />
             </>)}
-            {word.map((c, i) => (<TableHeadingStartsWithChar $i={i} $mode="first">{i == 4 ? `${c}...` : c}</TableHeadingStartsWithChar>))}
+            {word.map((c, i) => (<TableHeadingLetter key={i} $i={i} $mode="first">{i == 4 ? `${c}...` : c}</TableHeadingLetter>))}
           </CategoryBadge>
         </OverlayTrigger>
       )
@@ -185,7 +182,7 @@ const TableHeading = (props: { catValue?: string, children: string }) => {
             {isCapital && (<>
               <FaBuildingColumns className={styles.categoryIcon} />
             </>)}
-            {word.map((c, i) => (<TableHeadingStartsWithChar $i={3 - i} $mode="last">{i == 0 ? `...${c}` : c}</TableHeadingStartsWithChar>))}
+            {word.map((c, i) => (<TableHeadingLetter key={i} $i={3 - i} $mode="last">{i == 0 ? `...${c}` : c}</TableHeadingLetter>))}
           </CategoryBadge>
         </OverlayTrigger>
       )
@@ -238,7 +235,7 @@ const TableHeading = (props: { catValue?: string, children: string }) => {
       </OverlayTrigger>)
     }
   }
-  return <SimpleTableHeading>{props.children}</SimpleTableHeading>
+  return false
 }
 
 
@@ -267,21 +264,13 @@ const CountryFlag = ({ country, size, onClick }: { country: Country | null, size
 
 export default function GameComponent(props: any) {
 
-  type GameData = {
-    isNewGame: boolean;
-    game: Game | null;
-  }
-
-  const [userIdentifier, setUserIdentifier] = useState("")
-  
   const [game, setGame] = useState(null as Game | null)
-  const [playerIndex, setPlayerIndex] = useState(0)  // who am i? 0/1
-  const [playerTurn, setPlayerTurn] = useState(0)  // whose turn is it? 0/1
   const [gameData, setGameData] = useState({ isNewGame: true, game: null } as GameData)
+  const [userIdentifier, setUserIdentifier] = useState("")
+  const [playerIndex, setPlayerIndex] = useState(0)  // who am i? 0/1
+  const [hasTurn, setHasTurn] = useState(true)
 
   // TODO game logic
-  // let hasTurn = playerIndex == playerTurn
-  const [hasTurn, setHasTurn] = useState(true)
 
   function newGame() {
     apiRequest({
@@ -300,12 +289,35 @@ export default function GameComponent(props: any) {
     fetch(url)
     .then(response => response.json())
     .then(data => {
-      setGameData(data)
-      setGame(data.game)
-      const userIndex = data.game.users.indexOf(userIdentifier)
-      if (userIndex != -1) {
-        setPlayerIndex(userIndex)
+      const newGame = Game.fromApi(data.game)
+
+      const numFilled = newGame.guesses.flat(1).filter(x => x).length
+      console.log(`${numFilled} cells filled`);
+
+      if (newGame.playingMode == PlayingMode.Offline) {
+
+        // in offline mode, userIndex != playerIndex (there's only one user at index 0)
+        console.log("Update playerIndex and hasTurn()");
+        setPlayerIndex(newGame.turn)
+        setHasTurn(true)
+
+      } else if (newGame.playingMode == PlayingMode.Online) {
+
+        // TODO
+        const userIndex = data.game.users.indexOf(userIdentifier)
+        
+        if (userIndex != -1) {
+          setPlayerIndex(userIndex)
+        }
+        setHasTurn(playerIndex == data.game.turn)
+
       }
+
+      console.log("Update game");
+      
+      setGameData(data)
+      setGame(newGame)
+      
     })
   }
 
@@ -328,20 +340,20 @@ export default function GameComponent(props: any) {
   }, [])
 
   const getPlayerTurnColor = () => {
-    return playerTurn == 0 ? "blue" : "red"
+    return game?.turn == 0 ? "blue" : "red"
   }
 
   const [settings, setSettings] = useState({
     showIso: false,
-    showNumSolutions: false,
+    showNumSolutions: true,
     showNumSolutionsHint: false
   })
 
   function updateSettings(e: React.ChangeEvent<HTMLInputElement>) {
     const newSettings = {
-      showIso: e.target.id == "settings-show-iso" ? e.target.checked : settings.showIso,
-      showNumSolutions: e.target.id == "settings-show-num-solutions" ? e.target.checked : settings.showNumSolutions,
-      showNumSolutionsHint: e.target.id == "settings-show-num-solutions-hint" ? e.target.checked : settings.showNumSolutionsHint,
+      showIso: e.target.id == "settingsShowIso" ? e.target.checked : settings.showIso,
+      showNumSolutions: e.target.id == "settingsShowNumSolutions" ? e.target.checked : settings.showNumSolutions,
+      showNumSolutionsHint: e.target.id == "settingsShowNumSolutionsHint" ? e.target.checked : settings.showNumSolutionsHint,
     }
     if (!newSettings.showNumSolutions) {
       newSettings.showNumSolutionsHint = false
@@ -349,7 +361,10 @@ export default function GameComponent(props: any) {
     setSettings(newSettings)
   }
 
-  return (
+  return (<>
+    <Head>
+      <title>TicTacGlobe</title>
+    </Head>
     <Container>
       {!game && <Alert variant="warning">Game could not be initialized.</Alert>}
       {game && (<>
@@ -358,15 +373,15 @@ export default function GameComponent(props: any) {
           <Button variant="primary" onClick={newGame}>New Game</Button>
         </div>
         <div>
-          <Form.Check type="switch" onChange={updateSettings} id="settings-show-iso" label="Show country ISO codes" />
-          <Form.Check type="switch" onChange={updateSettings} id="settings-show-num-solutions" label="Show number of solutions" />
-          <Form.Check type="switch" onChange={updateSettings} checked={settings.showNumSolutionsHint} disabled={!settings.showNumSolutions} id="settings-show-num-solutions-hint" label="Show number of solutions before guess" />
+          <Form.Check type="switch" onChange={updateSettings} checked={settings.showIso} id="settingsShowIso" label="Show country ISO codes" />
+          <Form.Check type="switch" onChange={updateSettings} checked={settings.showNumSolutions} id="settingsShowNumSolutions" label="Show number of solutions" />
+          <Form.Check type="switch" onChange={updateSettings} checked={settings.showNumSolutionsHint} disabled={!settings.showNumSolutions} id="settingsShowNumSolutionsHint" label="Show number of solutions before guess" />
         </div>
         <table>
           <thead>
             <tr>
               <th>
-                <div style={{width: "100%", height: "100%"}}>
+                <div style={{ width: "100%", height: "100%" }}>
                   <span className={styles["badge-player"] + " " + styles[`bg-player-${getPlayerTurnColor()}`]}>{capitalize(getPlayerTurnColor())}'s turn</span>
                 </div>
               </th>
@@ -378,23 +393,18 @@ export default function GameComponent(props: any) {
           <tbody>
             {game.setup.solutions.map((row: string[][], i: number) => (
               <tr key={i}>
-                <RowHeading><div><TableHeading catValue={game.setup.labels.rows[i]}>{formatTableHeading(game.setup.labels.rows[i], { fancy: true })}</TableHeading></div></RowHeading>
+                <RowHeading key={-1}><div><TableHeading catValue={game.setup.labels.rows[i]}>{formatTableHeading(game.setup.labels.rows[i], { fancy: true })}</TableHeading></div></RowHeading>
                 {row.map((countryCodes: string[], j: number) => {
-                  const solutions = countryCodes.map(c => getCountry(c)).filter(c => c) as Country[]
-                  const alternativeSolutions = game.setup.alternativeSolutions[i][j].map(c => getCountry(c)).filter(c => c) as Country[]
-                  const guess = null
                   return (<TableCell key={j}>
                     <Field
-                    pos={[i, j]}
-                    game={game}
-                    userIdentifier={userIdentifier}
-                    apiRequest={apiRequest}
-                    playerTurn={playerTurn}
-                    setPlayerTurn={setPlayerTurn}
-                    hasTurn={hasTurn}
-                    countries={countries}
-                    settings={settings}
-                    preventSpoilers={[]}
+                      pos={[i, j]}
+                      game={game}
+                      userIdentifier={userIdentifier}
+                      apiRequest={apiRequest}
+                      hasTurn={hasTurn}
+                      countries={countries}
+                      settings={settings}
+                      preventSpoilers={[]}
                     />
                   </TableCell>)
                 })}
@@ -405,7 +415,7 @@ export default function GameComponent(props: any) {
       </>)}
       {/* <p><pre>{JSON.stringify(game.cells, null, 4)}</pre></p> */}
     </Container>
-  )
+  </>)
 }
 
 
@@ -414,8 +424,6 @@ type FieldProps = {
   game: Game;
   userIdentifier: string;
   apiRequest: (query: Query) => any;
-  playerTurn: number;
-  setPlayerTurn: any;
   hasTurn: boolean;
   countries: Country[];
   settings: {
@@ -432,15 +440,26 @@ enum FieldMode {
   FILLED = 2
 }
 
-const Field = ({ pos, game, userIdentifier, apiRequest, playerTurn, setPlayerTurn, hasTurn, countries, settings, preventSpoilers }: FieldProps) => {
+const Field = ({ pos, game, userIdentifier, apiRequest, hasTurn, countries, settings, preventSpoilers }: FieldProps) => {
 
   const [i, j] = pos
   const solutions = countries.filter(c => game.setup.solutions[i][j].includes(c.iso))
   const alternativeSolutions = countries.filter(c => game.setup.alternativeSolutions[i][j].includes(c.iso))
-
-  const [mode, setMode] = useState(countries.find(c => c.iso == game.guesses[i][j]) ? FieldMode.FILLED : FieldMode.INITIAL)
   const [guess, setGuess] = useState(countries.find(c => c.iso == game.guesses[i][j]) ?? null)
   const [markedBy, setMarkedBy] = useState(game.marking[i][j] ?? -1)
+  const [mode, setMode] = useState(guess ? FieldMode.FILLED : FieldMode.INITIAL)
+  const updateStates = () => {
+    console.log(`updateStates() (${i},${j}). Guess: ${game.guesses[i][j] ?? "--"}`);
+    
+    setGuess(countries.find(c => c.iso == game.guesses[i][j]) ?? null)
+    setMarkedBy(game.marking[i][j] ?? -1)
+    setMode(guess ? FieldMode.FILLED : FieldMode.INITIAL)
+  }
+  
+  useEffect(updateStates, [game])
+
+  // const [guess, setGuess] = useState(countries.find(c => c.iso == game.guesses[i][j]) ?? null)
+  // const [markedBy, setMarkedBy] = useState(game.marking[i][j] ?? -1)
 
   const NumSolutions = () => {
     const tooltipSolutions = (
@@ -472,37 +491,35 @@ const Field = ({ pos, game, userIdentifier, apiRequest, playerTurn, setPlayerTur
   }
 
   const makeGuess = (country: Country) => {
-    const correct = solutions.concat(alternativeSolutions).map(c => c.iso).includes(country.iso)
-    if (correct) {
+    const correct = game.isValidGuess(i, j, country)
+    apiRequest({
+      userIdentifier: userIdentifier,
+      action: RequestAction.MakeGuess,
+      playerIndex: game.turn,  // offline only
+      countryId: country.iso,
+      pos: pos.join(",")
+    })
 
-
-      setGuess(country)
-      setMarkedBy(playerTurn)
-
-      apiRequest({
-        userIdentifier: userIdentifier,
-        action: RequestAction.MakeGuess,
-        countryId: country.iso,
-        pos: pos.join(",")
-      })
-
-      setMode(FieldMode.FILLED)
-    } else {
+    if (!correct) {
       console.log("Wrong guess!" + ` (${country.iso} not in [${solutions.map(c => c.iso).join(", ")}]})`)
     }
-    setPlayerTurn(1 - playerTurn)
+    // updateStates()
     return correct
   }
 
-  const TooltipCountryInfo = forwardRef((props: { country: Country}, ref: any) => (
-    <Tooltip id={`tooltipCountryInfo-${useId()}`} ref={ref}>
-      Capital: {props.country.capital}
-    </Tooltip>
-  ))
+  let tooltipCountryInfo = null
+  const tooltipCountryInfoId = useId()
+  if (mode == FieldMode.FILLED && guess) {
+    // tooltipCountryInfo = (
+      
+    // )
+  }
 
+  // TODO extra mode: other player's turn
 
   return (
     <TableCellInner>
+      {/* <span>{mode}</span> */}
       {/* <span>pt: {playerTurn}, has: {hasTurn ? "y" : "n"}</span> */}
       {mode == FieldMode.INITIAL && (
         <>
@@ -540,7 +557,11 @@ const Field = ({ pos, game, userIdentifier, apiRequest, playerTurn, setPlayerTur
           </div>
           <div className="field-bottom">
             <div className="field-flex">
-            <OverlayTrigger placement="right" overlay={<TooltipCountryInfo country={guess} />}>
+            <OverlayTrigger placement="right" overlay={(
+              <Tooltip id={`tooltipCountryInfo-${tooltipCountryInfoId}`}>
+                Capital: {guess.capital}
+              </Tooltip>
+            )}>
               <span className="label">
                 {guess.name + (settings.showIso ? " " : "")}
                 {settings.showIso && <span className="iso">({guess.iso})</span>}
@@ -572,7 +593,7 @@ const CountryAutoComplete = ({ countries, makeGuess, onBlur }: CountryAutoComple
       items={countries}
       getItemValue={(country: Country) => country.iso}
       renderItem={(country: Country, isHighlighted: boolean) =>
-        <div className={styles.autoCompleteItem} style={{ background: isHighlighted ? 'lightgray' : 'white' }}>
+        <div key={country.iso} className={styles.autoCompleteItem} style={{ background: isHighlighted ? 'lightgray' : 'white' }}>
           {country.name}
         </div>
       }
