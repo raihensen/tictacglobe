@@ -1,12 +1,12 @@
 
-import { Game, GameSetup, Country, gameSetups, countries, randomChoice, RequestAction, Query, PlayingMode } from "../../src/game.types"
+import { Game, GameSetup, Country, gameSetups, countries, randomChoice, RequestAction, Query, PlayingMode } from "@/src/game.types"
 
 
 const gameUserMap: {[x: string]: Game} = {}
 
 // TODO fix userId
 
-function makeGuess(game: Game, { userIdentifier, action, playerIndex, countryId, pos }: Query) {
+function makeGuess(game: Game, { userIdentifier, playerIndex, countryId, pos }: Query) {
   const match = (pos as string).match(/^(\d+),(\d+)$/)
   if (!match) {
     console.log(`Error: Invalid pos argument`);
@@ -58,7 +58,7 @@ function makeGuess(game: Game, { userIdentifier, action, playerIndex, countryId,
 
 export default (req, res) => {
 
-  const { userIdentifier, action, countryId, pos }: Query = req.query;
+  const { userIdentifier, action, playerIndex, countryId, pos }: Query = req.query;
 
   // get the Game instance, or create a new one
   let game: Game | null = gameUserMap[userIdentifier]
@@ -76,7 +76,7 @@ export default (req, res) => {
   }
 
   // actions
-  if (action == RequestAction.MakeGuess && countryId && pos) {
+  if (action == RequestAction.MakeGuess && playerIndex && countryId && pos) {
     const result = makeGuess(game, req.query)
     console.log(`makeGuess: ${result ? "successful" : "not successful"}`);
     

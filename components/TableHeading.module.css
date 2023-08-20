@@ -1,0 +1,15 @@
+
+.categoryIcon {
+  vertical-align: inherit;
+  margin-right: 5px;
+  font-size: 24px;
+}
+
+.flagColorWhite { background: #eeeeee !important; color: var(--bs-dark) !important; }
+.flagColorBlack { background: #333333 !important; color: var(--bs-light) !important; }
+.flagColorBlue { background: #0052b4 !important; color: var(--bs-light) !important; }
+.flagColorYellow { background: #ffda44 !important; color: var(--bs-dark) !important; }
+.flagColorOrange { background: #ff9811 !important; color: var(--bs-dark) !important;  }
+.flagColorRed { background: #d80027 !important; color: var(--bs-light) !important; }
+.flagColorGreen { background: #6da544 !important; color: var(--bs-light) !important; }
+
