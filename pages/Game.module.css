@@ -17,3 +17,12 @@
   cursor: pointer;
 }
 
+.btnIcon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.btnIcon > :not(:last-child) {
+  margin-right: .25em;
+}
+

@@ -2,7 +2,8 @@
 export enum RequestAction {
   ExistingOrNewGame = 0,
   NewGame = 1,
-  MakeGuess = 2
+  MakeGuess = 2,
+  EndTurn = 3
 }
 
 export type Query = {
@@ -98,7 +99,7 @@ export function getCountry(q: string): Country | null {
 }
 
 import countryData from '../data/countries.json'
-import gameData from '../data/games1.json'
+import gameData from '../data/games_easy.json'
 
 export const countries = countryData as Country[]
 export const gameSetups = gameData as GameSetup[]

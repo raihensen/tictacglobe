@@ -56,13 +56,22 @@ function makeGuess(game: Game, { userIdentifier, playerIndex, countryId, pos }: 
 
 }
 
+function endTurn(game: Game, { userIdentifier, playerIndex }: Query) {
+  if (game.turn != playerIndex) {
+    console.log(`Error: It's not player ${playerIndex}'s turn!`);
+    return false
+  }
+  game.turn = 1 - game.turn
+  return true
+}
+
 export default (req, res) => {
 
   const { userIdentifier, action, playerIndex, countryId, pos }: Query = req.query;
 
   // get the Game instance, or create a new one
   let game: Game | null = gameUserMap[userIdentifier]
-  console.log(`userIdentifier ${userIdentifier}: ` + (game ? "Found game. All games: " : "No game found") + JSON.stringify(Object.entries(gameUserMap).map(([k, v]) => k)))
+  console.log(`userIdentifier ${userIdentifier}: ` + (game ? "Found game." : "No game found.") + " All games: " + JSON.stringify(Object.entries(gameUserMap).map(([k, v]) => k)))
   if (action == RequestAction.NewGame) {
     game = null
   }
@@ -77,11 +86,17 @@ export default (req, res) => {
   }
 
   // actions
+  let result = false
+
   if (action == RequestAction.MakeGuess && playerIndex && countryId && pos) {
-    const result = makeGuess(game, req.query)
-    console.log(`makeGuess: ${result ? "successful" : "not successful"}`);
-    
+    result = makeGuess(game, req.query)
   }
+  
+  if (action == RequestAction.EndTurn && playerIndex) {
+    result = endTurn(game, req.query)
+  }
+
+  console.log(`${RequestAction[action]}: ${result ? "successful" : "not successful"}`);
 
 
   res.status(200).json({ isNewGame: isNewGame, game: game });

@@ -1,6 +1,6 @@
 
 import styled from "styled-components";
-import { forwardRef, useEffect, useId, useState } from 'react';
+import { forwardRef, useEffect, useId, useMemo, useState } from 'react';
 import { Game, Country, getCountry, RequestAction, countries, Query, GameData, PlayingMode } from "@/src/game.types"
 import Autocomplete  from 'react-autocomplete'
 import { PlusCircleFill } from 'react-bootstrap-icons';
@@ -135,9 +135,6 @@ export const Field = ({ pos, game, userIdentifier, apiRequest, hasTurn, countrie
   }
   
   useEffect(updateStates, [game])
-
-  // const [guess, setGuess] = useState(countries.find(c => c.iso == game.guesses[i][j]) ?? null)
-  // const [markedBy, setMarkedBy] = useState(game.marking[i][j] ?? -1)
 
   const NumSolutions = () => {
     const tooltipSolutions = (

@@ -2,8 +2,13 @@
 import Container from "react-bootstrap/Container";
 import Head from 'next/head';
 import Button from "react-bootstrap/Button";
+import ButtonToolbar from 'react-bootstrap/ButtonToolbar';
+import ButtonGroup from 'react-bootstrap/ButtonGroup';
 import Alert from 'react-bootstrap/Alert';
 import Form from 'react-bootstrap/Form';
+import Dropdown from 'react-bootstrap/Dropdown';
+import Modal from 'react-bootstrap/Modal';
+
 import { TableHeading, RowHeading, ColHeading } from '../components/TableHeading';
 import 'bootstrap/dist/css/bootstrap.min.css';
 import styled from "styled-components";
@@ -14,6 +19,8 @@ var _ = require('lodash');
 
 import styles from '@/pages/Game.module.css'
 import { Field } from "@/components/Field";
+import { FaArrowsRotate, FaGear, FaPersonCircleXmark } from "react-icons/fa6";
+import Image from "next/image";
 
 // TODO difficulty-limiting constraings
 //    - prevent that a row has only cells with one equal solution
@@ -28,6 +35,17 @@ const TableCell = styled.td`
   border: 1px solid rgba(0,0,0,.25);
   padding: 0;
 `
+
+// const Header = styled.div`
+//   margin-bottom: 10px;
+// `
+
+const IconButton = ({ children, label, className, ...props }: any) => (
+  <Button className={([styles.btnIcon].concat(className ? [className] : [])).join(" ")} {...props}>
+    {children}
+    {label && <span>{label}</span>}
+  </Button>
+)
 
 const initUserIdentifier = () => {
   let storedUserIdentifier = localStorage.getItem('userIdentifier')
@@ -103,13 +121,6 @@ export default function GameComponent(props: any) {
     }
   }, [])
 
-  function newGame() {
-    apiRequest({
-      userIdentifier: userIdentifier,
-      action: RequestAction.NewGame,
-    })
-  }
-
   const getPlayerTurnColor = () => {
     return game?.turn == 0 ? "blue" : "red"
   }
@@ -132,23 +143,53 @@ export default function GameComponent(props: any) {
     setSettings(newSettings)
   }
 
+  const [showSettings, setShowSettings] = useState(false)
+
   return (<>
     <Head>
       <title>TicTacGlobe</title>
     </Head>
-    <Container>
+    <Container style={{ maxWidth: "720px" }}>
+      <div style={{}} className="my-3">
+        <Image src={"tictacglobe-logo.svg"} width={80} height={80} alt={"TicTacGlobe logo"} />
+      </div>
       {!game && <Alert variant="warning">Game could not be initialized.</Alert>}
       {game && (<>
-        <h1>{gameData.isNewGame ? "New Game" : "Existing Game"}</h1>
-        <div>
-          <Button variant="primary" onClick={newGame}>New Game</Button>
-        </div>
-        <div>
-          <Form.Check type="switch" onChange={updateSettings} checked={settings.showIso} id="settingsShowIso" label="Show country ISO codes" />
-          <Form.Check type="switch" onChange={updateSettings} checked={settings.showNumSolutions} id="settingsShowNumSolutions" label="Show number of solutions" />
-          <Form.Check type="switch" onChange={updateSettings} checked={settings.showNumSolutionsHint} disabled={!settings.showNumSolutions} id="settingsShowNumSolutionsHint" label="Show number of solutions before guess" />
-        </div>
-        <table>
+        {/* <p>{gameData.isNewGame ? "New Game" : "Existing Game"}</p> */}
+        <ButtonToolbar className="mb-2">
+          <IconButton label="New Game" variant="danger" onClick={() => {
+            apiRequest({
+              userIdentifier: userIdentifier,
+              action: RequestAction.NewGame,
+            })
+          }} className="me-2"><FaArrowsRotate /></IconButton>
+          <IconButton label="End turn" variant="warning" onClick={() => {
+            apiRequest({
+              userIdentifier: userIdentifier,
+              action: RequestAction.EndTurn,
+              playerIndex: game.turn
+            })
+          }} className="me-auto"><FaPersonCircleXmark /></IconButton>
+          <IconButton variant="secondary" onClick={ () => setShowSettings(true) }><FaGear /></IconButton>
+        </ButtonToolbar>
+        <Modal show={showSettings} onHide={ () => setShowSettings(false) }>
+          <Modal.Header closeButton>
+            <Modal.Title>Settings</Modal.Title>
+          </Modal.Header>
+          <Modal.Body>
+            <Form.Check type="switch" onChange={updateSettings} checked={settings.showIso} id="settingsShowIso" label="Show country ISO codes" />
+            <Form.Check type="switch" onChange={updateSettings} checked={settings.showNumSolutions} id="settingsShowNumSolutions" label="Show number of solutions" />
+            <Form.Check type="switch" onChange={updateSettings} checked={settings.showNumSolutionsHint} disabled={!settings.showNumSolutions} id="settingsShowNumSolutionsHint" label="Show number of solutions before guess" />
+          </Modal.Body>
+          <Modal.Footer>
+            <Button variant="secondary" onClick={() => setShowSettings(false)}>
+              Close
+            </Button>
+          </Modal.Footer>
+        </Modal>
+        
+        
+        <table style={{ margin: "0 auto" }}>
           <thead>
             <tr>
               <th>
@@ -184,7 +225,6 @@ export default function GameComponent(props: any) {
           </tbody>
         </table>
       </>)}
-      {/* <p><pre>{JSON.stringify(game.cells, null, 4)}</pre></p> */}
     </Container>
   </>)
 }
