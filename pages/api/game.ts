@@ -65,6 +65,17 @@ function endTurn(game: Game, { userIdentifier, playerIndex }: Query) {
   return true
 }
 
+function chooseGame(gameSetups: GameSetup[]): GameSetup {
+  gameSetups = gameSetups.filter(setup => {
+    const labels = setup.labels.rows.concat(setup.labels.cols)
+    if (labels.includes("Island Nation") || labels.includes("Landlocked")) {
+      return true
+    }
+    return false
+  })
+  return randomChoice(gameSetups)
+}
+
 export default (req, res) => {
 
   const { userIdentifier, action, playerIndex, countryId, pos }: Query = req.query;
@@ -78,7 +89,7 @@ export default (req, res) => {
   const isNewGame = !game;
   if (!game) {
     game = new Game(
-      randomChoice(gameSetups),
+      chooseGame(gameSetups),
       [userIdentifier],  // 1 element for offline game
       PlayingMode.Offline
     )
@@ -87,6 +98,10 @@ export default (req, res) => {
 
   // actions
   let result = false
+
+  if (action == RequestAction.ExistingOrNewGame || action == RequestAction.NewGame) {
+    result = !!game
+  }
 
   if (action == RequestAction.MakeGuess && playerIndex && countryId && pos) {
     result = makeGuess(game, req.query)

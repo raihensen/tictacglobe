@@ -1,5 +1,5 @@
 
-import { FaBuildingColumns, FaFlag, FaEarthAmericas, FaEarthAfrica, FaEarthAsia, FaEarthEurope, FaEarthOceania, FaWater, FaSlash } from "react-icons/fa6";
+import { FaBuildingColumns, FaFlag, FaEarthAmericas, FaEarthAfrica, FaEarthAsia, FaEarthEurope, FaEarthOceania, FaWater, FaSlash, FaCircle } from "react-icons/fa6";
 import styles from './TableHeading.module.css'
 import { OverlayTrigger, Tooltip } from "react-bootstrap";
 import Badge from 'react-bootstrap/Badge';
@@ -12,13 +12,25 @@ export const TableHeading = (props: { catValue: string }) => {
   if (props.catValue == "Landlocked") {
     const tooltipCategoryInfo = (<Tooltip id={`tooltipCategoryInfo-${useId()}`}>Landlocked countries (without direct ocean access)</Tooltip>)
     return (
-      <OverlayTrigger key="starting-letter" placement="top" overlay={tooltipCategoryInfo}>
+      <OverlayTrigger placement="top" overlay={tooltipCategoryInfo}>
         <CategoryBadge>
           <IconStack>
             <FaWater color="white" />
-            <FaSlash color="red" />
+            <FaSlash color="white" />
           </IconStack>
           <span>Landlocked</span>
+        </CategoryBadge>
+      </OverlayTrigger>
+    )
+    
+  }
+  if (props.catValue == "Island Nation") {
+    const tooltipCategoryInfo = (<Tooltip id={`tooltipCategoryInfo-${useId()}`}>Island Nations (all parts of the country are located on islands)</Tooltip>)
+    return (
+      <OverlayTrigger placement="top" overlay={tooltipCategoryInfo}>
+        <CategoryBadge>
+          <FaCircle />
+          <span>Island</span>
         </CategoryBadge>
       </OverlayTrigger>
     )
@@ -186,6 +198,7 @@ const CategoryBadge = styled.span`
 
 const IconStack = styled.span`
   display: grid;
+
   svg {
     grid-area: 1 / 1;
   }

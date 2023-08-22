@@ -99,7 +99,7 @@ export function getCountry(q: string): Country | null {
 }
 
 import countryData from '../data/countries.json'
-import gameData from '../data/games_easy.json'
+import gameData from '../data/games-2-more-categories.json'
 
 export const countries = countryData as Country[]
 export const gameSetups = gameData as GameSetup[]
