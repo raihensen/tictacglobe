@@ -37,9 +37,9 @@ df.columns = ['iso', 'iso3', 'iso_numeric', 'fips', 'name', 'capital',
 subset = ['iso', 'iso3', 'name', 'capital', 'continent',
           'area_km2', 'population',
           'currency_code', 'currency_name', 'languages',
-          'territories', 'neighbors_t']
+          'territories', 'neighbors', 'neighbors_t']
 df = df[subset]
-df.rename(columns={"neighbors_t": "neighbors"}, inplace=True)
+# df.rename(columns={"neighbors_t": "neighbors"}, inplace=True)
 Game.values = df[["iso", "name"]].to_dict(orient="records")
 
 # Import GDP data
@@ -55,18 +55,31 @@ df["gdp_per_capita"] = df["gdp"] / df["population"]
 df.loc[df.iso == "VA", "gdp_per_capita"] = 21198  #  https://en.wikipedia.org/wiki/Economy_of_Vatican_City (2016 data, accessed Aug 2023)
 df["gdp"] = df["gdp_per_capita"] * df["population"]
 
+# Individual fixes
+df.loc[df["name"] == "Palau", "capital"] = "Ngerulmud"  # old value seems wrong
+
+# Consider territorial borders as alternative values (e.g. France-Brazil)
+neighbors_alt = df.apply(lambda row: [c for c in row["neighbors_t"] if c not in row["neighbors"]], axis=1)
+df.drop(columns=["neighbors_t"], inplace=True)
+df.insert(list(df.columns).index("neighbors") + 1, "neighbors_alt", neighbors_alt)
+
+# Border fixes
+remove_border(df, "US", "Cuba")  # not so narrow maritime border
+remove_border(df, "US", "Bahamas")  # not so narrow maritime border
+add_alternative_border(df, "Singapore", "Malaysia")  # narrow maritime border
+add_alternative_border(df, "Spain", "Morocco")  # Ceuta/Melilla provinces
+
 # Additional columns & global fixes
 df["continent"].fillna("NA", inplace=True)  # North America fix
 df["landlocked"] = df["iso"].isin("AF,AD,AM,AT,AZ,BY,BT,BO,BW,BF,BI,CF,TD,CZ,SZ,ET,HU,KZ,XK,LA,LS,LI,LU,MW,ML,MD,MN,NP,NE,MK,PY,RW,SM,RS,SK,SS,CH,TJ,UG,VA,ZM,ZW".split(","))
-df["island"] = (df["neighbors"].apply(len) == 0) | df["iso"].isin("ID".split(","))
-
-# Individual fixes
-df.loc[df["name"] == "Palau", "capital"] = "Ngerulmud"
-df.loc[df["iso"] == "PS", "name"] = "Palestine"
+df["island"] = (df["neighbors"].apply(len) == 0) | df["iso"].isin("ID,PG,TL,SG,BN,GB,IE,DO,HT".split(","))
+add_alternative_value(df, "island", "Australia", False, True)
 
 # Alternative values
 # Names
 add_alternative_value(df, "name", "CI", "Ivory Coast", "Côte d'Ivoire")
+add_alternative_value(df, "name", "MK", "North Macedonia", "Macedonia")
+add_alternative_value(df, "name", "PS", "Palestine", "Palestinian Territory")
 add_alternative_value(df, "name", "TR", "Türkiye", "Turkey")
 add_alternative_value(df, "name", "VA", "Vatican", "Vatican City")
 add_alternative_value(df, "name", "US", "United States", "United States of America")
@@ -82,6 +95,9 @@ add_alternative_value(df, "continent", "Egypt", "AF", "AS")
 add_alternative_value(df, "continent", "Russia", "EU", "AS")
 add_alternative_value(df, "continent", "TR", "AS", "EU")
 add_alternative_value(df, "continent", "Timor Leste", "AS", "OC")
+
+# Borders
+add_alternative_value(df, "name", "CI", "Ivory Coast", "Côte d'Ivoire")
 
 # Multiple/unclear capital (source: https://en.wikipedia.org/wiki/List_of_countries_with_multiple_capitals)
 add_alternative_value(df, "capital", "Kazakhstan", "Astana", "Nur-Sultan")
