@@ -188,7 +188,6 @@ export default function GameComponent(props: any) {
           </Modal.Footer>
         </Modal>
         
-        
         <table style={{ margin: "0 auto" }}>
           <thead>
             <tr>

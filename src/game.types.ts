@@ -90,10 +90,6 @@ export function range(startOrLength: number, stop: number | null = null): number
   return Array(stop - start).map((_, i) => start + i)
 }
 
-export function randomChoice<T>(arr: Array<T>): T {
-  return arr[Math.floor(arr.length * Math.random())];
-}
-
 export function getCountry(q: string): Country | null {
   return countries.find(c => c.iso == q || c.name == q) || null
 }

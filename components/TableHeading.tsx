@@ -18,7 +18,7 @@ export const TableHeading = (props: { catValue: string }) => {
             <FaWater color="white" />
             <FaSlash color="white" />
           </IconStack>
-          <span>Landlocked</span>
+          <span className="icon-label">Landlocked</span>
         </CategoryBadge>
       </OverlayTrigger>
     )
@@ -36,38 +36,27 @@ export const TableHeading = (props: { catValue: string }) => {
     )
     
   }
-  if (props.catValue.startsWith("Starting letter") || props.catValue.startsWith("Capital starting letter")) {
+
+  const isStartsWith = props.catValue.startsWith("Starting letter") || props.catValue.startsWith("Capital starting letter")
+  const isEndsWith = props.catValue.startsWith("Ending letter") || props.catValue.startsWith("Capital ending letter")
+  if (isStartsWith || isEndsWith) {
     const isCapital = props.catValue.startsWith("Capital starting letter")
     const letter = props.catValue.substring(props.catValue.length - 1).toUpperCase()
-    const word = [letter, "a", "b", "c", "d"]
-    const tooltipCategoryInfo = (<Tooltip id={`tooltipCategoryInfo-${useId()}`}>{isCapital ? "Capital" : "Country name"} starts with {"AEFHILMNORSX".includes(letter) ? "an" : "a"} {letter}</Tooltip>)
-    return (
-      <OverlayTrigger key="starting-letter" placement="top" overlay={tooltipCategoryInfo}>
-        <CategoryBadge>
-          {isCapital && (<>
-            <FaBuildingColumns className={styles.categoryIcon} />
-          </>)}
-          {word.map((c, i) => (<TableHeadingLetter key={i} $i={i} $mode="first">{i == 4 ? `${c}...` : c}</TableHeadingLetter>))}
-        </CategoryBadge>
-      </OverlayTrigger>
-    )
-  }
-  if (props.catValue.startsWith("Ending letter") || props.catValue.startsWith("Capital ending letter")) {
-    const isCapital = props.catValue.startsWith("Capital ending letter")
-    const letter = props.catValue.substring(props.catValue.length - 1).toUpperCase()
-    const word = ["a", "b", "c", letter]
-    const tooltipCategoryInfo = (<Tooltip id={`tooltipCategoryInfo-${useId()}`}>{isCapital ? "Capital" : "Country name"} ends with {"AEFHILMNORSX".includes(letter) ? "an" : "a"} {letter}</Tooltip>)
+    const tooltipCategoryInfo = (<Tooltip id={`tooltipCategoryInfo-${useId()}`}>{isCapital ? "Capital" : "Country name"} {isStartsWith ? "starts" : "ends"} with {"AEFHILMNORSX".includes(letter) ? "an" : "a"} {letter}</Tooltip>)
     return (
       <OverlayTrigger placement="top" overlay={tooltipCategoryInfo}>
         <CategoryBadge>
-          {isCapital && (<>
-            <FaBuildingColumns className={styles.categoryIcon} />
-          </>)}
-          {word.map((c, i) => (<TableHeadingLetter key={i} $i={3 - i} $mode="last">{i == 0 ? `...${c}` : c}</TableHeadingLetter>))}
+          {isCapital && <FaBuildingColumns className={styles.categoryIcon} />}
+          {isStartsWith ? [letter, "a", "b", "c"].map((c, i) => (
+            <TableHeadingLetter key={i} $i={i} $mode="first">{i == 3 ? `${c}...` : c}</TableHeadingLetter>
+          )) : ["a", "b", "c", letter].map((c, i) => (
+            <TableHeadingLetter key={i} $i={3 - i} $mode="last">{i == 0 ? `...${c}` : c}</TableHeadingLetter>
+          ))}
         </CategoryBadge>
       </OverlayTrigger>
     )
   }
+
   if (props.catValue.startsWith("Flag color")) {
     const color = props.catValue.replace(/^Flag color: (.+)$/i, "$1")
     const colorMap = {
@@ -119,25 +108,6 @@ export const TableHeading = (props: { catValue: string }) => {
   return false
 }
 
-
-function formatTableHeading(heading: string, settings: { fancy?: boolean }) {
-
-  if (settings.fancy) {
-    if (heading.startsWith("Starting letter")) {
-      return heading.substring(heading.length - 1)
-    }
-    if (heading.startsWith("Ending letter")) {
-      return heading.substring(heading.length - 1)
-    }
-  }
-
-  heading = heading.replace(/Capital starting letter: (\w)/i, "Capital $1..")
-  heading = heading.replace(/Capital ending letter: (\w)/i, "Capital ..$1")
-  heading = heading.replace(/Starting letter: (\w)/i, "Name $1..")
-  heading = heading.replace(/Ending letter: (\w)/i, "Name ..$1")
-  return heading
-}
-
 export const RowHeading = styled.td`
   & > div {
     width: 150px;
@@ -150,6 +120,7 @@ export const RowHeading = styled.td`
 `
 
 export const ColHeading = styled.th`
+  font-weight: normal;
   & > div {
     width: 150px;
     height: 100px;
@@ -162,18 +133,22 @@ export const ColHeading = styled.th`
 
 const TableHeadingLetter = styled.span<{ $i: number, $mode: "first" | "last" }>`
   font-weight: bold;
-  font-size: ${props => props.$i == 0 ? 100 : (1 - .5 * (props.$i - 1) / 3) * 100}%;
-  ${props => props.$i == 0 ? "" : "text-shadow: 0 0 3px white"};
-  ${props => props.$i == 0 ? "" : "color: transparent"};
-  ${props => props.$i == 0 ? `margin-${props.$mode == "first" ? "right" : "left"}: 3px` : ""};
   align-self: ${props => props.$mode} baseline;
   ${props => props.$i == 0 ? `
-    transform: scale(1.2);
-    font-size: 1.25em;
-    margin-top: -.25em;
-    margin-bottom: -.25em;
+  font-size: 1.25em;
+  margin-top: -.25em;
+  margin-bottom: -.25em;
+  margin-${props.$mode == "first" ? "right" : "left"}: 1px;` : ""}
+  ${props => props.$i != 0 ? `
+  text-shadow: 0 0 2px white;
+  opacity: .75;
+  color: transparent;
+  font-size: ${(1 - .5 * (props.$i - 1) / 3) * 100}%;
   ` : ""}
 `
+// 
+// i=0:
+// transform: scale(1.2);
 
 const CategoryBadge = styled.span`
   display: flex;

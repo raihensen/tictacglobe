@@ -1,5 +1,6 @@
 
-import { Game, GameSetup, Country, gameSetups, countries, randomChoice, RequestAction, Query, PlayingMode } from "@/src/game.types"
+import { Game, GameSetup, Country, gameSetups, countries, RequestAction, Query, PlayingMode } from "@/src/game.types"
+import { randomChoice } from "@/src/util";
 
 
 var gameUserMap: {[x: string]: Game} = {}
@@ -65,14 +66,11 @@ function endTurn(game: Game, { userIdentifier, playerIndex }: Query) {
   return true
 }
 
-function chooseGame(gameSetups: GameSetup[]): GameSetup {
-  gameSetups = gameSetups.filter(setup => {
-    const labels = setup.labels.rows.concat(setup.labels.cols)
-    if (labels.includes("Island Nation") || labels.includes("Landlocked")) {
-      return true
-    }
-    return false
-  })
+function chooseGame(gameSetups: GameSetup[], filter: ((gs: GameSetup) => boolean) | null = null): GameSetup {
+  if (filter) {
+    gameSetups = gameSetups.filter(filter)
+  }
+  console.log(`Choose game setup (out of ${gameSetups.length})`);
   return randomChoice(gameSetups)
 }
 
@@ -89,7 +87,10 @@ export default (req, res) => {
   const isNewGame = !game;
   if (!game) {
     game = new Game(
-      chooseGame(gameSetups),
+      chooseGame(gameSetups, setup => {
+        const labels = setup.labels.rows.concat(setup.labels.cols)
+        return labels.includes("Island Nation") || labels.includes("Landlocked")
+      }),
       [userIdentifier],  // 1 element for offline game
       PlayingMode.Offline
     )
