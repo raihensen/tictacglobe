@@ -232,8 +232,18 @@ if len(setkeys) < len(setkeys_old):
 # ------------------------------------------------------------------------------------------------------------------
 # Sample games
 
-def create_game(constraints, shuffle=True):
-    return sample_game(categories, setkeys, cells,
-                       field_size=FIELD_SIZE, constraints=constraints, shuffle=shuffle)
+# def create_game(constraints, shuffle=True):
+#     return sample_game(categories, setkeys, cells,
+#                        field_size=FIELD_SIZE, constraints=constraints, shuffle=shuffle)
 
+def get_generator(constraints, field_size, seed=None, selection_mode="shuffle_categories", uniform=False, shuffle=True):
+    return GameGenerator(categories=categories,
+                         setkeys=setkeys,
+                         cells=cells,
+                         field_size=field_size,
+                         constraints=constraints,
+                         seed=seed,
+                         selection_mode=selection_mode,
+                         uniform=uniform,
+                         shuffle=shuffle)
 

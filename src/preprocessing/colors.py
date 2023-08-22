@@ -72,10 +72,6 @@ def add_flag_colors(df):
     colors2 = pd.merge(df[["name"]], colors1, how="left", left_on="name", right_on="country")
     colors2_outer = pd.merge(df[["name"]], colors1, how="outer", left_on="name", right_on="country", indicator=True)
     df["flag_colors"] = colors2["color"]
-
-    print("No flags:")
-    print(df[df["flag_colors"].isna()])
-
     df["flag_colors"] = df["flag_colors"].apply(lambda cc: list(set(cc)))
 
     no_flag = df["flag_colors"].isna().sum()
