@@ -3,12 +3,17 @@ import random
 from collections import Counter
 from category import *
 import pandas as pd
+import numpy as np
+
+generator = np.random.default_rng(seed=None)
 
 
 def get_label(cat: Category, value):
     if cat.key == "continent":
         continents = {"AF": "Africa", "EU": "Europe", "AS": "Asia", "NA": "N. America", "SA": "S. America", "OC": "Oceania"}
         return continents[value]
+    if isinstance(cat, BooleanCategory):
+        return cat.name
     return f"{cat.name}: {value}"
 
 
@@ -84,10 +89,10 @@ class Constraint:
         return n >= self.num
     
     def is_once(self):
-        return n == 1 and self.mode == 0
+        return self.num == 1 and self.mode == 0
     
     def is_never(self):
-        return n == 0 and self.mode == 0
+        return self.num == 0 and self.mode == 0
     
     @staticmethod
     def category(key, n, mode):
@@ -161,12 +166,41 @@ def _get_allowed_sets(cross_sets, parallel_sets, categories, setkeys, constraint
     return choice
 
 
+# TODO Boolean cats do not get sampled!
+
+def _get_set_probabilities(categories, choice):
+    CATEGORY_PROBS = {
+        'continent': 4,
+        'starting_letter': 3,
+        'ending_letter': 1.5,
+        'capital_starting_letter': 2,
+        'capital_ending_letter': .5,
+        'flag_colors': 3,
+        'landlocked': 1,
+        'island': 1
+    }
+    # Extract category occurences
+    cat_keys = list({k for k, v in choice})
+    category_sizes = {key: len([v for k, v in choice if k == key]) for key in cat_keys}
+
+    # Uniform distribution per category values
+    w = np.array([CATEGORY_PROBS[key] / category_sizes[key] for key, value in choice])
+    return w / np.sum(w)
+
+
 def _sample_fitting_set(cross_sets, parallel_sets, categories, setkeys, cells, constraints):
     """ Samples a new column (assuming cross_sets are the rows and parallel_sets the previous columns. Or the other way round) """
-    choice = list(_get_allowed_sets(cross_sets, parallel_sets, categories, setkeys, constraints))
+    choice = np.array(list(_get_allowed_sets(cross_sets, parallel_sets, categories, setkeys, constraints)))
+
+    # Shuffle the sets (do complete shuffle because might iterate some of them afterwards)
+    choice = generator.choice(choice,
+                              size=len(choice),
+                              p=_get_set_probabilities(categories, choice),
+                              replace=False)
+    
     # Iterate all possible sets randomly until a fitting one is hit
-    random.shuffle(choice)
-    for c in choice:
+    for c in choice.tolist():
+        c = tuple(c)
         if all(get_solutions(cells, c, crossing) for crossing in cross_sets):
             return c
     return None

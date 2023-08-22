@@ -8,6 +8,7 @@ import pandas as pd
 import itertools
 from game import *
 from category import *
+from utils import *
 
 # Ensure we're running in the right directory
 import os
@@ -32,7 +33,8 @@ df.columns = ['iso', 'iso3', 'iso_numeric', 'fips', 'name', 'capital',
               'area_km2', 'population', 'continent', 'tld',
               'currency_code', 'currency_name', 'phone', 'zip_format', 'zip_regex',
               'languages', 'geonameid', 'neighbors', 'eq_fips', 'parent', 'territories', 'neighbors_t']
-subset = ['iso', 'name', 'capital', 'continent',
+
+subset = ['iso', 'iso3', 'name', 'capital', 'continent',
           'area_km2', 'population',
           'currency_code', 'currency_name', 'languages',
           'territories', 'neighbors_t']
@@ -40,47 +42,23 @@ df = df[subset]
 df.rename(columns={"neighbors_t": "neighbors"}, inplace=True)
 Game.values = df[["iso", "name"]].to_dict(orient="records")
 
+# Import GDP data
+# GDP data from https://github.com/datasets/gdp/blob/master/data/gdp.csv
+gdp_data = pd.read_csv("../../data/local/gdp.csv")
+gdp = gdp_data.sort_values("Year").groupby("Country Code").tail(1).set_index("Country Code").rename(columns={"Value": "gdp"})
+df = df.join(gdp["gdp"], on="iso3")
+# print("no gdp data:")
+# print(df[df["gdp"].isna()][["iso", "name", "population", "gdp"]])
+df.loc[df.iso == "TW", "gdp"] = 790.7e9  # https://en.wikipedia.org/wiki/Economy_of_Taiwan (2023 data, accessed Aug 2023)
+df.loc[df.iso == "KP", "gdp"] = 28.5e9  # https://en.wikipedia.org/wiki/Economy_of_North_Korea (2016 data, accessed Aug 2023)
+df["gdp_per_capita"] = df["gdp"] / df["population"]
+df.loc[df.iso == "VA", "gdp_per_capita"] = 21198  #  https://en.wikipedia.org/wiki/Economy_of_Vatican_City (2016 data, accessed Aug 2023)
+df["gdp"] = df["gdp_per_capita"] * df["population"]
+
 # Additional columns & global fixes
 df["continent"].fillna("NA", inplace=True)  # North America fix
-df["landlocked"] = df["iso"].isin("AF,AD,AM,AT,AZ,BY,BT,BO,BW,BF,BI,CF,TD,CZ,SZ,ET,HU,KZ,XK,LA,LS,LI,LU,MW,ML,MD,MN,NP,NE,MK,PY,RW,SM,RS,SK,SS,CH,TJ,UG,VA,ZA,ZW".split(","))
-df["island"] = df["neighbors"].apply(len) == 0
-
-def add_alternative_value(df, col, country, *values):
-    cols = list(df.columns)
-    if col not in cols:
-        return False
-    
-    # Add alternative column if not exists
-    altcol = col + "_alt"
-    if altcol not in cols:
-        df.insert(cols.index(col) + 1, altcol, df[col].apply(lambda x: []))
-    
-    # Find country
-    if country in df["name"].values:
-        index = df.index[df["name"] == country][0]
-    elif country in df["iso"].values:
-        index = df.index[df["iso"] == country][0]
-    else:
-        print(f"country {country} not found!")
-        return False
-    
-    # Add values
-    values = sum([[x] if not isinstance(x, list) else x for x in values], [])
-#     values = [val for val in values if val not in df.loc[index, altcol]]
-    
-    # Warn if value to-be-added is the actual value. Swap if not first-named
-    if df.loc[index, col] in values:
-        if values[0] == df.loc[index, col]:
-            print(f"{country}/{col}: '{df.loc[index, col]}' is already set as main value - skipping")
-        else:
-            print(f"{country}/{col}: '{df.loc[index, col]}' is already set as main value - swapping with '{values[0]}'")
-            df.loc[index, col] = values[0]
-        values = values[1:]
-
-    for val in values:
-        if val not in df.loc[index, altcol]:
-            df.loc[index, altcol].append(val)
-    return True
+df["landlocked"] = df["iso"].isin("AF,AD,AM,AT,AZ,BY,BT,BO,BW,BF,BI,CF,TD,CZ,SZ,ET,HU,KZ,XK,LA,LS,LI,LU,MW,ML,MD,MN,NP,NE,MK,PY,RW,SM,RS,SK,SS,CH,TJ,UG,VA,ZM,ZW".split(","))
+df["island"] = (df["neighbors"].apply(len) == 0) | df["iso"].isin("ID".split(","))
 
 # Individual fixes
 df.loc[df["name"] == "Palau", "capital"] = "Ngerulmud"
@@ -127,131 +105,10 @@ altcols = [col for col in df.columns if col.endswith("_alt")]
 print("\nAll countries with alternative values:")
 print(df[df[altcols].applymap(len).sum(axis=1) > 0])
 
-# df.reset_index(inplace=True)
-# df
-
 # ------------------------------------------------------------------------------------------------------------------
 # Import flag colors
-# Assign colors
-colors = pd.read_csv("../../data/local/flag-colors.csv", sep=";")
-colors.columns = ["country", "color"]
-colors["country"].fillna(method='ffill', inplace=True)
-colors.dropna(inplace=True)
-colors = colors.applymap(lambda x: x.strip())
-
-
-cmap = {
-    "Light Blue": "Blue",
-    "Dark Blue": "Blue",
-    "Sky Blue": "Blue",
-    "Aquamarine Blue": "Blue",
-    "Fulvous": "Orange",
-    "Crimson": "Red",
-    "Saffron Orange": "Orange",
-    "Green Or Blue": "Green",
-    "Maroon": "Red",  # Qatar, Sri Lanka,
-    "Olive Green": "Green",
-    "Yellow": "Yellow/Gold",
-    "Gold": "Yellow/Gold",
-    "Golden": "Yellow/Gold",
-}
-name_map = {
-    'American Samoa': None,
-    'Anguilla': None,
-    'Antigua And Barbuda': 'Antigua and Barbuda',
-    'Aruba': None,
-    'Bermuda': None,
-    'Bosnia And Herzegovina': 'Bosnia and Herzegovina',
-    'Bouvet Island': None,
-    'Brunei Darussalam': "Brunei",
-    "Czechia": "Czech Republic",
-    'Cook Islands': None,
-    'Curaçao': None,
-    "Côte D'Ivoire": 'Ivory Coast',
-    'Democratic Republic Of The Congo': 'Democratic Republic of the Congo',
-    'French Polynesia': None,
-    'Holy See (Vatican City State)': "Vatican",
-    'Niue': None,
-    'Norfolk Island': None,
-#     'Palestine': 'Palestinian Territory',
-    'Pitcairn Islands': None,
-    'Republic Of The Congo': 'Republic of the Congo',
-    'Russian Federation': "Russia",
-    'Saint Kitts And Nevis': 'Saint Kitts and Nevis',
-    'Saint Vincent And The Grenadines': 'Saint Vincent and the Grenadines',
-    'Sao Tome And Principe': 'Sao Tome and Principe',
-    'Syrian Arab Republic': "Syria",
-    'Tanzania, United Republic Of': "Tanzania",
-    'Trinidad And Tobago': 'Trinidad and Tobago',
-    'Åland Islands': None,
-    'Turkey': 'Türkiye'
-}
-add = [
-    {"country": "Timor Leste", "color": ["Red", "Yellow/Gold", "Black", "White"]},
-    {"country": "Kosovo", "color": ["Blue", "Yellow/Gold", "White"]},
-    {"country": "Taiwan", "color": ["Red", "Blue", "White"]}
-]
-
-colors["color"] = colors["color"].apply(lambda c: cmap.get(c, c))
-colors["country"] = colors["country"].apply(lambda x: name_map.get(x, x))
-colors1 = colors.groupby(by="country")["color"].agg(list).reset_index()
-colors1 = colors1.append(add, ignore_index=True)
-
-colors2 = pd.merge(df[["name"]], colors1, how="left", left_on="name", right_on="country")
-colors2_outer = pd.merge(df[["name"]], colors1, how="outer", left_on="name", right_on="country", indicator=True)
-df["flag_colors"] = colors2["color"]
-df["flag_colors"] = df["flag_colors"].apply(lambda cc: list(set(cc)))
-
-no_flag = df["flag_colors"].isna().sum()
-print(f"Assigned colors. {no_flag} countries missing a flag.")
-
-# ------------------------------------------------------------------------------------------------------------------
-# Flag color fixes
-import re
-
-cfre = re.compile(r"^(?:(?:\[(?P<main_set>[^\(\)]*)\])|(?:(?P<main_add>[^\(\)]*)))?(?:,?\s*\((?P<optional>[^\(\)]*?)\))?,?\s*(?:\(\((?P<ignore>[^\(\)]*?)\)\))?$")
-
-def parse_color(c):
-    cmap = {"Y/G": "Yellow/Gold", "R": "Red", "W": "White", "B": "Blue", "Gr": "Green", "O": "Orange"}
-    return cmap.get(c, c)
-    
-def parse_fixes(specs):
-    for line in specs:
-        iso = line[:2]
-        spec = line[3:]
-        match = cfre.match(spec)
-        if match:
-            for mode, cc in match.groupdict().items():
-                if cc:
-                    yield (iso, mode, [parse_color(c.strip()) for c in cc.split(",")])
-        else:
-            print(spec, "no match")
-
-color_fixes = open("../../data/local/flag color fixes.txt").read().split("\n")
-color_fixes = list(parse_fixes(color_fixes))
-
-# Apply the fixes
-for iso, mode, cc in color_fixes:
-    if iso not in df["iso"].values:
-        print(f"Country {iso} not found.")
-        continue
-    index = df.index[df["iso"] == iso][0]
-    if mode == "main_set":
-        df.at[index, "flag_colors"] = cc
-    elif mode == "main_add":
-        for c in cc:
-            df.loc[index, "flag_colors"].append(c)
-    elif mode == "optional":
-        add_alternative_value(df, "flag_colors", iso, *cc)
-
-df["flag_colors"] = df["flag_colors"].apply(lambda cc: list(sorted(set(cc))))
-if "flag_colors_alt" in list(df.columns):
-    df["flag_colors_alt"] = df["flag_colors_alt"].apply(lambda cc: list(sorted(set(cc))))
-
-changes = set(iso for iso, _, _ in color_fixes)    
-
-print("Adjusted flag colors:")
-print(df[df["iso"].isin(changes)][["iso", "name", "flag_colors", "flag_colors_alt"]])
+from colors import add_flag_colors
+df = add_flag_colors(df)
 
 # ------------------------------------------------------------------------------------------------------------------
 # Categories
@@ -263,6 +120,8 @@ categories = [
     NominalCategory(df, key="capital_starting_letter", name="Capital starting letter", difficulty=1.5, col="capital", extractor=lambda x: x[0].upper()),
     NominalCategory(df, key="capital_ending_letter", name="Capital ending letter", difficulty=3, col="capital", extractor=lambda x: x[-1].upper()),
     MultiNominalCategory(df, key="flag_colors", name="Flag color", difficulty=1.5, col="flag_colors"),
+    BooleanCategory(df, key="landlocked", name="Landlocked", difficulty=2, col="landlocked"),
+    BooleanCategory(df, key="island", name="Island Nation", difficulty=1.5, col="island"),
 ]
 categories = {cat.key: cat for cat in categories}
 
@@ -295,6 +154,12 @@ for cat in categories.values():
     elif isinstance(cat, MultiNominalCategory):
         cat.sets = values.explode(column=cat.key).groupby(by=cat.key)["iso"].agg(sorted)
         cat.alt_sets = values.explode(column=cat.alt_key).groupby(by=cat.alt_key)["iso"].agg(sorted)
+    elif isinstance(cat, BooleanCategory):
+        # only consider True values. The False group does not yield a catset
+        cat.sets = values.groupby(by=cat.key)["iso"].agg(sorted)
+        cat.sets = cat.sets[cat.sets.index]
+        cat.alt_sets = values.explode(column=cat.alt_key).groupby(by=cat.alt_key)["iso"].agg(sorted)
+        cat.alt_sets = cat.alt_sets[cat.alt_sets.index]
 
 while True:
     # Retain only sets with at least 3 (FIELD_SIZE) elements
@@ -321,7 +186,8 @@ while True:
     print(f"Removed {len(remove)} countries:", remove)
     print("Repeat ...")
 
-list(categories.values())
+print("Categories:")
+print(list(categories.values()))
 
 
 # ------------------------------------------------------------------------------------------------------------------
@@ -330,8 +196,13 @@ list(categories.values())
 import matplotlib.pyplot as plt
 
 setkeys = sum([[(cat.key, value) for value in cat.sets.index] for cat in categories.values()], [])
-cells = {(min_set(row, col), max_set(row, col)): init_cell_contents(*row, *col, df=df, categories=categories)
-         for row, col in itertools.combinations(setkeys, 2) if is_cell_allowed(*row, *col, categories=categories)}
+cells = {}
+for (key1, value1), (key2, value2) in itertools.combinations(setkeys, 2):
+    if is_cell_allowed(key1, value1, key2, value2, categories=categories):
+        row, col = (key1, value1), (key2, value2)
+        if row < col:  # changed: row has the lexicographically smaller (key, value) pair
+            row, col = col, row
+        cells[(row, col)] = init_cell_contents(*row, *col, df=df, categories=categories)
 
 print(f"Generated {len(setkeys)} sets and {len(cells)} cells")
 

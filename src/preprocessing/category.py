@@ -5,12 +5,14 @@ import pandas as pd
 
 @total_ordering
 class Category:
-    def __init__(self, key: str, name: str, difficulty: float, values: pd.Series, alt_values: pd.Series):
+    def __init__(self, key: str, name: str, difficulty: float, values: pd.Series, alt_values: pd.Series):  # alt_values might be None
         self.key = key
         self.alt_key = key + "_alt"
         self.name = name
         self.difficulty = difficulty
         self.values = values
+        if alt_values is None:
+            alt_values = self.values.apply(lambda x: [])
         self.alt_values = alt_values
         self.sets = None
         self.alt_sets = None
@@ -80,6 +82,29 @@ class MultiNominalCategory(Category):
         return hash(self.key)
 
 
+@total_ordering
+class BooleanCategory(Category):
+    def __init__(self, df: pd.DataFrame, key: str, name: str, difficulty: float, col: str):
+        values = df[col]
+        altcol = col + "_alt"
+        alt_values = None
+        if altcol in list(df.columns):
+            alt_values = df.apply(lambda row: [not row[col]] if (not row[col]) in row[altcol] else [], axis=1)
+        super().__init__(key, name, difficulty, values, alt_values)
+        
+    def __str__(self):
+        return f"BooleanCategory('{self.key}', {len(self.sets[True])}x True)"
+    
+    def __lt__(self, other):
+        return self.key < other.key
+    
+    def __eq__(self, other):
+        return self.key == other.key
+    
+    def __hash__(self):
+        return hash(self.key)
+
+
 def compare_sets(set1, set2):
     if len(set1) < len(set2):
         return -1
@@ -128,6 +153,7 @@ def init_cell_contents(key1, value1, key2, value2, df, categories, alt=False):
     
     # Prevent that two different alternative values are used to create a solution
     # (e.g. Capital starting with P and ending with N -> South Africa - because of [P]retoria and Cape Tow[n])
+    # Only implemented for NominalCategory, as is it using an extractor function
     if isinstance(cat1, NominalCategory) and isinstance(cat2, NominalCategory):
         if cat1.col == cat2.col and cat1.extractor and cat2.extractor:
             col = cat1.col
