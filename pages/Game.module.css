@@ -26,3 +26,9 @@
   margin-right: .25em;
 }
 
+.tooltip {
+  text-align: left;
+}
+.tooltip > p:last-child {
+  margin-bottom: 0;
+}

@@ -23,9 +23,6 @@ import { FaArrowsRotate, FaGear, FaPersonCircleXmark } from "react-icons/fa6";
 import Image from "next/image";
 
 // TODO
-// ac search:
-//   - allow alternative names for search
-//   - infix, but only show if unique
 // dont show solution list until game is over. Number can still be toggled
 // show capital only if cell is capital related. Otherwise only at end of the game
 // game winning logic. option to play on. -> two more game states
@@ -214,12 +211,13 @@ export default function GameComponent(props: any) {
                     <Field
                       pos={[i, j]}
                       game={game}
+                      rowLabel={game.setup.labels.rows[i]}
+                      colLabel={game.setup.labels.cols[j]}
                       userIdentifier={userIdentifier}
                       apiRequest={apiRequest}
                       hasTurn={hasTurn}
                       countries={countries}
                       settings={settings}
-                      preventSpoilers={[]}
                     />
                   </TableCell>)
                 })}

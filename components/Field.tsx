@@ -1,8 +1,8 @@
 
 import styled from "styled-components";
 import { forwardRef, useEffect, useId, useMemo, useState } from 'react';
-import { Game, Country, getCountry, RequestAction, countries, Query, GameData, PlayingMode } from "@/src/game.types"
-import Autocomplete  from 'react-autocomplete'
+import { Game, Country, getCountry, RequestAction, countries, Query, GameData, PlayingMode, GameState } from "@/src/game.types"
+import Autocomplete from 'react-autocomplete'
 import { PlusCircleFill } from 'react-bootstrap-icons';
 import Badge from 'react-bootstrap/Badge';
 import { OverlayTrigger, Tooltip } from "react-bootstrap";
@@ -82,6 +82,8 @@ const CountryFlag = ({ country, size, onClick }: { country: Country | null, size
 export type FieldProps = {
   pos: number[];
   game: Game;
+  rowLabel: string;
+  colLabel: string;
   userIdentifier: string;
   apiRequest: (query: Query) => any;
   hasTurn: boolean;
@@ -91,7 +93,6 @@ export type FieldProps = {
     showNumSolutions: boolean;
     showNumSolutionsHint: boolean;
   }
-  preventSpoilers: string[];
 }
 
 enum FieldMode {
@@ -106,7 +107,7 @@ type FieldState = {
 }
 
 
-export const Field = ({ pos, game, userIdentifier, apiRequest, hasTurn, countries, settings, preventSpoilers }: FieldProps) => {
+export const Field = ({ pos, game, rowLabel, colLabel, userIdentifier, apiRequest, hasTurn, countries, settings }: FieldProps) => {
   const [i, j] = pos
   const solutions = countries.filter(c => game.setup.solutions[i][j].includes(c.iso))
   const alternativeSolutions = countries.filter(c => game.setup.alternativeSolutions[i][j].includes(c.iso))
@@ -191,6 +192,32 @@ export const Field = ({ pos, game, userIdentifier, apiRequest, hasTurn, countrie
     // )
   }
 
+  const isNameRelevant = () => {
+    return [rowLabel, colLabel].some(label => label.startsWith("Starting letter") || label.startsWith("Ending letter"))
+  }
+  const isCapitalRelevant = () => {
+    return [rowLabel, colLabel].some(label => label.startsWith("Capital"))
+  }
+
+  const CountryInfoTooltip = () => {
+    if (!fieldState.guess) {
+      return false
+    }
+    const texts = [
+      ...(fieldState.guess.alternativeValues.name !== undefined && (isNameRelevant() || game.state == GameState.Finished) ? [`Alternative name${fieldState.guess.alternativeValues.name.length > 1 ? "s" : ""}: ${fieldState.guess.alternativeValues.name.join(", ")}`] : []),
+      ...(isCapitalRelevant() || game.state == GameState.Finished ? [`Capital: ${fieldState.guess.capital}`] : []),
+      ...((isCapitalRelevant() || game.state == GameState.Finished) && fieldState.guess.alternativeValues.capital !== undefined ? [`Alternative capital${fieldState.guess.alternativeValues.capital.length > 1 ? "s" : ""}: ${fieldState.guess.alternativeValues.capital.join(", ")}`] : [])
+    ]
+    if (!texts.length) {
+      return false
+    }
+    return (
+      <Tooltip id={`tooltipCountryInfo-${tooltipCountryInfoId}`}>
+        {texts.map((text, i) => (<p key={i}>{text}</p>))}
+      </Tooltip>
+    )
+  }
+
   // TODO extra mode: other player's turn
 
   return (
@@ -233,17 +260,19 @@ export const Field = ({ pos, game, userIdentifier, apiRequest, hasTurn, countrie
           </div>
           <div className="field-bottom">
             <div className="field-flex">
+            {/* <OverlayTrigger placement="right" overlay={<CountryInfoTooltip />}> */}
             <OverlayTrigger placement="right" overlay={(
-              <Tooltip id={`tooltipCountryInfo-${tooltipCountryInfoId}`}>
-                Capital: {fieldState.guess.capital}
-              </Tooltip>
+                <Tooltip id={`tooltipCountryInfo-${tooltipCountryInfoId}`} className={styles.tooltip}>
+                  {(fieldState.guess.alternativeValues.name !== undefined && (isNameRelevant() || game.state == GameState.Finished)) && (<p>Alternative name{fieldState.guess.alternativeValues.name.length > 1 ? "s" : ""}: {fieldState.guess.alternativeValues.name.join(", ")}</p>)}
+                  {(isCapitalRelevant() || game.state == GameState.Finished) && (<p>Capital: {fieldState.guess.capital}</p>)}
+                  {((isCapitalRelevant() || game.state == GameState.Finished) && fieldState.guess.alternativeValues.capital !== undefined) && (<p>Alternative capital{fieldState.guess.alternativeValues.capital.length > 1 ? "s" : ""}: {fieldState.guess.alternativeValues.capital.join(", ")}</p>)}
+                </Tooltip>
             )}>
               <span className="label">
                 {fieldState.guess.name + (settings.showIso ? " " : "")}
                 {settings.showIso && <span className="iso">({fieldState.guess.iso})</span>}
               </span>
             </OverlayTrigger>
-            {/* <span className="capital">{guess.capital}</span> */}
             </div>
           </div>
           {settings.showNumSolutions && <NumSolutions />}
@@ -341,7 +370,7 @@ const CountryAutoComplete = ({ countries, makeGuess, onBlur }: CountryAutoComple
         </div>
       }
       value={searchValue}
-      onChange={(e, q) => {
+      onChange={(e: any, q: string) => {
         setSearchValue(q)
         const results = getSearchResults(q)
         console.log(`"${q}": ${results.length} results`);
