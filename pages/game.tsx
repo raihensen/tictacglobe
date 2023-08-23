@@ -22,12 +22,20 @@ import { Field } from "@/components/Field";
 import { FaArrowsRotate, FaGear, FaPersonCircleXmark } from "react-icons/fa6";
 import Image from "next/image";
 
+// TODO
+// ac search:
+//   - allow alternative names for search
+//   - infix, but only show if unique
+// dont show solution list until game is over. Number can still be toggled
+// show capital only if cell is capital related. Otherwise only at end of the game
+// game winning logic. option to play on. -> two more game states
+// island icon: 3 stack, water, circle-"bordered", circle
+
 // TODO difficulty-limiting constraings
 //    - prevent that a row has only cells with one equal solution
 //    - or total number of cells with just one solution
 //    - limit maximum difficulty score
 // TODO category common neighbor
-// TODO force flag reload when creating new game
 // TODO 3 difficulty levels
 
 
@@ -35,10 +43,6 @@ const TableCell = styled.td`
   border: 1px solid rgba(0,0,0,.25);
   padding: 0;
 `
-
-// const Header = styled.div`
-//   margin-bottom: 10px;
-// `
 
 const IconButton = ({ children, label, className, ...props }: any) => (
   <Button className={([styles.btnIcon].concat(className ? [className] : [])).join(" ")} {...props}>

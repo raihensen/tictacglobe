@@ -5,7 +5,6 @@ import { randomChoice } from "@/src/util";
 
 var gameUserMap: {[x: string]: Game} = {}
 
-// TODO fix userId
 
 function makeGuess(game: Game, { userIdentifier, playerIndex, countryId, pos }: Query) {
   const match = (pos as string).match(/^(\d+),(\d+)$/)
@@ -49,16 +48,6 @@ function makeGuess(game: Game, { userIdentifier, playerIndex, countryId, pos }: 
   game.guesses[i][j] = country.iso
   game.turn = 1 - game.turn
   console.log(`Set (${i},${j}) to ${country.iso} (player ${playerIndex} / user ${userIndex} / ${userIdentifier})`);
-
-  // TODO
-  // ac search:
-  //   - allow alternative names for search
-  //   - infix, but only show if unique
-  // dont show solution list until game is over. Number can still be toggled
-  // show capital only if cell is capital related. Otherwise only at end of the game
-  // game winning logic. option to play on. -> two more game states
-  // island icon: 3 stack, water, circle-"bordered", circle
-
 
   return true
 
@@ -113,6 +102,7 @@ export default (req, res) => {
 
   if (action == RequestAction.MakeGuess && playerIndex && countryId && pos) {
     result = makeGuess(game, req.query)
+    
   }
   
   if (action == RequestAction.EndTurn && playerIndex) {

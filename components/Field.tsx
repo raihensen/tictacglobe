@@ -8,6 +8,7 @@ import Badge from 'react-bootstrap/Badge';
 import { OverlayTrigger, Tooltip } from "react-bootstrap";
 import { CircleFlag } from 'react-circle-flags'
 import styles from '@/pages/Game.module.css'
+const NodeCache = require( "node-cache" );
 
 
 const TableCellInner = styled.div`
@@ -259,22 +260,93 @@ type CountryAutoCompleteProps = {
   onBlur: () => void;
 }
 
+type AutoCompleteItem = {
+  country: Country;
+  name: string;  // the country's name or one of the alternative names
+  nameIndex: number;
+  key: string;
+}
+
 const CountryAutoComplete = ({ countries, makeGuess, onBlur }: CountryAutoCompleteProps) => {
 
   const [searchValue, setSearchValue] = useState("")
 
+  const items = countries.map(c => [c.name, ...(c.alternativeValues?.name ?? [])].map((name, i) => ({ country: c, name: name, nameIndex: i, key: `${c.iso}-${i}` }))).flat(1) as AutoCompleteItem[]
+
+  const noSpoilerSearch = (q: string) => {
+    q = q.toLowerCase()
+    if (q.length < 3) {
+      return []
+    }
+    // const results = items.filter(c => countryNameMatch(c, q, (name, q) => name.includes(q)))
+    let results = items.filter(item => item.name.toLowerCase().includes(q))
+    // retain only one result per country
+    const countryCodes = [...new Set(results.map(item => item.country.iso))]
+    results.sort((a, b) => {
+      if (a.country === b.country) {
+        return a.nameIndex - b.nameIndex
+      }
+      if (a.name > b.name) {
+        return 1
+      }
+      return -1
+    })
+    if (countryCodes.length < results.length) {
+      results = countryCodes.map(iso => results.find(item => item.country.iso == iso) as AutoCompleteItem)
+    }
+
+    if (countryCodes.length <= 1) {
+      // unique result
+      return results
+    }
+    const exactResults = results.filter(item => item.name.toLowerCase() == q)
+    const prefixResults = results.filter(item => item.name.toLowerCase().startsWith(q))
+    if (exactResults.length) {
+      // if there's an exact hit "A", also return others named "ABC"
+      return prefixResults
+    }
+    // const containedCompletely = items.filter(item => q.startsWith(c.name.toLowerCase()))
+    // there might have been a previous exact hit (query "AB"). In this case, the results should be retained.
+    // multiple results, do not show any
+    return []
+  }
+
+  const [searchCache, setSearchCache] = useState(new NodeCache())
+
+  useEffect(() => {
+    setSearchCache(new NodeCache())
+  }, [])
+
+  const getSearchResults = (q: string) => {
+    const cached = searchCache.get(q)
+    if (cached !== undefined) {
+      return cached as AutoCompleteItem[]
+    }
+    const results = noSpoilerSearch(q)
+    searchCache.set(q, results)
+    return results
+  }
+  
   return (
     <Autocomplete
-      items={countries}
-      getItemValue={(country: Country) => country.iso}
-      renderItem={(country: Country, isHighlighted: boolean) =>
-        <div key={country.iso} className={styles.autoCompleteItem} style={{ background: isHighlighted ? 'lightgray' : 'white' }}>
-          {country.name}
+      items={items}
+      searchCache={searchCache}
+      getItemValue={(item: AutoCompleteItem) => item.country.iso}
+      renderItem={(item: AutoCompleteItem, isHighlighted: boolean) =>
+        <div key={`${item.country.iso}-${item.nameIndex}`} className={styles.autoCompleteItem} style={{ background: isHighlighted ? 'lightgray' : 'white' }}>
+          {item.nameIndex == 0 && item.country.name}
+          {item.nameIndex != 0 && (<>
+            {item.name} <small className="text-muted">({item.country.name})</small>
+          </>)}
         </div>
       }
       value={searchValue}
-      onChange={(e, q) => setSearchValue(q)}
-      onSelect={(val: Country["iso"]) => {
+      onChange={(e, q) => {
+        setSearchValue(q)
+        const results = getSearchResults(q)
+        console.log(`"${q}": ${results.length} results`);
+      }}
+      onSelect={(val: string) => {
         const country = countries.find(c => c.iso == val)
         if (country) {
           console.log(`Make guess: '${country.name}'`)
@@ -282,8 +354,8 @@ const CountryAutoComplete = ({ countries, makeGuess, onBlur }: CountryAutoComple
           setSearchValue("")
         }
       }}
-      shouldItemRender={(country: Country, q: string) => {
-        return q.length >= 3 && (country as Country).name.toLowerCase().startsWith(q.toLowerCase())
+      shouldItemRender={(item: AutoCompleteItem, q: string) => {
+        return getSearchResults(q).some(resultItem => resultItem.key == item.key)
       }}
       wrapperStyle={{ width: "100%", padding: "5px" }}
       inputProps={{

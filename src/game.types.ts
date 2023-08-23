@@ -1,4 +1,7 @@
 
+var _ = require('lodash');
+
+
 export enum RequestAction {
   ExistingOrNewGame = 0,
   NewGame = 1,
@@ -20,6 +23,16 @@ export interface Country {
   name: string;
   capital: string;
   continent: string;
+  flagColors: string[];
+  neighbors: string[];
+  alternativeValues: {
+    name?: string[];
+    capital?: string[];
+    continent?: string[];
+    flagColors?: string[];
+    neighbors?: string[];
+    // [x: string]: any[];
+  }
   [x: string]: any;
 }
 
@@ -68,6 +81,7 @@ export class Game {
   }
 
   static fromApi(data: Game): Game {
+    // need to call constructor to provide class methods
     const game = new Game(data.setup, data.users, data.playingMode)
     game.marking = data.marking
     game.guesses = data.guesses
@@ -97,6 +111,16 @@ export function getCountry(q: string): Country | null {
 import countryData from '../data/countries.json'
 import gameData from '../data/games-2-more-categories.json'
 
-export const countries = countryData as Country[]
+export const countries = countryData.map(c => {
+  const country = Object.fromEntries(Object.entries(c).filter(([k, v]) => !k.endsWith("_alt")).map(
+    ([k, v]) => [_.camelCase(k), v]
+  ).concat([["alternativeValues", {}]])
+  ) as Country
+  country.alternativeValues = Object.fromEntries(Object.entries(c).filter(([k, v]) => k.endsWith("_alt") && (v as any[]).length).map(
+    ([k, v]) => [_.camelCase(k.substring(0, k.length - 4)), v]
+  ))
+  return country
+})
+
 export const gameSetups = gameData as GameSetup[]
 

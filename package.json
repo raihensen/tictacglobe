@@ -19,6 +19,7 @@
     "eslint-config-next": "13.4.15",
     "lodash": "^4.17.21",
     "next": "13.4.15",
+    "node-cache": "^5.1.2",
     "postcss": "8.4.27",
     "react": "18.2.0",
     "react-autocomplete": "^1.8.1",
