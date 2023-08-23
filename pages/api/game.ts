@@ -50,8 +50,15 @@ function makeGuess(game: Game, { userIdentifier, playerIndex, countryId, pos }: 
   game.turn = 1 - game.turn
   console.log(`Set (${i},${j}) to ${country.iso} (player ${playerIndex} / user ${userIndex} / ${userIdentifier})`);
 
-  // check win
   // TODO
+  // ac search:
+  //   - allow alternative names for search
+  //   - infix, but only show if unique
+  // dont show solution list until game is over. Number can still be toggled
+  // show capital only if cell is capital related. Otherwise only at end of the game
+  // game winning logic. option to play on. -> two more game states
+  // island icon: 3 stack, water, circle-"bordered", circle
+
 
   return true
 

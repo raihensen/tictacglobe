@@ -16,7 +16,9 @@ script_dir = os.path.dirname(os.path.abspath(__file__))
 os.chdir(script_dir)
 
 # IDEAS
+# 3 difficulty levels
 # category flag has star/crest/moon
+# northern/southern hemisphere
 # flag has only 2 colors
 # flag is blue white red
 # limit number of cells a country appears in

@@ -40,7 +40,7 @@ export const TableHeading = (props: { catValue: string }) => {
   const isStartsWith = props.catValue.startsWith("Starting letter") || props.catValue.startsWith("Capital starting letter")
   const isEndsWith = props.catValue.startsWith("Ending letter") || props.catValue.startsWith("Capital ending letter")
   if (isStartsWith || isEndsWith) {
-    const isCapital = props.catValue.startsWith("Capital starting letter")
+    const isCapital = props.catValue.startsWith("Capital")
     const letter = props.catValue.substring(props.catValue.length - 1).toUpperCase()
     const tooltipCategoryInfo = (<Tooltip id={`tooltipCategoryInfo-${useId()}`}>{isCapital ? "Capital" : "Country name"} {isStartsWith ? "starts" : "ends"} with {"AEFHILMNORSX".includes(letter) ? "an" : "a"} {letter}</Tooltip>)
     return (
