@@ -62,10 +62,10 @@ const TableCellInner = styled.div`
     width: 100%; height: 50px;
   }
 `
-const MarkingBackground = styled.div<{ $player: number }>`
+const MarkingBackground = styled.div<{ $player: number, $isWinning: boolean }>`
   background: ${props => props.$player == 0 ? "var(--bs-blue)" : "var(--bs-red)"};
   display: ${props => props.$player == -1 ? "none" : "block"};
-  opacity: .25;
+  opacity: ${props => props.$isWinning ? ".5" : ".25"};
   position: absolute;
   left: 0;
   top: 0;
@@ -103,6 +103,7 @@ enum FieldMode {
 type FieldState = {
   guess: Country | null;
   markedBy: number;
+  isWinning: boolean;
   mode: FieldMode;
 }
 
@@ -111,32 +112,26 @@ export const Field = ({ pos, game, rowLabel, colLabel, userIdentifier, apiReques
   const [i, j] = pos
   const solutions = countries.filter(c => game.setup.solutions[i][j].includes(c.iso))
   const alternativeSolutions = countries.filter(c => game.setup.alternativeSolutions[i][j].includes(c.iso))
-
-  const [fieldState, setFieldState] = useState({
+  const initFieldState = (game: Game) => ({
     guess: countries.find(c => c.iso == game.guesses[i][j]) ?? null,
     markedBy: game.marking[i][j] ?? -1,
+    isWinning: game.winCoords !== null && game.winCoords.some(([i1, j1]) => i1 == i && j1 == j),
     mode: countries.find(c => c.iso == game.guesses[i][j]) ? FieldMode.FILLED : FieldMode.INITIAL
   } as FieldState)
 
-  const updateStates = () => {
-    if (game.guesses[i][j]) {
-      console.log(`updateStates() (${i},${j}). Guess: ${game.guesses[i][j] ?? "--"}`);
-    }
-    setFieldState({
-      guess: countries.find(c => c.iso == game.guesses[i][j]) ?? null,
-      markedBy: game.marking[i][j] ?? -1,
-      mode: countries.find(c => c.iso == game.guesses[i][j]) ? FieldMode.FILLED : FieldMode.INITIAL
-    })
-  }
+  const [fieldState, setFieldState] = useState<FieldState>(initFieldState(game))
+  useEffect(() => {
+    setFieldState(initFieldState(game))
+  }, [game])
+
   const setMode = (mode: FieldMode) => {
     setFieldState({
       guess: fieldState.guess,
       markedBy: fieldState.markedBy,
+      isWinning: fieldState.isWinning,
       mode: mode
     })
   }
-  
-  useEffect(updateStates, [game])
 
   const NumSolutions = () => {
     const tooltipSolutions = (
@@ -180,7 +175,6 @@ export const Field = ({ pos, game, rowLabel, colLabel, userIdentifier, apiReques
     if (!correct) {
       console.log("Wrong guess!" + ` (${country.iso} not in [${solutions.map(c => c.iso).join(", ")}]})`)
     }
-    // updateStates()
     return correct
   }
 
@@ -253,7 +247,7 @@ export const Field = ({ pos, game, rowLabel, colLabel, userIdentifier, apiReques
       )}
       {(fieldState.mode == FieldMode.FILLED && fieldState.guess) && (
         <>
-          <MarkingBackground $player={fieldState.markedBy} />
+          <MarkingBackground $player={fieldState.markedBy} $isWinning={fieldState.isWinning} />
           {/* <span>{markedBy == 0 ? "O" : (markedBy == 1 ? "X" : "???")}</span> */}
           <div className="field-center-50">
             <CountryFlag country={fieldState.guess} size={50} />
