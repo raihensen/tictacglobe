@@ -75,6 +75,7 @@ export class Game {
   turn: number;
   playingMode: PlayingMode;
   state: GameState;
+  winCoords: number[][] | null;  // coords of the winning formation
   winner: number | null;
 
   constructor(setup: GameSetup, users: string[], playingMode: PlayingMode) {
@@ -86,6 +87,7 @@ export class Game {
     this.turn = 0
     this.state = GameState.Running
     this.winner = null
+    this.winCoords = null
   }
 
   static fromApi(data: GameProperties): Game {

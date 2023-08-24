@@ -84,6 +84,11 @@ function endTurn(game: Game, playerIndex: number, query: Query) {
   return true
 }
 
+/**
+ * Checks if there is a winner. If there is a (unique) winner, set winner and winCoords on the game instance.
+ * @param game Game instance
+ * @returns The winner (0, 1), or null
+ */
 function checkWinner(game: Game) {
   const winningFormations = getWinningFormations(game.setup.size)
   const playerIndices = [0, 1]
@@ -95,6 +100,8 @@ function checkWinner(game: Game) {
   }
   const winners = [...new Set(wins.map(win => game.marking[win[0][0]][win[0][1]]))]
   if (winners.length == 1) {
+    game.winner = winners[0]
+    game.winCoords = wins[0]
     return winners[0]
   }
   // Multiple winners can happen if after a win the players decide to continue playing
@@ -148,7 +155,9 @@ export default (req: Request, res: ServerResponse<Request> ) => {
   if (action == RequestAction.ExistingOrNewGame || action == RequestAction.NewGame) {
     result = !!game
   }
-  if (playerIndex !== undefined) {
+
+  // in-game actions: Need unfinished game and a playerIndex
+  if (game.state != GameState.Finished && playerIndex !== undefined) {
 
     if (action == RequestAction.MakeGuess && playerIndex !== undefined && countryId && pos) {
       result = makeGuess(game, playerIndex, req.query)
@@ -158,7 +167,6 @@ export default (req: Request, res: ServerResponse<Request> ) => {
         const winner = checkWinner(game)
         if (winner !== null) {
           console.log(`WINNER: Player ${winner}`)
-          game.winner = winner
           game.state = GameState.Decided
         }
       }
