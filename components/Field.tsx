@@ -63,8 +63,8 @@ const TableCellInner = styled.div`
   }
 `
 const MarkingBackground = styled.div<{ $player: number, $isWinning: boolean }>`
-  background: ${props => props.$player == 0 ? "var(--bs-blue)" : "var(--bs-red)"};
-  display: ${props => props.$player == -1 ? "none" : "block"};
+  background: var(${props => props.$player === 0 ? "--bs-blue" : (props => props.$player === 1 ? "--bs-red" : "--bs-gray")});
+  display: block;
   opacity: ${props => props.$isWinning ? ".5" : ".25"};
   position: absolute;
   left: 0;
@@ -87,6 +87,7 @@ export type FieldProps = {
   userIdentifier: string;
   apiRequest: (query: Query) => any;
   hasTurn: boolean;
+  notifyDecided: boolean;
   countries: Country[];
   settings: {
     showIso: boolean;
@@ -108,7 +109,7 @@ type FieldState = {
 }
 
 
-export const Field = ({ pos, game, rowLabel, colLabel, userIdentifier, apiRequest, hasTurn, countries, settings }: FieldProps) => {
+export const Field = ({ pos, game, rowLabel, colLabel, userIdentifier, apiRequest, hasTurn, notifyDecided, countries, settings }: FieldProps) => {
   const [i, j] = pos
   const solutions = countries.filter(c => game.setup.solutions[i][j].includes(c.iso))
   const alternativeSolutions = countries.filter(c => game.setup.alternativeSolutions[i][j].includes(c.iso))
@@ -171,10 +172,6 @@ export const Field = ({ pos, game, rowLabel, colLabel, userIdentifier, apiReques
       countryId: country.iso,
       pos: pos.join(",")
     })
-
-    if (!correct) {
-      console.log("Wrong guess!" + ` (${country.iso} not in [${solutions.map(c => c.iso).join(", ")}]})`)
-    }
     return correct
   }
 
@@ -218,9 +215,10 @@ export const Field = ({ pos, game, rowLabel, colLabel, userIdentifier, apiReques
     <TableCellInner>
       {/* <span>{mode}</span> */}
       {/* <span>pt: {playerTurn}, has: {hasTurn ? "y" : "n"}</span> */}
-      {fieldState.mode == FieldMode.INITIAL && (
-        <>
-          {hasTurn && <div className="field-center-50">
+      {fieldState.mode == FieldMode.INITIAL && <>
+        {/* Field is still free */}
+        {!notifyDecided && <>
+          {hasTurn && <><div className="field-center-50">
             <PlusCircleFill
               size={50}
               style={{ cursor: "pointer" }}
@@ -229,17 +227,19 @@ export const Field = ({ pos, game, rowLabel, colLabel, userIdentifier, apiReques
                 setMode(FieldMode.SEARCH)
               }}
             />
-          </div>}
+          </div></>}
           {settings.showNumSolutionsHint && <NumSolutions />}
-        </>
-      )}
+        </>}
+        {/* Game just became a tie: grey out */}
+        {notifyDecided && (<MarkingBackground $player={-1} $isWinning={false} />)}
+      </>}
       {(fieldState.mode == FieldMode.SEARCH && hasTurn) && (
         <>
           <div className="field-flex">
             <CountryAutoComplete
-            countries={countries}
-            makeGuess={makeGuess}
-            onBlur={() => setMode(FieldMode.INITIAL)}
+              countries={countries}
+              makeGuess={makeGuess}
+              onBlur={() => setMode(FieldMode.INITIAL)}
             />
           </div>
           {settings.showNumSolutionsHint && <NumSolutions />}
@@ -367,12 +367,10 @@ const CountryAutoComplete = ({ countries, makeGuess, onBlur }: CountryAutoComple
       onChange={(e: any, q: string) => {
         setSearchValue(q)
         const results = getSearchResults(q)
-        console.log(`"${q}": ${results.length} results`);
       }}
       onSelect={(val: string) => {
         const country = countries.find(c => c.iso == val)
         if (country) {
-          console.log(`Make guess: '${country.name}'`)
           const correct = makeGuess(country)
           setSearchValue("")
         }

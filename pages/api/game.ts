@@ -95,17 +95,28 @@ function checkWinner(game: Game) {
   const wins = winningFormations.filter(formation => playerIndices.some(
     playerIndex => formation.every(([i, j]) => game.marking[i][j] == playerIndex)
   ))
-  if (wins.length == 0) {
+  if (wins.length > 0) {
+    const winners = [...new Set(wins.map(win => game.marking[win[0][0]][win[0][1]]))]
+    if (winners.length == 1) {
+      // Assume recent winner
+      game.winner = winners[0]
+      game.winCoords = wins[0]
+      return winners[0]
+    }
+    // Multiple winners can happen if after a win the players decide to continue playing
+    // If this happens, this function should not be called though
     return null
   }
-  const winners = [...new Set(wins.map(win => game.marking[win[0][0]][win[0][1]]))]
-  if (winners.length == 1) {
-    game.winner = winners[0]
-    game.winCoords = wins[0]
-    return winners[0]
+  // No winner. Check draw
+  if (
+    game.marking.flat(1).every(player => player != -1) ||  // board is full
+    winningFormations.every(formation => playerIndices.every(  // all wins blocked
+      playerIndex => formation.some(([i, j]) => game.marking[i][j] == playerIndex)
+    ))
+  ) {
+    game.winner = -1
+    return -1
   }
-  // Multiple winners can happen if after a win the players decide to continue playing
-  // If this happens, this function should not be called though
   return null
 }
 
@@ -124,25 +135,33 @@ export default (req: Request, res: ServerResponse<Request> ) => {
 
   const { userIdentifier, action, player, countryId, pos }: Query = req.query
 
+  // --- Load / Initialize the game ------------------------------------------------
   // get the Game instance, or create a new one
-  let game: Game | null = gameUserMap[userIdentifier]
+  let game = _.get(gameUserMap, userIdentifier, null) as Game | null
   console.log(`userIdentifier ${userIdentifier}: ` + (game ? "Found game." : "No game found.") + " All games: " + JSON.stringify(Object.entries(gameUserMap).map(([k, v]) => k)))
-  if (action == RequestAction.NewGame) {
-    game = null
-  }
-  const isNewGame = !game;
-  if (!game) {
+
+  const newGame = !game || action == RequestAction.NewGame
+  if (newGame) {
     game = new Game(
       chooseGame(gameSetups, setup => {
         const labels = setup.labels.rows.concat(setup.labels.cols)
         return labels.includes("Island Nation") || labels.includes("Landlocked")
       }),
-      [userIdentifier],  // 1 element for offline game
+      [userIdentifier],  // 1 element for offline game, 2 for online
       PlayingMode.Offline
     )
+
+    // test win notify
+    // _.range(2).forEach((i: number) => _.range(2).forEach((j: number) => {
+    //   (game as Game).guesses[i][j] = randomChoice(countries).iso;
+    //   (game as Game).marking[i][j] = Math.abs(i - j)
+    // }));
+
     gameUserMap[userIdentifier] = game
   }
+  game = game as Game
 
+  // --- Action / Response ------------------------------------------------
   // actions
   let result = false
 
@@ -153,11 +172,11 @@ export default (req: Request, res: ServerResponse<Request> ) => {
   }
 
   if (action == RequestAction.ExistingOrNewGame || action == RequestAction.NewGame) {
+    // Just load / initialize game
     result = !!game
-  }
 
-  // in-game actions: Need unfinished game and a playerIndex
-  if (game.state != GameState.Finished && playerIndex !== undefined) {
+  } else if (game.state != GameState.Finished && playerIndex !== undefined) {
+    // in-game actions: Need unfinished game and a playerIndex
 
     if (action == RequestAction.MakeGuess && playerIndex !== undefined && countryId && pos) {
       result = makeGuess(game, playerIndex, req.query)
@@ -186,7 +205,7 @@ export default (req: Request, res: ServerResponse<Request> ) => {
 
 
   res.statusCode = 200
-  res.end(JSON.stringify({ isNewGame: isNewGame, game: game }))
+  res.end(JSON.stringify({ isNewGame: newGame, game: game }))
 
 };
 

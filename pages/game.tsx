@@ -19,7 +19,7 @@ var _ = require('lodash');
 
 import styles from '@/pages/Game.module.css'
 import { Field } from "@/components/Field";
-import { FaArrowsRotate, FaGear, FaPersonCircleXmark } from "react-icons/fa6";
+import { FaArrowsRotate, FaEllipsis, FaGear, FaPersonCircleXmark } from "react-icons/fa6";
 import Image from "next/image";
 
 // TODO
@@ -59,14 +59,21 @@ const initUserIdentifier = () => {
   return storedUserIdentifier
 }
 
+type Settings = {
+  showIso: boolean;
+  showNumSolutions: boolean;
+  showNumSolutionsHint: boolean;
+}
+
 
 export default function GameComponent(props: any) {
 
-  const [game, setGame] = useState(null as Game | null)
-  const [gameData, setGameData] = useState({ isNewGame: true, game: null } as GameData)
-  const [userIdentifier, setUserIdentifier] = useState("")
-  const [playerIndex, setPlayerIndex] = useState(0)  // who am i? 0/1
-  const [hasTurn, setHasTurn] = useState(true)
+  const [game, setGame] = useState<Game | null>(null)
+  // const [gameData, setGameData] = useState({ isNewGame: true, game: null } as GameData)
+  const [notifyDecided, setNotifyDecided] = useState<boolean>(false)
+  const [userIdentifier, setUserIdentifier] = useState<string>("")
+  const [playerIndex, setPlayerIndex] = useState<0|1>(0)  // who am i? 0/1
+  const [hasTurn, setHasTurn] = useState<boolean>(true)
 
   // TODO consider using SWR https://nextjs.org/docs/pages/building-your-application/data-fetching/client-side#client-side-data-fetching-with-swr
   function apiRequest(query: Query) {
@@ -84,25 +91,32 @@ export default function GameComponent(props: any) {
       if (newGame.playingMode == PlayingMode.Offline) {
 
         // in offline mode, userIndex != playerIndex (there's only one user at index 0)
-        console.log("Update playerIndex and hasTurn()");
-        setPlayerIndex(newGame.turn)
+        // setPlayerIndex(newGame.turn)
         setHasTurn(true)
 
       } else if (newGame.playingMode == PlayingMode.Online) {
-
         // TODO
         const userIndex = data.game.users.indexOf(userIdentifier)
-        
-        if (userIndex != -1) {
-          setPlayerIndex(userIndex)
-        }
+        // if (userIndex != -1) {
+        //   setPlayerIndex(userIndex)
+        // }
         setHasTurn(playerIndex == data.game.turn)
-
       }
 
-      console.log("Update game");
-      setGameData(data)
+      // console.log("Update game");
+      // setGameData(data)
+
+      let showNotifyDecided = false
+      if (game) {
+        // game had been loaded before
+        if (newGame.winner !== game.winner) {
+          // There's a new winner (or a draw)
+          showNotifyDecided = true
+        }
+      }
+
       setGame(newGame)
+      setNotifyDecided(showNotifyDecided)
 
     })
   }
@@ -111,8 +125,6 @@ export default function GameComponent(props: any) {
     // First client-side init
     const storedUserIdentifier = initUserIdentifier()
     setUserIdentifier(storedUserIdentifier)
-
-    // if (userIdentifier.length != 0) {
     apiRequest({
       userIdentifier: storedUserIdentifier,
       action: RequestAction.ExistingOrNewGame,
@@ -130,7 +142,7 @@ export default function GameComponent(props: any) {
     return getPlayerColor(game?.turn ?? null)
   }
 
-  const [settings, setSettings] = useState({
+  const [settings, setSettings] = useState<Settings>({
     showIso: false,
     showNumSolutions: true,
     showNumSolutionsHint: false
@@ -141,7 +153,7 @@ export default function GameComponent(props: any) {
       showIso: e.target.id == "settingsShowIso" ? e.target.checked : settings.showIso,
       showNumSolutions: e.target.id == "settingsShowNumSolutions" ? e.target.checked : settings.showNumSolutions,
       showNumSolutionsHint: e.target.id == "settingsShowNumSolutionsHint" ? e.target.checked : settings.showNumSolutionsHint,
-    }
+    } as Settings
     if (!newSettings.showNumSolutions) {
       newSettings.showNumSolutionsHint = false
     }
@@ -162,19 +174,30 @@ export default function GameComponent(props: any) {
       {game && (<>
         {/* <p>{gameData.isNewGame ? "New Game" : "Existing Game"}</p> */}
         <ButtonToolbar className="mb-2">
-          <IconButton label="New Game" variant="danger" onClick={() => {
-            apiRequest({
-              userIdentifier: userIdentifier,
-              action: RequestAction.NewGame,
-            })
-          }} className="me-2"><FaArrowsRotate /></IconButton>
-          <IconButton label="End turn" variant="warning" onClick={() => {
-            apiRequest({
-              userIdentifier: userIdentifier,
-              action: RequestAction.EndTurn,
-              player: game.turn
-            })
-          }} className="me-auto"><FaPersonCircleXmark /></IconButton>
+          {!notifyDecided && (<>
+            <IconButton label="New Game" variant="danger" onClick={() => {
+              apiRequest({
+                userIdentifier: userIdentifier,
+                action: RequestAction.NewGame,
+              })
+            }} className="me-2"><FaArrowsRotate /></IconButton>
+            <IconButton label="End turn" variant="warning" onClick={() => {
+              apiRequest({
+                userIdentifier: userIdentifier,
+                action: RequestAction.EndTurn,
+                player: game.turn
+              })
+            }} className="me-auto"><FaPersonCircleXmark /></IconButton>
+          </>)}
+          {notifyDecided && (<>
+            <IconButton label="New Game" variant="danger" onClick={() => {
+              apiRequest({
+                userIdentifier: userIdentifier,
+                action: RequestAction.NewGame,
+              })
+            }} className="me-2"><FaArrowsRotate /></IconButton>
+            <IconButton label="Continue playing" variant="secondary" onClick={() => { setNotifyDecided(false) }} className="me-auto"><FaEllipsis /></IconButton>
+          </>)}
           <IconButton variant="secondary" onClick={ () => setShowSettings(true) }><FaGear /></IconButton>
         </ButtonToolbar>
         <Modal show={showSettings} onHide={ () => setShowSettings(false) }>
@@ -195,8 +218,10 @@ export default function GameComponent(props: any) {
 
         <p>
           State: <b>{GameState[game.state]}</b>
-          {game.winner !== null && (<>, Winner: <b>{capitalize(getPlayerColor(game.winner) ?? "No one")}</b></>)}
+          {(game.winner === 0 || game.winner === 1) && (<>, Winner: <b>{capitalize(getPlayerColor(game.winner) ?? "No one")}</b></>)}
+          {(game.winner === -1) && (<>, <b>It's a draw!</b></>)}
         </p>
+        {/* {(notifyDecided && (game.winner === 0 || game.winner === 1)) && <Alert variant="success"><b>{capitalize(getPlayerColor(game.winner) ?? "No one")} wins!</b></Alert>} */}
         
         <table style={{ margin: "0 auto" }}>
           <thead>
@@ -225,6 +250,7 @@ export default function GameComponent(props: any) {
                       userIdentifier={userIdentifier}
                       apiRequest={apiRequest}
                       hasTurn={hasTurn}
+                      notifyDecided={notifyDecided}
                       countries={countries}
                       settings={settings}
                     />
