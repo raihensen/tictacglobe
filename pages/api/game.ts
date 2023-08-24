@@ -1,12 +1,34 @@
 
-import { Game, GameSetup, Country, gameSetups, countries, RequestAction, Query, PlayingMode } from "@/src/game.types"
+import { IncomingMessage, ServerResponse } from 'http';
+import { Game, GameSetup, Country, gameSetups, countries, RequestAction, Query, PlayingMode, GameState } from "@/src/game.types"
 import { randomChoice } from "@/src/util";
+var _ = require('lodash');
 
 
 var gameUserMap: {[x: string]: Game} = {}
 
+const _winningFormations: {[x: string]: number[][][]} = {}  // saves all combinations of coords leading to a win (axes: combination, coord pair, coord)
+function getWinningFormations(size: number) {
+  if (size < 2) {
+    return []
+  }
+  const sizeKey = size.toString()
+  if (sizeKey in _winningFormations) {
+    return _winningFormations[sizeKey]
+  }
+  const eachCoord = _.range(size) as number[]
+  const formations = [
+    ...eachCoord.map(i => eachCoord.map(j => [i, j])),  // rows
+    ...eachCoord.map(j => eachCoord.map(i => [i, j])),  // columns
+    eachCoord.map(i => [i, i]),  // diagonal 1
+    eachCoord.map(i => [i, size - i])  // diagonal 2
+  ]
+  _winningFormations[sizeKey] = formations
+  return formations
+}
 
-function makeGuess(game: Game, { userIdentifier, playerIndex, countryId, pos }: Query) {
+
+function makeGuess(game: Game, playerIndex: number, { userIdentifier, countryId, pos }: Query) {
   const match = (pos as string).match(/^(\d+),(\d+)$/)
   if (!match) {
     console.log(`Error: Invalid pos argument`);
@@ -53,7 +75,7 @@ function makeGuess(game: Game, { userIdentifier, playerIndex, countryId, pos }: 
 
 }
 
-function endTurn(game: Game, { userIdentifier, playerIndex }: Query) {
+function endTurn(game: Game, playerIndex: number, query: Query) {
   if (game.turn != playerIndex) {
     console.log(`Error: It's not player ${playerIndex}'s turn!`);
     return false
@@ -61,6 +83,25 @@ function endTurn(game: Game, { userIdentifier, playerIndex }: Query) {
   game.turn = 1 - game.turn
   return true
 }
+
+function checkWinner(game: Game) {
+  const winningFormations = getWinningFormations(game.setup.size)
+  const playerIndices = [0, 1]
+  const wins = winningFormations.filter(formation => playerIndices.some(
+    playerIndex => formation.every(([i, j]) => game.marking[i][j] == playerIndex)
+  ))
+  if (wins.length == 0) {
+    return null
+  }
+  const winners = [...new Set(wins.map(win => game.marking[win[0][0]][win[0][1]]))]
+  if (winners.length == 1) {
+    return winners[0]
+  }
+  // Multiple winners can happen if after a win the players decide to continue playing
+  // If this happens, this function should not be called though
+  return null
+}
+
 
 function chooseGame(gameSetups: GameSetup[], filter: ((gs: GameSetup) => boolean) | null = null): GameSetup {
   if (filter) {
@@ -70,9 +111,11 @@ function chooseGame(gameSetups: GameSetup[], filter: ((gs: GameSetup) => boolean
   return randomChoice(gameSetups)
 }
 
-export default (req, res) => {
+type Request = IncomingMessage & { query: Query };
 
-  const { userIdentifier, action, playerIndex, countryId, pos }: Query = req.query;
+export default (req: Request, res: ServerResponse<Request> ) => {
+
+  const { userIdentifier, action, player, countryId, pos }: Query = req.query
 
   // get the Game instance, or create a new one
   let game: Game | null = gameUserMap[userIdentifier]
@@ -96,23 +139,46 @@ export default (req, res) => {
   // actions
   let result = false
 
+  // from now on, need a playerIndex
+  let playerIndex = player !== undefined ? Number(player) : undefined
+  if (playerIndex !== 0 && playerIndex !== 1) {
+    playerIndex = undefined
+  }
+
   if (action == RequestAction.ExistingOrNewGame || action == RequestAction.NewGame) {
     result = !!game
   }
+  if (playerIndex !== undefined) {
 
-  if (action == RequestAction.MakeGuess && playerIndex && countryId && pos) {
-    result = makeGuess(game, req.query)
+    if (action == RequestAction.MakeGuess && playerIndex !== undefined && countryId && pos) {
+      result = makeGuess(game, playerIndex, req.query)
+
+      // Check winner, if not already decided
+      if (game.state != GameState.Decided) {
+        const winner = checkWinner(game)
+        if (winner !== null) {
+          console.log(`WINNER: Player ${winner}`)
+          game.winner = winner
+          game.state = GameState.Decided
+        }
+      }
+      if (game.marking.flat(1).every(m => m != -1)) {
+        game.state = GameState.Finished
+      }
+
+    }
     
+    if (action == RequestAction.EndTurn && playerIndex !== undefined) {
+      result = endTurn(game, playerIndex, req.query)
+    }
+
   }
-  
-  if (action == RequestAction.EndTurn && playerIndex) {
-    result = endTurn(game, req.query)
-  }
 
-  console.log(`${RequestAction[action]}: ${result ? "successful" : "not successful"}`);
+  console.log(`${RequestAction[action]}: ${result ? "successful" : "not successful"}`)
 
 
-  res.status(200).json({ isNewGame: isNewGame, game: game });
+  res.statusCode = 200
+  res.end(JSON.stringify({ isNewGame: isNewGame, game: game }))
 
 };
 

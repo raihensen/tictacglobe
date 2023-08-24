@@ -13,7 +13,7 @@ import { TableHeading, RowHeading, ColHeading } from '../components/TableHeading
 import 'bootstrap/dist/css/bootstrap.min.css';
 import styled from "styled-components";
 import { forwardRef, useEffect, useId, useState } from 'react';
-import { Game, Country, getCountry, RequestAction, countries, Query, GameData, PlayingMode } from "../src/game.types"
+import { Game, Country, getCountry, RequestAction, countries, Query, GameData, PlayingMode, GameState } from "../src/game.types"
 import { capitalize } from "@/src/util"
 var _ = require('lodash');
 
@@ -24,11 +24,10 @@ import Image from "next/image";
 
 // TODO
 // dont show solution list until game is over. Number can still be toggled
-// show capital only if cell is capital related. Otherwise only at end of the game
 // game winning logic. option to play on. -> two more game states
 // island icon: 3 stack, water, circle-"bordered", circle
 
-// TODO difficulty-limiting constraings
+// TODO difficulty-limiting constraints
 //    - prevent that a row has only cells with one equal solution
 //    - or total number of cells with just one solution
 //    - limit maximum difficulty score
@@ -69,9 +68,10 @@ export default function GameComponent(props: any) {
   const [playerIndex, setPlayerIndex] = useState(0)  // who am i? 0/1
   const [hasTurn, setHasTurn] = useState(true)
 
+  // TODO consider using SWR https://nextjs.org/docs/pages/building-your-application/data-fetching/client-side#client-side-data-fetching-with-swr
   function apiRequest(query: Query) {
     // Fetch the game data from the server
-    const { userIdentifier, action, playerIndex, countryId, pos } = query
+    const { userIdentifier, action, player: playerIndex, countryId, pos } = query
     const search = Object.entries(query).filter(([key, val]) => val != undefined).map(([key, val]) => `${key}=${encodeURIComponent(val)}`).join("&")
     const url = "/api/game?" + search
     console.log(`API request: ${url}`);
@@ -122,8 +122,12 @@ export default function GameComponent(props: any) {
     }
   }, [])
 
+
+  const getPlayerColor = (player: number | null) => {
+    return player === 0 ? "blue" : (player === 1 ? "red" : null)
+  }
   const getPlayerTurnColor = () => {
-    return game?.turn == 0 ? "blue" : "red"
+    return getPlayerColor(game?.turn ?? null)
   }
 
   const [settings, setSettings] = useState({
@@ -168,7 +172,7 @@ export default function GameComponent(props: any) {
             apiRequest({
               userIdentifier: userIdentifier,
               action: RequestAction.EndTurn,
-              playerIndex: game.turn
+              player: game.turn
             })
           }} className="me-auto"><FaPersonCircleXmark /></IconButton>
           <IconButton variant="secondary" onClick={ () => setShowSettings(true) }><FaGear /></IconButton>
@@ -188,13 +192,18 @@ export default function GameComponent(props: any) {
             </Button>
           </Modal.Footer>
         </Modal>
+
+        <p>
+          State: <b>{GameState[game.state]}</b>
+          {game.winner !== null && (<>, Winner: <b>{capitalize(getPlayerColor(game.winner) ?? "No one")}</b></>)}
+        </p>
         
         <table style={{ margin: "0 auto" }}>
           <thead>
             <tr>
               <th>
                 <div style={{ width: "100%", height: "100%" }}>
-                  <span className={styles["badge-player"] + " " + styles[`bg-player-${getPlayerTurnColor()}`]}>{capitalize(getPlayerTurnColor())}'s turn</span>
+                  <span className={styles["badge-player"] + " " + styles[`bg-player-${getPlayerTurnColor()}`]}>{capitalize(getPlayerTurnColor() ?? "No one")}'s turn</span>
                 </div>
               </th>
               {game.setup.labels.cols.map((col, j) => (

@@ -172,7 +172,7 @@ export const Field = ({ pos, game, rowLabel, colLabel, userIdentifier, apiReques
     apiRequest({
       userIdentifier: userIdentifier,
       action: RequestAction.MakeGuess,
-      playerIndex: game.turn,  // offline only
+      player: game.turn,  // offline only
       countryId: country.iso,
       pos: pos.join(",")
     })
