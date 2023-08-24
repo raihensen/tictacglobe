@@ -73,7 +73,7 @@ add_alternative_border(df, "Spain", "Morocco")  # Ceuta/Melilla provinces
 
 # Additional columns & global fixes
 df["continent"].fillna("NA", inplace=True)  # North America fix
-df["landlocked"] = df["iso"].isin("AF,AD,AM,AT,AZ,BY,BT,BO,BW,BF,BI,CF,TD,CZ,SZ,ET,HU,KZ,XK,LA,LS,LI,LU,MW,ML,MD,MN,NP,NE,MK,PY,RW,SM,RS,SK,SS,CH,TJ,UG,VA,ZM,ZW".split(","))
+df["landlocked"] = df["iso"].isin("AF,AD,AM,AT,AZ,BY,BT,BO,BW,BF,BI,CF,TD,CZ,SZ,ET,HU,KZ,XK,KG,LA,LS,LI,LU,MW,ML,MD,MN,NP,NE,MK,PY,RW,SM,RS,SK,SS,CH,TJ,TM,UG,UZ,VA,ZM,ZW".split(","))
 df["island"] = (df["neighbors"].apply(len) == 0) | df["iso"].isin("ID,PG,TL,SG,BN,GB,IE,DO,HT".split(","))
 add_alternative_value(df, "island", "Australia", False, True)
 
