@@ -134,7 +134,7 @@ type Request = IncomingMessage & { query: Query };
 export default (req: Request, res: ServerResponse<Request> ) => {
 
   const { userIdentifier, action, player, countryId, pos }: Query = req.query
-
+  
   // --- Load / Initialize the game ------------------------------------------------
   // get the Game instance, or create a new one
   let game = _.get(gameUserMap, userIdentifier, null) as Game | null

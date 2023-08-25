@@ -1,7 +1,92 @@
+import { useEffect, useRef, useState } from "react";
 
 
 export const capitalize = <T extends string>(s: T) => (s[0].toUpperCase() + s.slice(1)) as Capitalize<typeof s>;
 
 export function randomChoice<T>(arr: Array<T>): T {
   return arr[Math.floor(arr.length * Math.random())];
+}
+
+/**
+ * localStorage.getItem() wrapper, using JSON encoding
+ * @param key 
+ * @param defaultValue 
+ * @returns 
+ */
+export function getLocalStorage<T>(key: string, defaultValue: T): T {
+  const value = localStorage.getItem(key)
+  console.log(`get localStorage[${key}]: ${value ?? "not found"}`)
+  if (value === null) {
+    return defaultValue
+  }
+  try {
+    return JSON.parse(value)
+  } catch (e) {
+    return defaultValue
+  }
+}
+
+/**
+ * localStorage.setItem() wrapper, using JSON encoding
+ * @param key 
+ * @param value 
+ */
+export function setLocalStorage<T>(key: string, value: T) {
+  console.log(`set localStorage[${key}]:= ${JSON.stringify(value)}`)
+  localStorage.setItem(key, JSON.stringify(value))
+}
+
+/**
+ * A custom useEffect hook that only triggers on updates, not on initial mount
+ * From https://stackoverflow.com/a/57632587
+ * @param {() => any} effect
+ * @param {any[]} dependencies
+ */
+export function useUpdateEffect(effect: () => any, dependencies: any[] = []) {
+  const isInitialMount = useRef(true);
+
+  useEffect(() => {
+    if (isInitialMount.current) {
+      isInitialMount.current = false;
+    } else {
+      return effect();
+    }
+  }, dependencies);
+}
+
+
+export function useDarkMode(initialValue: boolean = false) {
+
+  const [darkMode, setDarkMode] = useState(initialValue);
+
+  // manually toggle the dark mode (called by a button), saving an individual preference
+  const toggleDarkMode = () => {
+    const newState = !darkMode
+    setDarkMode(newState)
+    setLocalStorage("darkMode", newState)
+  }
+
+  // Update the bootstrap theme when state changes
+  useUpdateEffect(() => {
+    document.documentElement.setAttribute('data-bs-theme', darkMode ? 'dark' : 'light');
+  }, [darkMode]);
+
+  // Get initial value
+  useEffect(() => {
+    // Get individual preference from localStorage
+    const storedDarkMode = getLocalStorage<boolean | null>('darkMode', null)
+    if (storedDarkMode !== null) {
+      setDarkMode(storedDarkMode)
+    } else {
+      // If there's no individual preference for this page, use system preference and listen to changes
+      window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', event => {
+        // console.log(`System preference changed: ${event.matches ? "dark" : "light"}`);
+        setDarkMode(event.matches)
+        localStorage.removeItem("darkMode")
+      });
+    }
+  }, [])
+
+  return [darkMode, toggleDarkMode]
+
 }

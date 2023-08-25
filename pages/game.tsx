@@ -14,12 +14,12 @@ import 'bootstrap/dist/css/bootstrap.min.css';
 import styled from "styled-components";
 import { forwardRef, useEffect, useId, useState } from 'react';
 import { Game, Country, getCountry, RequestAction, countries, Query, GameData, PlayingMode, GameState } from "../src/game.types"
-import { capitalize } from "@/src/util"
+import { capitalize, getLocalStorage, setLocalStorage, useDarkMode } from "@/src/util"
 var _ = require('lodash');
 
 import styles from '@/pages/Game.module.css'
 import { Field } from "@/components/Field";
-import { FaArrowsRotate, FaEllipsis, FaGear, FaPersonCircleXmark } from "react-icons/fa6";
+import { FaArrowsRotate, FaEllipsis, FaGear, FaMoon, FaPersonCircleXmark } from "react-icons/fa6";
 import Image from "next/image";
 
 // TODO
@@ -38,6 +38,19 @@ import Image from "next/image";
 const TableCell = styled.td`
   border: 1px solid rgba(0,0,0,.25);
   padding: 0;
+`
+const SplitButtonToolbar = styled(ButtonToolbar)`
+  & > .left {
+    margin-right: auto;
+  }
+  & > .left, & > .right {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: flex-start;
+    & > :not(:last-child) {
+      margin-right: .5rem !important;
+    }
+  }
 `
 
 const IconButton = ({ children, label, className, ...props }: any) => (
@@ -107,11 +120,11 @@ export default function GameComponent(props: any) {
       // setGameData(data)
 
       let showNotifyDecided = false
-      if (game) {
-        // game had been loaded before
-        if (newGame.winner !== game.winner) {
-          // There's a new winner (or a draw)
-          showNotifyDecided = true
+      if (game) {  // game had been loaded before
+        if (newGame.marking.flat(1).some(m => m != -1)) {  // No new game
+          if (newGame.winner !== game.winner) {  // There's a new winner (or a draw)
+            showNotifyDecided = true
+          }
         }
       }
 
@@ -161,45 +174,51 @@ export default function GameComponent(props: any) {
   }
 
   const [showSettings, setShowSettings] = useState(false)
+  const [darkMode, toggleDarkMode] = useDarkMode()
 
   return (<>
     <Head>
       <title>TicTacGlobe</title>
     </Head>
     <Container style={{ maxWidth: "720px" }}>
-      <div style={{}} className="my-3">
-        <Image src={"tictacglobe-logo.svg"} width={80} height={80} alt={"TicTacGlobe logo"} />
+      <div className="my-3">
+        <Image src={`tictacglobe-logo${darkMode ? "-white" : ""}.svg`} width={80} height={80} alt={"TicTacGlobe logo"} />
       </div>
       {!game && <Alert variant="warning">Game could not be initialized.</Alert>}
       {game && (<>
         {/* <p>{gameData.isNewGame ? "New Game" : "Existing Game"}</p> */}
-        <ButtonToolbar className="mb-2">
-          {!notifyDecided && (<>
-            <IconButton label="New Game" variant="danger" onClick={() => {
-              apiRequest({
-                userIdentifier: userIdentifier,
-                action: RequestAction.NewGame,
-              })
-            }} className="me-2"><FaArrowsRotate /></IconButton>
-            <IconButton label="End turn" variant="warning" onClick={() => {
-              apiRequest({
-                userIdentifier: userIdentifier,
-                action: RequestAction.EndTurn,
-                player: game.turn
-              })
-            }} className="me-auto"><FaPersonCircleXmark /></IconButton>
-          </>)}
-          {notifyDecided && (<>
-            <IconButton label="New Game" variant="danger" onClick={() => {
-              apiRequest({
-                userIdentifier: userIdentifier,
-                action: RequestAction.NewGame,
-              })
-            }} className="me-2"><FaArrowsRotate /></IconButton>
-            <IconButton label="Continue playing" variant="secondary" onClick={() => { setNotifyDecided(false) }} className="me-auto"><FaEllipsis /></IconButton>
-          </>)}
-          <IconButton variant="secondary" onClick={ () => setShowSettings(true) }><FaGear /></IconButton>
-        </ButtonToolbar>
+        <SplitButtonToolbar className="mb-2">
+          <div className="left">
+            {!notifyDecided && (<>
+              <IconButton label="New Game" variant="danger" onClick={() => {
+                apiRequest({
+                  userIdentifier: userIdentifier,
+                  action: RequestAction.NewGame,
+                })
+              }} className="me-2"><FaArrowsRotate /></IconButton>
+              <IconButton label="End turn" variant="warning" onClick={() => {
+                apiRequest({
+                  userIdentifier: userIdentifier,
+                  action: RequestAction.EndTurn,
+                  player: game.turn
+                })
+              }} className="me-auto"><FaPersonCircleXmark /></IconButton>
+            </>)}
+            {notifyDecided && (<>
+              <IconButton label="New Game" variant="danger" onClick={() => {
+                apiRequest({
+                  userIdentifier: userIdentifier,
+                  action: RequestAction.NewGame,
+                })
+              }} className="me-2"><FaArrowsRotate /></IconButton>
+              <IconButton label="Continue playing" variant="secondary" onClick={() => { setNotifyDecided(false) }} className="me-auto"><FaEllipsis /></IconButton>
+            </>)}
+          </div>
+          <div className="right">
+            <IconButton variant="secondary" onClick={toggleDarkMode} className="me-2"><FaMoon /></IconButton>
+            <IconButton variant="secondary" onClick={ () => setShowSettings(true) }><FaGear /></IconButton>
+          </div>
+        </SplitButtonToolbar>
         <Modal show={showSettings} onHide={ () => setShowSettings(false) }>
           <Modal.Header closeButton>
             <Modal.Title>Settings</Modal.Title>
