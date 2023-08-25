@@ -62,7 +62,7 @@ const IconButton = ({ children, label, className, ...props }: any) => (
 
 const initUserIdentifier = () => {
   let storedUserIdentifier = localStorage.getItem('userIdentifier')
-  
+
   if (!storedUserIdentifier) {
     console.log(`userIdentifier not found in localStorage. Generating ...`);
     // Generate a random user identifier
@@ -76,7 +76,56 @@ type Settings = {
   showIso: boolean;
   showNumSolutions: boolean;
   showNumSolutionsHint: boolean;
+  timeLimit: number | false;
 }
+
+
+const Timer = (props: { initialTime: number, onElapsed: () => any, className?: string | undefined }) => {
+  const [time, setTime] = useState(props.initialTime)
+  const [danger, setDanger] = useState(props.initialTime <= 5)
+  useEffect(() => {
+    const intervalHandle = setInterval(() => {
+      setTime(time - 1)
+      if (time <= 5) {
+        setDanger(true)
+      }
+    }, 1000)
+    if (time === 0) {
+      clearInterval(intervalHandle)
+      props.onElapsed()
+    }
+    return () => {
+      clearInterval(intervalHandle)
+    }
+  })
+  const padZeros = (t: number) => t.toString().padStart(2, "0")
+  return (<>
+    <div className={`timer${danger ? " danger" : ""} ${props.className ? props.className : ""}`}>
+      <span className="minutes">{padZeros(Math.floor(time / 60))}</span>
+      <span className="colon">:</span>
+      <span className="seconds">{padZeros(Math.floor(time % 60))}</span>
+    </div>
+  </>)
+}
+const MyTimer = styled(Timer)`
+  font-family: "Roboto Slab", Arial;
+  font-weight: bold;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: .25rem;
+
+  & > span {
+    &.minutes { text-align: right; }
+    &.colon { text-align: center; padding: 2px; }
+    &.seconds { text-align: left; }
+  }
+  &.danger {
+    background: var(--bs-danger);
+    color: #fff;
+  }
+
+}`
 
 
 export default function GameComponent(props: any) {
@@ -85,7 +134,7 @@ export default function GameComponent(props: any) {
   // const [gameData, setGameData] = useState({ isNewGame: true, game: null } as GameData)
   const [notifyDecided, setNotifyDecided] = useState<boolean>(false)
   const [userIdentifier, setUserIdentifier] = useState<string>("")
-  const [playerIndex, setPlayerIndex] = useState<0|1>(0)  // who am i? 0/1
+  const [playerIndex, setPlayerIndex] = useState<0 | 1>(0)  // who am i? 0/1
   const [hasTurn, setHasTurn] = useState<boolean>(true)
 
   // TODO consider using SWR https://nextjs.org/docs/pages/building-your-application/data-fetching/client-side#client-side-data-fetching-with-swr
@@ -95,43 +144,43 @@ export default function GameComponent(props: any) {
     const search = Object.entries(query).filter(([key, val]) => val != undefined).map(([key, val]) => `${key}=${encodeURIComponent(val)}`).join("&")
     const url = "/api/game?" + search
     console.log(`API request: ${url}`);
-    
+
     fetch(url)
-    .then(response => response.json())
-    .then(data => {
-      const newGame = Game.fromApi(data.game)
-      
-      if (newGame.playingMode == PlayingMode.Offline) {
+      .then(response => response.json())
+      .then(data => {
+        const newGame = Game.fromApi(data.game)
 
-        // in offline mode, userIndex != playerIndex (there's only one user at index 0)
-        // setPlayerIndex(newGame.turn)
-        setHasTurn(true)
+        if (newGame.playingMode == PlayingMode.Offline) {
 
-      } else if (newGame.playingMode == PlayingMode.Online) {
-        // TODO
-        const userIndex = data.game.users.indexOf(userIdentifier)
-        // if (userIndex != -1) {
-        //   setPlayerIndex(userIndex)
-        // }
-        setHasTurn(playerIndex == data.game.turn)
-      }
+          // in offline mode, userIndex != playerIndex (there's only one user at index 0)
+          // setPlayerIndex(newGame.turn)
+          setHasTurn(true)
 
-      // console.log("Update game");
-      // setGameData(data)
+        } else if (newGame.playingMode == PlayingMode.Online) {
+          // TODO
+          const userIndex = data.game.users.indexOf(userIdentifier)
+          // if (userIndex != -1) {
+          //   setPlayerIndex(userIndex)
+          // }
+          setHasTurn(playerIndex == data.game.turn)
+        }
 
-      let showNotifyDecided = false
-      if (game) {  // game had been loaded before
-        if (newGame.marking.flat(1).some(m => m != -1)) {  // No new game
-          if (newGame.winner !== game.winner) {  // There's a new winner (or a draw)
-            showNotifyDecided = true
+        // console.log("Update game");
+        // setGameData(data)
+
+        let showNotifyDecided = false
+        if (game) {  // game had been loaded before
+          if (newGame.marking.flat(1).some(m => m != -1)) {  // No new game
+            if (newGame.winner !== game.winner) {  // There's a new winner (or a draw)
+              showNotifyDecided = true
+            }
           }
         }
-      }
 
-      setGame(newGame)
-      setNotifyDecided(showNotifyDecided)
+        setGame(newGame)
+        setNotifyDecided(showNotifyDecided)
 
-    })
+      })
   }
 
   useEffect(() => {
@@ -158,7 +207,8 @@ export default function GameComponent(props: any) {
   const [settings, setSettings] = useState<Settings>({
     showIso: false,
     showNumSolutions: true,
-    showNumSolutionsHint: false
+    showNumSolutionsHint: false,
+    timeLimit: 20,
   })
 
   function updateSettings(e: React.ChangeEvent<HTMLInputElement>) {
@@ -166,6 +216,7 @@ export default function GameComponent(props: any) {
       showIso: e.target.id == "settingsShowIso" ? e.target.checked : settings.showIso,
       showNumSolutions: e.target.id == "settingsShowNumSolutions" ? e.target.checked : settings.showNumSolutions,
       showNumSolutionsHint: e.target.id == "settingsShowNumSolutionsHint" ? e.target.checked : settings.showNumSolutionsHint,
+      timeLimit: e.target.id == "settingsTimeLimit" ? Number(e.target.value) : settings.timeLimit,  // TODO
     } as Settings
     if (!newSettings.showNumSolutions) {
       newSettings.showNumSolutionsHint = false
@@ -216,10 +267,10 @@ export default function GameComponent(props: any) {
           </div>
           <div className="right">
             <IconButton variant="secondary" onClick={toggleDarkMode} className="me-2"><FaMoon /></IconButton>
-            <IconButton variant="secondary" onClick={ () => setShowSettings(true) }><FaGear /></IconButton>
+            <IconButton variant="secondary" onClick={() => setShowSettings(true)}><FaGear /></IconButton>
           </div>
         </SplitButtonToolbar>
-        <Modal show={showSettings} onHide={ () => setShowSettings(false) }>
+        <Modal show={showSettings} onHide={() => setShowSettings(false)}>
           <Modal.Header closeButton>
             <Modal.Title>Settings</Modal.Title>
           </Modal.Header>
@@ -241,13 +292,20 @@ export default function GameComponent(props: any) {
           {(game.winner === -1) && (<>, <b>It's a draw!</b></>)}
         </p>
         {/* {(notifyDecided && (game.winner === 0 || game.winner === 1)) && <Alert variant="success"><b>{capitalize(getPlayerColor(game.winner) ?? "No one")} wins!</b></Alert>} */}
-        
+
         <table style={{ margin: "0 auto" }}>
           <thead>
             <tr>
               <th>
-                <div style={{ width: "100%", height: "100%" }}>
+                <div style={{ display: "flex", flexDirection: "column", justifyContent: "center", alignItems: "center" }}>
                   <span className={styles["badge-player"] + " " + styles[`bg-player-${getPlayerTurnColor()}`]}>{capitalize(getPlayerTurnColor() ?? "No one")}'s turn</span>
+                  {settings.timeLimit !== false && <MyTimer className="ms-2" initialTime={settings.timeLimit} onElapsed={() => {
+                    apiRequest({
+                      userIdentifier: userIdentifier,
+                      action: RequestAction.TimeElapsed,
+                      player: game.turn
+                    })
+                  }} />}
                 </div>
               </th>
               {game.setup.labels.cols.map((col, j) => (

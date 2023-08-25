@@ -178,7 +178,7 @@ export default (req: Request, res: ServerResponse<Request> ) => {
   } else if (game.state != GameState.Finished && playerIndex !== undefined) {
     // in-game actions: Need unfinished game and a playerIndex
 
-    if (action == RequestAction.MakeGuess && playerIndex !== undefined && countryId && pos) {
+    if (action == RequestAction.MakeGuess && countryId && pos) {
       result = makeGuess(game, playerIndex, req.query)
 
       // Check winner, if not already decided
@@ -195,7 +195,7 @@ export default (req: Request, res: ServerResponse<Request> ) => {
 
     }
     
-    if (action == RequestAction.EndTurn && playerIndex !== undefined) {
+    if (action == RequestAction.EndTurn || action == RequestAction.TimeElapsed) {
       result = endTurn(game, playerIndex, req.query)
     }
 

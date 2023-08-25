@@ -6,7 +6,8 @@ export enum RequestAction {
   ExistingOrNewGame = 0,
   NewGame = 1,
   MakeGuess = 2,
-  EndTurn = 3
+  EndTurn = 3,
+  TimeElapsed = 4,
 }
 
 export type Query = {
