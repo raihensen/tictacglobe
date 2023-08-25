@@ -301,8 +301,9 @@ const CountryAutoComplete = ({ countries, makeGuess, onBlur }: CountryAutoComple
     if (q.length < 3) {
       return []
     }
-    // const results = items.filter(c => countryNameMatch(c, q, (name, q) => name.includes(q)))
-    let results = items.filter(item => item.name.toLowerCase().includes(q))
+    // https://stackoverflow.com/questions/990904/remove-accents-diacritics-in-a-string-in-javascript
+    const normalize = (str: string) => str.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "") // TODO
+    let results = items.filter(item => normalize(item.name).includes(q))
     // retain only one result per country
     const countryCodes = [...new Set(results.map(item => item.country.iso))]
     results.sort((a, b) => {
@@ -322,8 +323,8 @@ const CountryAutoComplete = ({ countries, makeGuess, onBlur }: CountryAutoComple
       // unique result
       return results
     }
-    const exactResults = results.filter(item => item.name.toLowerCase() == q)
-    const prefixResults = results.filter(item => item.name.toLowerCase().startsWith(q))
+    const exactResults = results.filter(item => normalize(item.name) == q)
+    const prefixResults = results.filter(item => normalize(item.name).startsWith(q))
     if (exactResults.length) {
       // if there's an exact hit "A", also return others named "ABC"
       return prefixResults
