@@ -22,6 +22,8 @@ import { Field } from "@/components/Field";
 import { TableHeading, RowHeading, ColHeading } from '@/components/TableHeading';
 import { FaArrowsRotate, FaEllipsis, FaGear, FaMoon, FaPause, FaPersonCircleXmark, FaPlay } from "react-icons/fa6";
 import Image from "next/image";
+import Slider from 'rc-slider';
+import 'rc-slider/assets/index.css';
 
 // TODO
 // dont show solution list until game is over. Number can still be toggled
@@ -79,8 +81,9 @@ type Settings = {
   showNumSolutionsHint: boolean;
   timeLimit: number | false;
 }
-
-
+type BooleanSettingsKeys = {
+  [K in keyof Settings]: Settings[K] extends boolean ? K : never;
+}[keyof Settings];
 
 
 export default function GameComponent(props: any) {
@@ -173,7 +176,7 @@ export default function GameComponent(props: any) {
     showIso: false,
     showNumSolutions: true,
     showNumSolutionsHint: false,
-    timeLimit: 10 * 1000,
+    timeLimit: 10,
   }
 
   const [settings, setSettings] = useState<Settings>(defaultSettings)
@@ -182,13 +185,29 @@ export default function GameComponent(props: any) {
   // TODO
   // const [nextGameSettings, setNextGameSettings] = useState<Settings>(defaultSettings)
 
-  function updateSettings(e: React.ChangeEvent<HTMLInputElement>) {
-    const newSettings = {
-      showIso: e.target.id == "settingsShowIso" ? e.target.checked : settings.showIso,
-      showNumSolutions: e.target.id == "settingsShowNumSolutions" ? e.target.checked : settings.showNumSolutions,
-      showNumSolutionsHint: e.target.id == "settingsShowNumSolutionsHint" ? e.target.checked : settings.showNumSolutionsHint,
-      timeLimit: e.target.id == "settingsTimeLimit" ? Number(e.target.value) : settings.timeLimit,  // TODO
-    } as Settings
+  function updateSettings(e: React.ChangeEvent<HTMLInputElement> | { target: { id: string, value: number | false }}) {
+    // const newSettings = {
+    //   showIso: e.target.id == "settingsShowIso" ? e.target.checked : settings.showIso,
+    //   showNumSolutions: e.target.id == "settingsShowNumSolutions" ? e.target.checked : settings.showNumSolutions,
+    //   showNumSolutionsHint: e.target.id == "settingsShowNumSolutionsHint" ? e.target.checked : settings.showNumSolutionsHint,
+    //   timeLimit: e.target.id == "settingsTimeLimit" ? Number(e.target.value) : settings.timeLimit,  // TODO
+    // } as Settings
+    const newSettings = {...settings} as Settings
+    Object.entries(settings).forEach(([prop, value]) => {
+      if (e.target.id == `settings${capitalize(prop)}`) {
+        if (prop == "timeLimit") {
+          newSettings.timeLimit = e.target.value as number | false
+          return
+        }
+
+        // boolean
+        if ("checked" in e.target) {
+          (newSettings as any)[prop as keyof Settings] = e.target.checked
+        }
+      }
+    })
+
+    console.log(`New settings: ${JSON.stringify(newSettings)}`)
     if (!newSettings.showNumSolutions) {
       newSettings.showNumSolutionsHint = false
     }
@@ -200,6 +219,22 @@ export default function GameComponent(props: any) {
 
   const [timerRunning, setTimerRunning] = useState(false)
   const timerRef = useRef()
+
+  const timeLimitValues = [10, 20, 30, 45, 60, 90, 120]
+  const timeLimitDummyValue = 150
+  const [timeLimitSliderValue, setTimeLimitSliderValue] = useState(settings.timeLimit !== false ? settings.timeLimit : timeLimitDummyValue)
+
+  const formatTimeLimit = (t: number): string => {
+    if (t <= 90) {
+      return `${t} s`
+    }
+    const mins = Math.floor(t / 60)
+    const secs = Math.floor(t % 60)
+    if (secs == 0) {
+      return `${mins} min`
+    }
+    return `${mins}:${secs}`
+  }
 
 
   return (<>
@@ -255,6 +290,29 @@ export default function GameComponent(props: any) {
             <Form.Check type="switch" onChange={updateSettings} checked={settings.showIso} id="settingsShowIso" label="Show country ISO codes" />
             <Form.Check type="switch" onChange={updateSettings} checked={settings.showNumSolutions} id="settingsShowNumSolutions" label="Show number of solutions" />
             <Form.Check type="switch" onChange={updateSettings} checked={settings.showNumSolutionsHint} disabled={!settings.showNumSolutions} id="settingsShowNumSolutionsHint" label="Show number of solutions before guess" />
+            <Form.Label className="mt-3">Time Limit: {settings.timeLimit !== false ? formatTimeLimit(settings.timeLimit) : "No limit"}</Form.Label>
+            <div className="px-3">
+              <Slider
+                marks={Object.fromEntries([...timeLimitValues.map(t => [t, formatTimeLimit(t)]), [timeLimitDummyValue, "No limit"]])}
+                step={null}
+                onChange={(v: number | number[]) => {
+                  const t = v as number
+                  setTimeLimitSliderValue(t)
+                  updateSettings({ target: { id: "settingsTimeLimit", value: t < timeLimitDummyValue ? t : false }})
+                }}
+                min={Math.min(...timeLimitValues)}
+                max={timeLimitDummyValue}
+                value={timeLimitSliderValue}
+                railStyle={{ backgroundColor: 'var(--bs-gray-100)' }} // Customize the rail color
+                trackStyle={{ backgroundColor: 'var(--bs-primary)' }} // Customize the track color
+                handleStyle={{ backgroundColor: 'var(--bs-primary)', border: "none", opacity: 1 }} // Customize the handle color
+                dotStyle={{ backgroundColor: 'var(--bs-gray-100)', border: "none", width: "12px", height: "12px", bottom: "-4px" }} // Customize the handle color
+                activeDotStyle={{ border: "2px solid var(--bs-primary)" }} // Customize the handle color
+                className="mb-5"
+              />
+            </div>
+            {/* <Form.Range id="settingsTimeLimit" list="timeLimitValues" className="mt-5" /> */}
+
           </Modal.Body>
           <Modal.Footer>
             <Button variant="secondary" onClick={() => setShowSettings(false)}>
@@ -277,7 +335,7 @@ export default function GameComponent(props: any) {
                 <div style={{ display: "flex", flexDirection: "column", justifyContent: "center", alignItems: "center" }}>
                   <span className={styles["badge-player"] + " " + styles[`bg-player-${getPlayerTurnColor()}`]}>{capitalize(getPlayerTurnColor() ?? "No one")}'s turn</span>
                   {settings.timeLimit !== false && <>
-                    <Timer className="ms-2" ref={timerRef} running={timerRunning} setRunning={setTimerRunning} initialTime={settings.timeLimit} onElapsed={() => {
+                    <Timer className="mt-2" ref={timerRef} running={timerRunning} setRunning={setTimerRunning} initialTime={settings.timeLimit * 1000} onElapsed={() => {
                       apiRequest({
                         userIdentifier: userIdentifier,
                         action: RequestAction.TimeElapsed,
