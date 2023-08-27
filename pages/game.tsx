@@ -12,14 +12,14 @@ import Modal from 'react-bootstrap/Modal';
 import { TableHeading, RowHeading, ColHeading } from '../components/TableHeading';
 import 'bootstrap/dist/css/bootstrap.min.css';
 import styled from "styled-components";
-import { forwardRef, useEffect, useId, useState } from 'react';
+import { MutableRefObject, forwardRef, useEffect, useId, useImperativeHandle, useRef, useState } from 'react';
 import { Game, Country, getCountry, RequestAction, countries, Query, GameData, PlayingMode, GameState } from "../src/game.types"
 import { capitalize, getLocalStorage, setLocalStorage, useDarkMode } from "@/src/util"
 var _ = require('lodash');
 
 import styles from '@/pages/Game.module.css'
 import { Field } from "@/components/Field";
-import { FaArrowsRotate, FaEllipsis, FaGear, FaMoon, FaPersonCircleXmark } from "react-icons/fa6";
+import { FaArrowsRotate, FaEllipsis, FaGear, FaMoon, FaPause, FaPersonCircleXmark, FaPlay } from "react-icons/fa6";
 import Image from "next/image";
 
 // TODO
@@ -79,34 +79,82 @@ type Settings = {
   timeLimit: number | false;
 }
 
+type TimerProps = {
+  initialTime: number,
+  running: boolean,
+  setRunning: (running: boolean) => any,
+  onElapsed: () => any,
+  className?: string | undefined,
+}
 
-const Timer = (props: { initialTime: number, onElapsed: () => any, className?: string | undefined }) => {
-  const [time, setTime] = useState(props.initialTime)
-  const [danger, setDanger] = useState(props.initialTime <= 5)
-  useEffect(() => {
-    const intervalHandle = setInterval(() => {
-      setTime(time - 1)
-      if (time <= 5) {
-        setDanger(true)
-      }
-    }, 1000)
-    if (time === 0) {
+const Timer = forwardRef(({
+  initialTime,
+  running,
+  setRunning,
+  onElapsed,
+  className
+}: TimerProps, ref) => {
+  const [time, setTime] = useState(initialTime)
+  const [intervalHandle, setIntervalHandle] = useState<NodeJS.Timeout | null>(null)
+  const timeStep = 200
+  const dangerThreshold = 5000
+
+  // Methods offered to parent component
+  useImperativeHandle(ref, () => ({
+    reset() {
+      console.log("Timer: reset")
+      setTime(initialTime)
+      init()
+    }
+  }))
+
+  const clear = () => {
+    if (intervalHandle) {
+      console.log("Timer: clearInterval");
       clearInterval(intervalHandle)
-      props.onElapsed()
+    }
+  }
+  
+  useEffect(() => {
+    if (time <= 0) {
+      clear()
+      setRunning(false)
+      onElapsed()
+    }
+  }, [time])
+
+  const init = () => {
+    if (intervalHandle) {
+      clear()
+    }
+    console.log("Timer: init")
+    setIntervalHandle(setInterval(() => {
+      setTime((t) => t - timeStep)
+    }, timeStep))
+  }
+
+  useEffect(() => {
+    console.log(`Timer: set ${running ? "" : "not "}running`);
+    if (running) {
+      init()
+    } else {
+      clear()
     }
     return () => {
-      clearInterval(intervalHandle)
+      console.log("Timer: finalize useEffect");
+      clear()
     }
-  })
+  }, [running])
+
   const padZeros = (t: number) => t.toString().padStart(2, "0")
   return (<>
-    <div className={`timer${danger ? " danger" : ""} ${props.className ? props.className : ""}`}>
-      <span className="minutes">{padZeros(Math.floor(time / 60))}</span>
+    <div className={`timer${time <= dangerThreshold ? " danger" : ""} ${className ? className : ""}`}>
+      <span className="minutes">{padZeros(Math.max(0, Math.floor(time / 60000)))}</span>
       <span className="colon">:</span>
-      <span className="seconds">{padZeros(Math.floor(time % 60))}</span>
+      <span className="seconds">{padZeros(Math.max(0, Math.floor((time % 60000) / 1000)))}</span>
     </div>
   </>)
-}
+})
 const MyTimer = styled(Timer)`
   font-family: "Roboto Slab", Arial;
   font-weight: bold;
@@ -157,12 +205,12 @@ export default function GameComponent(props: any) {
           setHasTurn(true)
 
         } else if (newGame.playingMode == PlayingMode.Online) {
-          // TODO
-          const userIndex = data.game.users.indexOf(userIdentifier)
+          // TODO Online mode
+          // const userIndex = data.game.users.indexOf(userIdentifier)
           // if (userIndex != -1) {
           //   setPlayerIndex(userIndex)
           // }
-          setHasTurn(playerIndex == data.game.turn)
+          // setHasTurn(playerIndex == data.game.turn)
         }
 
         // console.log("Update game");
@@ -179,6 +227,9 @@ export default function GameComponent(props: any) {
 
         setGame(newGame)
         setNotifyDecided(showNotifyDecided)
+        if (timerRef.current) {
+          timerRef.current.reset()
+        }
 
       })
   }
@@ -204,12 +255,18 @@ export default function GameComponent(props: any) {
     return getPlayerColor(game?.turn ?? null)
   }
 
-  const [settings, setSettings] = useState<Settings>({
+  const defaultSettings: Settings = {
     showIso: false,
     showNumSolutions: true,
     showNumSolutionsHint: false,
-    timeLimit: 20,
-  })
+    timeLimit: 10 * 1000,
+  }
+
+  const [settings, setSettings] = useState<Settings>(defaultSettings)
+
+  // Two settings objects/states: Active + Apply for next game
+  // TODO
+  // const [nextGameSettings, setNextGameSettings] = useState<Settings>(defaultSettings)
 
   function updateSettings(e: React.ChangeEvent<HTMLInputElement>) {
     const newSettings = {
@@ -226,6 +283,10 @@ export default function GameComponent(props: any) {
 
   const [showSettings, setShowSettings] = useState(false)
   const [darkMode, toggleDarkMode] = useDarkMode()
+
+  const [timerRunning, setTimerRunning] = useState(false)
+  const timerRef = useRef()
+
 
   return (<>
     <Head>
@@ -246,14 +307,14 @@ export default function GameComponent(props: any) {
                   userIdentifier: userIdentifier,
                   action: RequestAction.NewGame,
                 })
-              }} className="me-2"><FaArrowsRotate /></IconButton>
+              }}><FaArrowsRotate /></IconButton>
               <IconButton label="End turn" variant="warning" onClick={() => {
                 apiRequest({
                   userIdentifier: userIdentifier,
                   action: RequestAction.EndTurn,
                   player: game.turn
                 })
-              }} className="me-auto"><FaPersonCircleXmark /></IconButton>
+              }}><FaPersonCircleXmark /></IconButton>
             </>)}
             {notifyDecided && (<>
               <IconButton label="New Game" variant="danger" onClick={() => {
@@ -262,8 +323,10 @@ export default function GameComponent(props: any) {
                   action: RequestAction.NewGame,
                 })
               }} className="me-2"><FaArrowsRotate /></IconButton>
-              <IconButton label="Continue playing" variant="secondary" onClick={() => { setNotifyDecided(false) }} className="me-auto"><FaEllipsis /></IconButton>
+              <IconButton label="Continue playing" variant="secondary" onClick={() => { setNotifyDecided(false) }}><FaEllipsis /></IconButton>
             </>)}
+            {!timerRunning && (<IconButton variant="secondary" onClick={() => { setTimerRunning(true) }}><FaPlay /></IconButton>)}
+            {timerRunning && (<IconButton variant="secondary" onClick={() => { setTimerRunning(false) }}><FaPause /></IconButton>)}
           </div>
           <div className="right">
             <IconButton variant="secondary" onClick={toggleDarkMode} className="me-2"><FaMoon /></IconButton>
@@ -299,13 +362,15 @@ export default function GameComponent(props: any) {
               <th>
                 <div style={{ display: "flex", flexDirection: "column", justifyContent: "center", alignItems: "center" }}>
                   <span className={styles["badge-player"] + " " + styles[`bg-player-${getPlayerTurnColor()}`]}>{capitalize(getPlayerTurnColor() ?? "No one")}'s turn</span>
-                  {settings.timeLimit !== false && <MyTimer className="ms-2" initialTime={settings.timeLimit} onElapsed={() => {
-                    apiRequest({
-                      userIdentifier: userIdentifier,
-                      action: RequestAction.TimeElapsed,
-                      player: game.turn
-                    })
-                  }} />}
+                  {settings.timeLimit !== false && <>
+                    <MyTimer className="ms-2" ref={timerRef} running={timerRunning} setRunning={setTimerRunning} initialTime={settings.timeLimit} onElapsed={() => {
+                      apiRequest({
+                        userIdentifier: userIdentifier,
+                        action: RequestAction.TimeElapsed,
+                        player: game.turn
+                      })
+                    }} />
+                  </>}
                 </div>
               </th>
               {game.setup.labels.cols.map((col, j) => (
