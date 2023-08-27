@@ -9,16 +9,17 @@ import Form from 'react-bootstrap/Form';
 import Dropdown from 'react-bootstrap/Dropdown';
 import Modal from 'react-bootstrap/Modal';
 
-import { TableHeading, RowHeading, ColHeading } from '../components/TableHeading';
 import 'bootstrap/dist/css/bootstrap.min.css';
 import styled from "styled-components";
-import { MutableRefObject, forwardRef, useEffect, useId, useImperativeHandle, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Game, Country, getCountry, RequestAction, countries, Query, GameData, PlayingMode, GameState } from "../src/game.types"
-import { capitalize, getLocalStorage, setLocalStorage, useDarkMode } from "@/src/util"
+import { capitalize, useDarkMode } from "@/src/util"
 var _ = require('lodash');
 
 import styles from '@/pages/Game.module.css'
+import { Timer } from "@/components/Timer";
 import { Field } from "@/components/Field";
+import { TableHeading, RowHeading, ColHeading } from '@/components/TableHeading';
 import { FaArrowsRotate, FaEllipsis, FaGear, FaMoon, FaPause, FaPersonCircleXmark, FaPlay } from "react-icons/fa6";
 import Image from "next/image";
 
@@ -79,101 +80,7 @@ type Settings = {
   timeLimit: number | false;
 }
 
-type TimerProps = {
-  initialTime: number,
-  running: boolean,
-  setRunning: (running: boolean) => any,
-  onElapsed: () => any,
-  className?: string | undefined,
-}
 
-const Timer = forwardRef(({
-  initialTime,
-  running,
-  setRunning,
-  onElapsed,
-  className
-}: TimerProps, ref) => {
-  const [time, setTime] = useState(initialTime)
-  const [intervalHandle, setIntervalHandle] = useState<NodeJS.Timeout | null>(null)
-  const timeStep = 200
-  const dangerThreshold = 5000
-
-  // Methods offered to parent component
-  useImperativeHandle(ref, () => ({
-    reset() {
-      console.log("Timer: reset")
-      setTime(initialTime)
-      init()
-    }
-  }))
-
-  const clear = () => {
-    if (intervalHandle) {
-      console.log("Timer: clearInterval");
-      clearInterval(intervalHandle)
-    }
-  }
-  
-  useEffect(() => {
-    if (time <= 0) {
-      clear()
-      setRunning(false)
-      onElapsed()
-    }
-  }, [time])
-
-  const init = () => {
-    if (intervalHandle) {
-      clear()
-    }
-    console.log("Timer: init")
-    setIntervalHandle(setInterval(() => {
-      setTime((t) => t - timeStep)
-    }, timeStep))
-  }
-
-  useEffect(() => {
-    console.log(`Timer: set ${running ? "" : "not "}running`);
-    if (running) {
-      init()
-    } else {
-      clear()
-    }
-    return () => {
-      console.log("Timer: finalize useEffect");
-      clear()
-    }
-  }, [running])
-
-  const padZeros = (t: number) => t.toString().padStart(2, "0")
-  return (<>
-    <div className={`timer${time <= dangerThreshold ? " danger" : ""} ${className ? className : ""}`}>
-      <span className="minutes">{padZeros(Math.max(0, Math.floor(time / 60000)))}</span>
-      <span className="colon">:</span>
-      <span className="seconds">{padZeros(Math.max(0, Math.floor((time % 60000) / 1000)))}</span>
-    </div>
-  </>)
-})
-const MyTimer = styled(Timer)`
-  font-family: "Roboto Slab", Arial;
-  font-weight: bold;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  padding: .25rem;
-
-  & > span {
-    &.minutes { text-align: right; }
-    &.colon { text-align: center; padding: 2px; }
-    &.seconds { text-align: left; }
-  }
-  &.danger {
-    background: var(--bs-danger);
-    color: #fff;
-  }
-
-}`
 
 
 export default function GameComponent(props: any) {
@@ -230,9 +137,16 @@ export default function GameComponent(props: any) {
         if (timerRef.current) {
           timerRef.current.reset()
         }
+        setTimerRunning(true)
+
 
       })
   }
+
+  // Actions to execute when the game is loaded
+  // useEffect(() => {
+
+  // }, [game])
 
   useEffect(() => {
     // First client-side init
@@ -325,8 +239,8 @@ export default function GameComponent(props: any) {
               }} className="me-2"><FaArrowsRotate /></IconButton>
               <IconButton label="Continue playing" variant="secondary" onClick={() => { setNotifyDecided(false) }}><FaEllipsis /></IconButton>
             </>)}
-            {!timerRunning && (<IconButton variant="secondary" onClick={() => { setTimerRunning(true) }}><FaPlay /></IconButton>)}
-            {timerRunning && (<IconButton variant="secondary" onClick={() => { setTimerRunning(false) }}><FaPause /></IconButton>)}
+            {/* {!timerRunning && (<IconButton variant="secondary" onClick={() => { setTimerRunning(true) }}><FaPlay /></IconButton>)}
+            {timerRunning && (<IconButton variant="secondary" onClick={() => { setTimerRunning(false) }}><FaPause /></IconButton>)} */}
           </div>
           <div className="right">
             <IconButton variant="secondary" onClick={toggleDarkMode} className="me-2"><FaMoon /></IconButton>
@@ -363,7 +277,7 @@ export default function GameComponent(props: any) {
                 <div style={{ display: "flex", flexDirection: "column", justifyContent: "center", alignItems: "center" }}>
                   <span className={styles["badge-player"] + " " + styles[`bg-player-${getPlayerTurnColor()}`]}>{capitalize(getPlayerTurnColor() ?? "No one")}'s turn</span>
                   {settings.timeLimit !== false && <>
-                    <MyTimer className="ms-2" ref={timerRef} running={timerRunning} setRunning={setTimerRunning} initialTime={settings.timeLimit} onElapsed={() => {
+                    <Timer className="ms-2" ref={timerRef} running={timerRunning} setRunning={setTimerRunning} initialTime={settings.timeLimit} onElapsed={() => {
                       apiRequest({
                         userIdentifier: userIdentifier,
                         action: RequestAction.TimeElapsed,
