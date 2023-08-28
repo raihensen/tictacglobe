@@ -214,6 +214,21 @@ export default function GameComponent(props: any) {
     setSettings(newSettings)
   }
 
+  const [showTurnInfo, setShowTurnInfo] = useState(false)
+  useEffect(() => {
+    if (!game) {
+      setShowTurnInfo(false)
+    } else {
+      if (game.state == GameState.Finished) {
+        setShowTurnInfo(false)
+      } else if (game.state == GameState.Decided) {
+        setShowTurnInfo(!notifyDecided)
+      } else {
+        setShowTurnInfo(true)
+      }
+    }
+  }, [game, notifyDecided])
+
   const [showSettings, setShowSettings] = useState(false)
   const [darkMode, toggleDarkMode] = useDarkMode()
 
@@ -250,13 +265,13 @@ export default function GameComponent(props: any) {
         {/* <p>{gameData.isNewGame ? "New Game" : "Existing Game"}</p> */}
         <SplitButtonToolbar className="mb-2">
           <div className="left">
+            <IconButton label="New Game" variant="danger" onClick={() => {
+              apiRequest({
+                userIdentifier: userIdentifier,
+                action: RequestAction.NewGame,
+              })
+            }}><FaArrowsRotate /></IconButton>
             {!notifyDecided && (<>
-              <IconButton label="New Game" variant="danger" onClick={() => {
-                apiRequest({
-                  userIdentifier: userIdentifier,
-                  action: RequestAction.NewGame,
-                })
-              }}><FaArrowsRotate /></IconButton>
               <IconButton label="End turn" variant="warning" onClick={() => {
                 apiRequest({
                   userIdentifier: userIdentifier,
@@ -266,12 +281,6 @@ export default function GameComponent(props: any) {
               }}><FaPersonCircleXmark /></IconButton>
             </>)}
             {notifyDecided && (<>
-              <IconButton label="New Game" variant="danger" onClick={() => {
-                apiRequest({
-                  userIdentifier: userIdentifier,
-                  action: RequestAction.NewGame,
-                })
-              }} className="me-2"><FaArrowsRotate /></IconButton>
               <IconButton label="Continue playing" variant="secondary" onClick={() => { setNotifyDecided(false) }}><FaEllipsis /></IconButton>
             </>)}
             {/* {!timerRunning && (<IconButton variant="secondary" onClick={() => { setTimerRunning(true) }}><FaPlay /></IconButton>)}
@@ -333,16 +342,18 @@ export default function GameComponent(props: any) {
             <tr>
               <th>
                 <div style={{ display: "flex", flexDirection: "column", justifyContent: "center", alignItems: "center" }}>
-                  <span className={styles["badge-player"] + " " + styles[`bg-player-${getPlayerTurnColor()}`]}>{capitalize(getPlayerTurnColor() ?? "No one")}'s turn</span>
-                  {settings.timeLimit !== false && <>
-                    <Timer className="mt-2" ref={timerRef} running={timerRunning} setRunning={setTimerRunning} initialTime={settings.timeLimit * 1000} onElapsed={() => {
-                      apiRequest({
-                        userIdentifier: userIdentifier,
-                        action: RequestAction.TimeElapsed,
-                        player: game.turn
-                      })
-                    }} />
-                  </>}
+                  {showTurnInfo && (<>
+                    <span className={styles["badge-player"] + " " + styles[`bg-player-${getPlayerTurnColor()}`]}>{capitalize(getPlayerTurnColor() ?? "No one")}'s turn</span>
+                    {settings.timeLimit !== false && (<>
+                      <Timer className="mt-2" ref={timerRef} running={timerRunning} setRunning={setTimerRunning} initialTime={settings.timeLimit * 1000} onElapsed={() => {
+                        apiRequest({
+                          userIdentifier: userIdentifier,
+                          action: RequestAction.TimeElapsed,
+                          player: game.turn
+                        })
+                      }} />
+                    </>)}
+                  </>)}
                 </div>
               </th>
               {game.setup.labels.cols.map((col, j) => (
