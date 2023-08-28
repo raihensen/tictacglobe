@@ -5,6 +5,7 @@ MAX_CELL_SIZE = 10
 
 import json
 import pandas as pd
+import numpy as np
 import itertools
 from game import *
 from category import *
@@ -248,14 +249,13 @@ if len(setkeys) < len(setkeys_old):
 # plt.show()
 
 # ------------------------------------------------------------------------------------------------------------------
-# Sample games
+# Game creation interface
 
-# def create_game(constraints, shuffle=True):
-#     return sample_game(categories, setkeys, cells,
-#                        field_size=FIELD_SIZE, constraints=constraints, shuffle=shuffle)
-
-def get_generator(constraints, field_size, seed=None, selection_mode="shuffle_categories", uniform=False, shuffle=True):
+""" Instantiates the GameGenerator class, providing it with all data from preprocessing and setting additional parameters. """
+def get_generator(constraints, category_probs, field_size, seed=None, selection_mode="shuffle_categories", uniform=False, shuffle=True):
+    
     return GameGenerator(categories=categories,
+                         category_probs=category_probs,
                          setkeys=setkeys,
                          cells=cells,
                          field_size=field_size,

@@ -1,21 +1,11 @@
 
 import random
 from collections import Counter
+
+import tqdm
 from category import *
 import pandas as pd
 import numpy as np
-
-
-CATEGORY_PROBS = {
-    'continent': 4,
-    'starting_letter': 3,
-    'ending_letter': 1.5,
-    'capital_starting_letter': 2,
-    'capital_ending_letter': .5,
-    'flag_colors': 3,
-    'landlocked': 5,
-    'island': 5
-}
 
 
 def get_label(cat: Category, value):
@@ -139,9 +129,12 @@ class Constraint:
     def dummy():
         return Constraint(lambda cat: True, 0, 1)
 
+
 class GameGenerator:
-    def __init__(self, categories, setkeys, cells, field_size, constraints=[], seed=None, selection_mode="shuffle_categories", precompute_probs=True, uniform=False, shuffle=True):
+    def __init__(self, categories, category_probs, setkeys, cells, field_size, constraints=[], seed=None, selection_mode="shuffle_categories", precompute_probs=True, uniform=False, shuffle=True):
         self.categories = categories
+        # self.category_probs = category_probs if category_probs is not None else DEFAULT_CATEGORY_PROBS
+        self.category_probs = category_probs
         self.setkeys = setkeys
         self.cells = cells
         self.field_size = field_size
@@ -164,7 +157,7 @@ class GameGenerator:
         sample = pd.DataFrame([{"cat": key, "value": value} for key, value in self.setkeys])
         cats = None
         cat_size = sample["cat"].value_counts().rename("cat_size")
-        cat_prob = pd.Series(CATEGORY_PROBS, name="cat_prob")
+        cat_prob = pd.Series(self.category_probs, name="cat_prob")
 
         if self.selection_mode == "shuffle_setkeys":  # DEPR: this leads to unprobable categories being selected almost *never* because the frequent categories have many values
             if self.uniform:
@@ -237,7 +230,7 @@ class GameGenerator:
             sample = pd.DataFrame([{"cat": key, "value": value} for key, value in choice])
 
             cat_size = sample["cat"].value_counts().rename("cat_size")
-            cat_prob = pd.Series(CATEGORY_PROBS, name="cat_prob")
+            cat_prob = pd.Series(self.category_probs, name="cat_prob")
 
             if self.selection_mode == "shuffle_setkeys":  # DEPR: this leads to unprobable categories being selected almost *never* because the frequent categories have many values
                 if self.uniform:
@@ -344,7 +337,7 @@ class GameGenerator:
         return rows, cols
 
 
-    def sample_game(self, shuffle=True):
+    def sample_game(self):
         MAX_TRIES = 100
         rows, cols = None, None
         for i in range(MAX_TRIES):
@@ -367,8 +360,21 @@ class GameGenerator:
                     rows=[(self.categories[cat], value) for cat, value in rows],
                     cols=[(self.categories[cat], value) for cat, value in cols])
         
-        # print("Sampled game")
         return game
-
-# get_allowed_sets([('capital_ending_letter', 'T'), ('flag_colors', 'Red'), ('starting_letter', 'T')], [('capital_starting_letter', 'O')])
+    
+    def sample_games(self, n=100, progress_bar=True):
+        iter = tqdm.tqdm(range(n)) if progress_bar else range(n)
+        for _ in iter:
+            game = self.sample_game()
+            if game is None:
+                return
+            yield game
+    
+    # Alias for sample_game()
+    def generate_game(self):
+        return self.sample_game()
+    
+    # Alias for sample_games()
+    def generate_games(self, n=100, progress_bar=True):
+        return self.sample_games(n=n, progress_bar=progress_bar)
 

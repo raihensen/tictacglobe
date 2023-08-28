@@ -39,9 +39,20 @@ constraints = [
     Constraint.category_at_most("capital_starting_letter", 1),
     Constraint.category_at_most("ending_letter", 1)
 ]
+CATEGORY_PROBS = {
+    'continent': 4,
+    'starting_letter': 3,
+    'ending_letter': 1.5,
+    'capital_starting_letter': 2,
+    'capital_ending_letter': .5,
+    'flag_colors': 3,
+    'landlocked': 5,
+    'island': 5
+}
 
 def generate_games(constraints, num):
     generator = preprocessing.get_generator(constraints, field_size=3,
+                                            category_probs=CATEGORY_PROBS,
                                             seed=None, selection_mode="shuffle_setkeys", uniform=False, shuffle=True)
     return [generator.sample_game() for _ in tqdm.tqdm(range(num))]
 
