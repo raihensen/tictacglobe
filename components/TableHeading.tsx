@@ -5,11 +5,38 @@ import { OverlayTrigger, Tooltip } from "react-bootstrap";
 import Badge from 'react-bootstrap/Badge';
 import styled from "styled-components";
 import { useId } from "react";
+import { CategoryValue } from "@/src/game.types";
 var _ = require('lodash');
 
+const continentIconMap = {
+  AS: FaEarthAsia,
+  NA: FaEarthAmericas,
+  SA: FaEarthAmericas,
+  EU: FaEarthEurope,
+  AF: FaEarthAfrica,
+  OC: FaEarthOceania
+}
+const continentNameMap = {
+  AS: "Asia",
+  NA: "North America",
+  SA: "South America",
+  EU: "Europe",
+  AF: "Africa",
+  OC: "Oceania"
+}
 
-export const TableHeading = (props: { catValue: string }) => {
-  if (props.catValue == "Landlocked") {
+const colorMap = {
+  "Red": styles.flagColorRed,
+  "Yellow/Gold": styles.flagColorYellow,
+  "Orange": styles.flagColorOrange,
+  "Green": styles.flagColorGreen,
+  "Blue": styles.flagColorBlue,
+  "White": styles.flagColorWhite,
+  "Black": styles.flagColorBlack
+}
+
+export const TableHeading = ({ category, value }: CategoryValue) => {
+  if (category == "landlocked") {
     const tooltipCategoryInfo = (<Tooltip id={`tooltipCategoryInfo-${useId()}`}>Landlocked countries (without direct ocean access)</Tooltip>)
     return (
       <OverlayTrigger placement="top" overlay={tooltipCategoryInfo}>
@@ -24,7 +51,7 @@ export const TableHeading = (props: { catValue: string }) => {
     )
     
   }
-  if (props.catValue == "Island Nation") {
+  if (category == "island") {
     const tooltipCategoryInfo = (<Tooltip id={`tooltipCategoryInfo-${useId()}`}>Island Nations (all parts of the country are located on islands)</Tooltip>)
     return (
       <OverlayTrigger placement="top" overlay={tooltipCategoryInfo}>
@@ -37,11 +64,11 @@ export const TableHeading = (props: { catValue: string }) => {
     
   }
 
-  const isStartsWith = props.catValue.startsWith("Starting letter") || props.catValue.startsWith("Capital starting letter")
-  const isEndsWith = props.catValue.startsWith("Ending letter") || props.catValue.startsWith("Capital ending letter")
+  const isStartsWith = category == "starting_letter" || category == "capital_starting_letter"
+  const isEndsWith = category == "ending_letter" || category == "capital_ending_letter"
   if (isStartsWith || isEndsWith) {
-    const isCapital = props.catValue.startsWith("Capital")
-    const letter = props.catValue.substring(props.catValue.length - 1).toUpperCase()
+    const isCapital = category.startsWith("capital")
+    const letter = (value as string).toUpperCase()
     const tooltipCategoryInfo = (<Tooltip id={`tooltipCategoryInfo-${useId()}`}>{isCapital ? "Capital" : "Country name"} {isStartsWith ? "starts" : "ends"} with {"AEFHILMNORSX".includes(letter) ? "an" : "a"} {letter}</Tooltip>)
     return (
       <OverlayTrigger placement="top" overlay={tooltipCategoryInfo}>
@@ -57,17 +84,8 @@ export const TableHeading = (props: { catValue: string }) => {
     )
   }
 
-  if (props.catValue.startsWith("Flag color")) {
-    const color = props.catValue.replace(/^Flag color: (.+)$/i, "$1")
-    const colorMap = {
-      "Red": styles.flagColorRed,
-      "Yellow/Gold": styles.flagColorYellow,
-      "Orange": styles.flagColorOrange,
-      "Green": styles.flagColorGreen,
-      "Blue": styles.flagColorBlue,
-      "White": styles.flagColorWhite,
-      "Black": styles.flagColorBlack
-    }
+  if (category == "flag_colors") {
+    const color = value as string
     const colorClass = _.get(colorMap, color, styles.flagColorBlack)
     const tooltipCategoryInfo = (<Tooltip id={`tooltipCategoryInfo-${useId()}`}>Flag contains the color {color}</Tooltip>)
     return (
@@ -79,28 +97,16 @@ export const TableHeading = (props: { catValue: string }) => {
       </OverlayTrigger>
     )
   }
-  const continentIconMap = {
-    "Asia": FaEarthAsia,
-    "N. America": FaEarthAmericas,
-    "S. America": FaEarthAmericas,
-    "Europe": FaEarthEurope,
-    "Africa": FaEarthAfrica,
-    "Oceania": FaEarthOceania
-  }
-  const continentNameMap = {
-    "N. America": "North America",
-    "S. America": "South America"
-  }
 
-  if (props.catValue in continentIconMap) {
-    const continent = props.catValue
+  if (category == "continent") {
+    const continent = value as string
     const continentName = _.get(continentNameMap, continent, continent)
     const ContinentIcon = _.get(continentIconMap, continent, FaEarthAfrica)
     const tooltipCategoryInfo = (<Tooltip id={`tooltipCategoryInfo-${useId()}`}>Continent: {continentName}</Tooltip>)
     return (<OverlayTrigger placement="top" overlay={tooltipCategoryInfo}>
       <CategoryBadge>
         <ContinentIcon className={styles.categoryIcon} />
-        <span className="icon-label">{continent}</span>
+        <span className="icon-label">{continentName}</span>
       </CategoryBadge>
     </OverlayTrigger>)
   }

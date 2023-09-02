@@ -76,6 +76,7 @@ const initUserIdentifier = () => {
 }
 
 type Settings = {
+  difficulty: "easy" | "medium" | "hard";
   showIso: boolean;
   showNumSolutions: boolean;
   showNumSolutionsHint: boolean;
@@ -158,6 +159,7 @@ export default function GameComponent(props: any) {
     apiRequest({
       userIdentifier: storedUserIdentifier,
       action: RequestAction.ExistingOrNewGame,
+      difficulty: settings.difficulty
     })
     return () => {
       // this is called to finalize the effect hook, before it is triggered again
@@ -173,6 +175,7 @@ export default function GameComponent(props: any) {
   }
 
   const defaultSettings: Settings = {
+    difficulty: "easy",
     showIso: false,
     showNumSolutions: true,
     showNumSolutionsHint: false,
@@ -185,7 +188,7 @@ export default function GameComponent(props: any) {
   // TODO
   // const [nextGameSettings, setNextGameSettings] = useState<Settings>(defaultSettings)
 
-  function updateSettings(e: React.ChangeEvent<HTMLInputElement> | { target: { id: string, value: number | false }}) {
+  function updateSettings(e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement> | { target: { id: string, value: number | false }}) {
     // const newSettings = {
     //   showIso: e.target.id == "settingsShowIso" ? e.target.checked : settings.showIso,
     //   showNumSolutions: e.target.id == "settingsShowNumSolutions" ? e.target.checked : settings.showNumSolutions,
@@ -198,6 +201,9 @@ export default function GameComponent(props: any) {
         if (prop == "timeLimit") {
           newSettings.timeLimit = e.target.value as number | false
           return
+        }
+        if (prop == "difficulty") {
+          newSettings.difficulty = e.target.value as string
         }
 
         // boolean
@@ -269,6 +275,7 @@ export default function GameComponent(props: any) {
               apiRequest({
                 userIdentifier: userIdentifier,
                 action: RequestAction.NewGame,
+                difficulty: settings.difficulty
               })
             }}><FaArrowsRotate /></IconButton>
             {!notifyDecided && (<>
@@ -296,6 +303,11 @@ export default function GameComponent(props: any) {
             <Modal.Title>Settings</Modal.Title>
           </Modal.Header>
           <Modal.Body>
+            <Form.Select onChange={updateSettings} defaultValue={settings.difficulty} id="settingsDifficulty" className="mb-3">
+              <option value="easy">Difficulty: Easy</option>
+              <option value="medium">Difficulty: Medium</option>
+              <option value="hard">Difficulty: Hard</option>
+            </Form.Select>
             <Form.Check type="switch" onChange={updateSettings} checked={settings.showIso} id="settingsShowIso" label="Show country ISO codes" />
             <Form.Check type="switch" onChange={updateSettings} checked={settings.showNumSolutions} id="settingsShowNumSolutions" label="Show number of solutions" />
             <Form.Check type="switch" onChange={updateSettings} checked={settings.showNumSolutionsHint} disabled={!settings.showNumSolutions} id="settingsShowNumSolutionsHint" label="Show number of solutions before guess" />
@@ -356,22 +368,22 @@ export default function GameComponent(props: any) {
                   </>)}
                 </div>
               </th>
-              {game.setup.labels.cols.map((col, j) => (
-                <ColHeading key={j}><div><TableHeading catValue={col} /></div></ColHeading>
+              {game.setup.cols.map((col, j) => (
+                <ColHeading key={j}><div><TableHeading {...col} /></div></ColHeading>
               ))}
             </tr>
           </thead>
           <tbody>
             {game.setup.solutions.map((row: string[][], i: number) => (
               <tr key={i}>
-                <RowHeading key={-1}><div><TableHeading catValue={game.setup.labels.rows[i]} /></div></RowHeading>
+                <RowHeading><div><TableHeading {...game.setup.rows[i]} /></div></RowHeading>
                 {row.map((countryCodes: string[], j: number) => {
                   return (<TableCell key={j}>
                     <Field
                       pos={[i, j]}
                       game={game}
-                      rowLabel={game.setup.labels.rows[i]}
-                      colLabel={game.setup.labels.cols[j]}
+                      row={game.setup.rows[i]}
+                      col={game.setup.cols[j]}
                       userIdentifier={userIdentifier}
                       apiRequest={apiRequest}
                       hasTurn={hasTurn}

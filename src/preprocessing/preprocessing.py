@@ -2,12 +2,14 @@
 FIELD_SIZE = 3
 MIN_CELL_SIZE = 1
 MAX_CELL_SIZE = 10
+GAME_LANGUAGE = "EN"
 
 import json
 import pandas as pd
 import numpy as np
 import itertools
 from game import *
+from generator import *
 from category import *
 from utils import *
 

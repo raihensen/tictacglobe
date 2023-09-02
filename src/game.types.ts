@@ -16,6 +16,7 @@ export type Query = {
   player?: number;
   countryId?: string;
   pos?: string;  // coords like "0,2"
+  difficulty?: "easy" | "medium" | "hard"
 }
 
 
@@ -37,13 +38,29 @@ export interface Country {
   [x: string]: any;
 }
 
+export type CategoryValue = {
+  category: string;
+  value: any;
+}
+
+// TODO convert to this enum
+export enum DifficultyLevel {
+  Easy = 0,
+  Medium = 1,
+  Hard = 2
+}
+
 export interface GameSetup {
   size: number;
   solutions: Country["iso"][][][];
   alternativeSolutions: Country["iso"][][][];
-  labels: {
-    rows: string[];
-    cols: string[];
+  rows: CategoryValue[];
+  cols: CategoryValue[];
+  data: {
+    difficultyLevel: string;
+    avgCellDifficulty: number;
+    maxCellDifficulty: number;
+    [x: string]: any;
   }
 }
 export enum GameState {
@@ -120,7 +137,7 @@ export function getCountry(q: string): Country | null {
 }
 
 import countryData from '../data/countries.json'
-import gameData from '../data/games-2-more-categories.json'
+import gameData from '../data/games-20230902-224254-with-difficulty-en.json'
 
 export const countries = countryData.map(c => {
   const country = Object.fromEntries(Object.entries(c).filter(([k, v]) => !k.endsWith("_alt")).map(

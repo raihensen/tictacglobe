@@ -1,7 +1,7 @@
 
 import styled from "styled-components";
 import { forwardRef, useEffect, useId, useMemo, useState } from 'react';
-import { Game, Country, getCountry, RequestAction, countries, Query, GameData, PlayingMode, GameState } from "@/src/game.types"
+import { Game, Country, CategoryValue, getCountry, RequestAction, countries, Query, GameData, PlayingMode, GameState } from "@/src/game.types"
 import Autocomplete from 'react-autocomplete'
 import { PlusCircleFill } from 'react-bootstrap-icons';
 import Badge from 'react-bootstrap/Badge';
@@ -82,8 +82,8 @@ const CountryFlag = ({ country, size, onClick }: { country: Country | null, size
 export type FieldProps = {
   pos: number[];
   game: Game;
-  rowLabel: string;
-  colLabel: string;
+  row: CategoryValue;
+  col: CategoryValue;
   userIdentifier: string;
   apiRequest: (query: Query) => any;
   hasTurn: boolean;
@@ -109,7 +109,7 @@ type FieldState = {
 }
 
 
-export const Field = ({ pos, game, rowLabel, colLabel, userIdentifier, apiRequest, hasTurn, notifyDecided, countries, settings }: FieldProps) => {
+export const Field = ({ pos, game, row, col, userIdentifier, apiRequest, hasTurn, notifyDecided, countries, settings }: FieldProps) => {
   const [i, j] = pos
   const solutions = countries.filter(c => game.setup.solutions[i][j].includes(c.iso))
   const alternativeSolutions = countries.filter(c => game.setup.alternativeSolutions[i][j].includes(c.iso))
@@ -184,10 +184,10 @@ export const Field = ({ pos, game, rowLabel, colLabel, userIdentifier, apiReques
   }
 
   const isNameRelevant = () => {
-    return [rowLabel, colLabel].some(label => label.startsWith("Starting letter") || label.startsWith("Ending letter"))
+    return [row, col].some(({ category, value }) => category == "starting_letter" || category == "ending_letter")
   }
   const isCapitalRelevant = () => {
-    return [rowLabel, colLabel].some(label => label.startsWith("Capital"))
+    return [row, col].some(({ category, value }) => category.startsWith("capital"))
   }
 
   const CountryInfoTooltip = () => {

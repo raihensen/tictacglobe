@@ -67,4 +67,6 @@ def remove_border(df, c1, c2):
     set_border(df, c1, c2, border=False, alt_border=False)
 
 
-
+def camel_case(s: str) -> str:
+    output = ''.join(x for x in s.title() if x.isalnum())
+    return output[0].lower() + output[1:]

@@ -6,7 +6,7 @@ import matplotlib.pyplot as plt
 import tqdm
 
 import preprocessing
-from game import Constraint
+from generator import Constraint
 
 
 df = preprocessing.df

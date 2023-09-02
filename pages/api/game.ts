@@ -133,7 +133,7 @@ type Request = IncomingMessage & { query: Query };
 
 export default (req: Request, res: ServerResponse<Request> ) => {
 
-  const { userIdentifier, action, player, countryId, pos }: Query = req.query
+  const { userIdentifier, action, player, countryId, pos, difficulty }: Query = req.query
   
   // --- Load / Initialize the game ------------------------------------------------
   // get the Game instance, or create a new one
@@ -141,21 +141,14 @@ export default (req: Request, res: ServerResponse<Request> ) => {
   console.log(`userIdentifier ${userIdentifier}: ` + (game ? "Found game." : "No game found.") + " All games: " + JSON.stringify(Object.entries(gameUserMap).map(([k, v]) => k)))
 
   const newGame = !game || action == RequestAction.NewGame
-  if (newGame) {
+  if (newGame && difficulty) {
     game = new Game(
       chooseGame(gameSetups, setup => {
-        const labels = setup.labels.rows.concat(setup.labels.cols)
-        return labels.includes("Island Nation") || labels.includes("Landlocked")
+        return setup.data.difficultyLevel == difficulty
       }),
       [userIdentifier],  // 1 element for offline game, 2 for online
       PlayingMode.Offline
     )
-
-    // test win notify
-    // _.range(2).forEach((i: number) => _.range(2).forEach((j: number) => {
-    //   (game as Game).guesses[i][j] = randomChoice(countries).iso;
-    //   (game as Game).marking[i][j] = Math.abs(i - j)
-    // }));
 
     gameUserMap[userIdentifier] = game
   }
