@@ -21,6 +21,7 @@ SOLUTION_DIFFICULTY_WEIGHTS = {
 CELL_DIFFICULTY_WEIGHTS = {
     "row_col_difficulty": 2,
     "content_difficulty": 3
+    # TODO min solution difficulty
 }
 GAME_DIFFICULTY_WEIGHTS = {
     "avg_cell_difficulty": 1,

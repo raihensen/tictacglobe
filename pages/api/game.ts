@@ -1,8 +1,10 @@
 
 import { IncomingMessage, ServerResponse } from 'http';
-import { Game, GameSetup, Country, gameSetups, countries, RequestAction, Query, PlayingMode, GameState } from "@/src/game.types"
+import { Game, GameSetup, Country, countries, RequestAction, Query, PlayingMode, GameState, Language } from "@/src/game.types"
 import { randomChoice } from "@/src/util";
 var _ = require('lodash');
+var fs = require('fs');
+var path = require('path');
 
 
 var gameUserMap: {[x: string]: Game} = {}
@@ -121,38 +123,46 @@ function checkWinner(game: Game) {
 }
 
 
-function chooseGame(gameSetups: GameSetup[], filter: ((gs: GameSetup) => boolean) | null = null): GameSetup {
-  if (filter) {
-    gameSetups = gameSetups.filter(filter)
-  }
-  console.log(`Choose game setup (out of ${gameSetups.length})`);
-  return randomChoice(gameSetups)
+function chooseGame(
+  language: Language,
+  filter: ((gameSetup: GameSetup) => boolean) | null = null,
+  callback: ((gameSetup: GameSetup | null) => void)
+): void {
+
+  const dir = path.join(...`data/games/${language}`.split("/"))
+  console.log(`Listing game files in directory "${dir}"`)
+  fs.readdir(dir, function (err: any, files: string []) {
+    if (err || !files.length) {
+      return callback(null)
+    }
+    const file = path.join(dir, _.max(files))
+    console.log(`Read games from file ${file}`);
+    
+    fs.readFile(file, (err: any, data: string) => {
+      if (err) {
+        return callback(null)
+      }
+      let gameSetups = JSON.parse(data) as GameSetup[]
+      if (filter) {
+        gameSetups = gameSetups.filter(filter)
+      }
+      console.log(`Choose game setup (out of ${gameSetups.length})`)
+      callback(randomChoice(gameSetups))
+    })
+
+  })
+
 }
 
 type Request = IncomingMessage & { query: Query };
 
-export default (req: Request, res: ServerResponse<Request> ) => {
+function executeAndRespond(
+  query: Query,
+  game: Game,
+  isNewGame: boolean,
+  res: ServerResponse<Request>) {
 
-  const { userIdentifier, action, player, countryId, pos, difficulty }: Query = req.query
-  
-  // --- Load / Initialize the game ------------------------------------------------
-  // get the Game instance, or create a new one
-  let game = _.get(gameUserMap, userIdentifier, null) as Game | null
-  console.log(`userIdentifier ${userIdentifier}: ` + (game ? "Found game." : "No game found.") + " All games: " + JSON.stringify(Object.entries(gameUserMap).map(([k, v]) => k)))
-
-  const newGame = !game || action == RequestAction.NewGame
-  if (newGame && difficulty) {
-    game = new Game(
-      chooseGame(gameSetups, setup => {
-        return setup.data.difficultyLevel == difficulty
-      }),
-      [userIdentifier],  // 1 element for offline game, 2 for online
-      PlayingMode.Offline
-    )
-
-    gameUserMap[userIdentifier] = game
-  }
-  game = game as Game
+  const { userIdentifier, action, player, countryId, pos, difficulty } = query
 
   // --- Action / Response ------------------------------------------------
   // actions
@@ -172,7 +182,7 @@ export default (req: Request, res: ServerResponse<Request> ) => {
     // in-game actions: Need unfinished game and a playerIndex
 
     if (action == RequestAction.MakeGuess && countryId && pos) {
-      result = makeGuess(game, playerIndex, req.query)
+      result = makeGuess(game, playerIndex, query)
 
       // Check winner, if not already decided
       if (game.state != GameState.Decided) {
@@ -189,16 +199,59 @@ export default (req: Request, res: ServerResponse<Request> ) => {
     }
     
     if (action == RequestAction.EndTurn || action == RequestAction.TimeElapsed) {
-      result = endTurn(game, playerIndex, req.query)
+      result = endTurn(game, playerIndex, query)
     }
 
   }
 
   console.log(`${RequestAction[action]}: ${result ? "successful" : "not successful"}`)
 
-
   res.statusCode = 200
-  res.end(JSON.stringify({ isNewGame: newGame, game: game }))
+  res.end(JSON.stringify({ isNewGame: isNewGame, game: game }))
 
-};
+}
+
+function respondWithError(res: ServerResponse<Request>, err: string = "API Error") {
+  res.end(JSON.stringify({ error: err }))
+}
+
+export default (req: Request, res: ServerResponse<Request> ) => {
+
+  const { userIdentifier, action, player, countryId, pos, difficulty, language }: Query = req.query
+  
+  // --- Load / Initialize the game ------------------------------------------------
+  // get the Game instance, or create a new one
+  let game = _.get(gameUserMap, userIdentifier, null) as Game | null
+  console.log(`userIdentifier ${userIdentifier}: ` + (game ? "Found game." : "No game found.") + " All games: " + JSON.stringify(Object.entries(gameUserMap).map(([k, v]) => k)))
+
+  const newGame = !game || action == RequestAction.NewGame
+  if (newGame || !game) {
+    if (difficulty && language) {
+      chooseGame(
+        language,
+        gameSetup => {
+          return gameSetup.data.difficultyLevel == difficulty
+        },
+        gameSetup => {
+          if (!gameSetup) {
+            return respondWithError(res, "Game could not be initialized")
+          }
+          game = new Game(
+            gameSetup,
+            [userIdentifier],  // 1 element for offline game, 2 for online
+            PlayingMode.Offline
+          )
+          gameUserMap[userIdentifier] = game
+          executeAndRespond(req.query, game, newGame, res)
+        }
+      )
+    } else {
+      respondWithError(res, "Missing parameters for game selection")
+    }
+
+  } else {
+    executeAndRespond(req.query, game, newGame, res)
+  }
+
+}
 

@@ -1,0 +1,27 @@
+{
+    "language": "English",
+    "change-locale": "Change language to \"{{changeTo}}\"",
+    "new-game": "New game",
+    "end-turn": "End turn",
+    "turn-info": "{{player}}'s turn",
+    "continue-playing": "Weiterspielen",
+    "winner": "winner",
+    "tie-notification": "It's a draw!",
+    "no one": "no one",
+    "blue": "blue",
+    "red": "red",
+    "categories": {
+        "island": "Island",
+        "landlocked": "Landlocked",
+        "colors": {
+            "Black": "Black",
+            "White": "White",
+            "Red": "Red",
+            "Yellow/Gold": "Yellow/Gold",
+            "Green": "Green",
+            "Orange": "Orange",
+            "Blue": "Blue"
+        }
+    }
+
+}

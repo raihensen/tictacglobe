@@ -32,3 +32,20 @@
 .tooltip > p:last-child {
   margin-bottom: 0;
 }
+
+.languageSelector {
+  height: 100%;
+  display: flex;
+  align-items: center;
+}
+.languageSelectorItem {
+  /* height: 100%; */
+  display: flex;
+  align-items: center;
+}
+.languageSelectorItem img {
+  margin-right: 0.5rem;
+}
+
+
+

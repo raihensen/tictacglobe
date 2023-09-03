@@ -12,7 +12,9 @@ import Modal from 'react-bootstrap/Modal';
 import 'bootstrap/dist/css/bootstrap.min.css';
 import styled from "styled-components";
 import { useEffect, useRef, useState } from 'react';
-import { Game, Country, getCountry, RequestAction, countries, Query, GameData, PlayingMode, GameState } from "../src/game.types"
+import { useTranslation, Trans } from 'next-i18next'
+import { serverSideTranslations } from 'next-i18next/serverSideTranslations'
+import { Game, Country, getCountry, RequestAction, countries, Query, GameData, PlayingMode, GameState, Language } from "../src/game.types"
 import { capitalize, useDarkMode } from "@/src/util"
 var _ = require('lodash');
 
@@ -24,6 +26,11 @@ import { FaArrowsRotate, FaEllipsis, FaGear, FaMoon, FaPause, FaPersonCircleXmar
 import Image from "next/image";
 import Slider from 'rc-slider';
 import 'rc-slider/assets/index.css';
+import Link from "next/link";
+import { useRouter } from "next/router";
+import type { GetStaticProps, InferGetStaticPropsType } from 'next'
+import { DropdownButton } from "react-bootstrap";
+import { CircleFlagLanguage } from 'react-circle-flags';
 
 // TODO
 // dont show solution list until game is over. Number can still be toggled
@@ -37,6 +44,9 @@ import 'rc-slider/assets/index.css';
 // TODO category common neighbor
 // TODO 3 difficulty levels
 
+type Props = {
+  // Add custom props here
+}
 
 const TableCell = styled.td`
   border: 1px solid rgba(0,0,0,.25);
@@ -88,6 +98,9 @@ type BooleanSettingsKeys = {
 
 
 export default function GameComponent(props: any) {
+
+  const router = useRouter()
+  const { t, i18n } = useTranslation('common')
 
   const [game, setGame] = useState<Game | null>(null)
   // const [gameData, setGameData] = useState({ isNewGame: true, game: null } as GameData)
@@ -152,6 +165,7 @@ export default function GameComponent(props: any) {
 
   // }, [game])
 
+
   useEffect(() => {
     // First client-side init
     const storedUserIdentifier = initUserIdentifier()
@@ -159,7 +173,8 @@ export default function GameComponent(props: any) {
     apiRequest({
       userIdentifier: storedUserIdentifier,
       action: RequestAction.ExistingOrNewGame,
-      difficulty: settings.difficulty
+      difficulty: settings.difficulty,
+      language: router.locale as Language
     })
     return () => {
       // this is called to finalize the effect hook, before it is triggered again
@@ -188,7 +203,11 @@ export default function GameComponent(props: any) {
   // TODO
   // const [nextGameSettings, setNextGameSettings] = useState<Settings>(defaultSettings)
 
-  function updateSettings(e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement> | { target: { id: string, value: number | false }}) {
+
+  type SettingsValues = { id: "settingsTimeLimit", value: number | false }
+  // | { id: "settingsLanguage", value: Language }
+
+  function updateSettings(e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement> | { target: SettingsValues}) {
     // const newSettings = {
     //   showIso: e.target.id == "settingsShowIso" ? e.target.checked : settings.showIso,
     //   showNumSolutions: e.target.id == "settingsShowNumSolutions" ? e.target.checked : settings.showNumSolutions,
@@ -205,6 +224,9 @@ export default function GameComponent(props: any) {
         if (prop == "difficulty") {
           newSettings.difficulty = e.target.value as "easy" | "medium" | "hard"
         }
+        // if (prop == "language") {
+          
+        // }
 
         // boolean
         if ("checked" in e.target) {
@@ -246,6 +268,7 @@ export default function GameComponent(props: any) {
   const [timeLimitSliderValue, setTimeLimitSliderValue] = useState(settings.timeLimit !== false ? settings.timeLimit : timeLimitDummyValue)
 
   const formatTimeLimit = (t: number): string => {
+    
     if (t <= 90) {
       return `${t} s`
     }
@@ -257,6 +280,34 @@ export default function GameComponent(props: any) {
     return `${mins}:${secs}`
   }
 
+  const LanguageSelector = () => {
+    const { t, i18n } = useTranslation()
+    const router = useRouter()
+
+    const changeLanguage = (language: string | null) => {
+      language = language?.toString() || "en"
+      apiRequest({
+        userIdentifier: userIdentifier,
+        action: RequestAction.ExistingOrNewGame,
+        difficulty: settings.difficulty,
+        language: router.locale as Language
+      })
+      i18n.changeLanguage(language)
+      router.push(router.asPath, undefined, { locale: language })
+    }
+
+    return (
+      <Dropdown onSelect={changeLanguage}>
+        <Dropdown.Toggle variant="secondary" className={styles.languageSelector}>
+          <CircleFlagLanguage languageCode={router.locale ?? "en"} height={18} />
+        </Dropdown.Toggle>
+        <Dropdown.Menu>
+          <Dropdown.Item eventKey="en" className={styles.languageSelectorItem}><CircleFlagLanguage languageCode="en" height={18} /><span>EN</span></Dropdown.Item>
+          <Dropdown.Item eventKey="de" className={styles.languageSelectorItem}><CircleFlagLanguage languageCode="de" height={18} /><span>DE</span></Dropdown.Item>
+        </Dropdown.Menu>
+      </Dropdown>
+    )
+  }
 
   return (<>
     <Head>
@@ -266,20 +317,22 @@ export default function GameComponent(props: any) {
       <div className="my-3">
         <Image src={`tictacglobe-logo${darkMode ? "-white" : ""}.svg`} width={80} height={80} alt={"TicTacGlobe logo"} />
       </div>
+      
       {!game && <Alert variant="warning">Game could not be initialized.</Alert>}
       {game && (<>
         {/* <p>{gameData.isNewGame ? "New Game" : "Existing Game"}</p> */}
         <SplitButtonToolbar className="mb-2">
           <div className="left">
-            <IconButton label="New Game" variant="danger" onClick={() => {
+            <IconButton label={t("new-game")} variant="danger" onClick={() => {
               apiRequest({
                 userIdentifier: userIdentifier,
                 action: RequestAction.NewGame,
-                difficulty: settings.difficulty
+                difficulty: settings.difficulty,
+                language: router.locale as Language
               })
             }}><FaArrowsRotate /></IconButton>
             {!notifyDecided && (<>
-              <IconButton label="End turn" variant="warning" onClick={() => {
+              <IconButton label={t("end-turn")} variant="warning" onClick={() => {
                 apiRequest({
                   userIdentifier: userIdentifier,
                   action: RequestAction.EndTurn,
@@ -288,13 +341,14 @@ export default function GameComponent(props: any) {
               }}><FaPersonCircleXmark /></IconButton>
             </>)}
             {notifyDecided && (<>
-              <IconButton label="Continue playing" variant="secondary" onClick={() => { setNotifyDecided(false) }}><FaEllipsis /></IconButton>
+              <IconButton label={t("continue-playing")} variant="secondary" onClick={() => { setNotifyDecided(false) }}><FaEllipsis /></IconButton>
             </>)}
             {/* {!timerRunning && (<IconButton variant="secondary" onClick={() => { setTimerRunning(true) }}><FaPlay /></IconButton>)}
             {timerRunning && (<IconButton variant="secondary" onClick={() => { setTimerRunning(false) }}><FaPause /></IconButton>)} */}
           </div>
           <div className="right">
             <IconButton variant="secondary" onClick={toggleDarkMode} className="me-2"><FaMoon /></IconButton>
+            <LanguageSelector />
             <IconButton variant="secondary" onClick={() => setShowSettings(true)}><FaGear /></IconButton>
           </div>
         </SplitButtonToolbar>
@@ -344,8 +398,8 @@ export default function GameComponent(props: any) {
 
         <p>
           State: <b>{GameState[game.state]}</b>
-          {(game.winner === 0 || game.winner === 1) && (<>, Winner: <b>{capitalize(getPlayerColor(game.winner) ?? "No one")}</b></>)}
-          {(game.winner === -1) && (<>, <b>It's a draw!</b></>)}
+          {(game.winner === 0 || game.winner === 1) && (<>, {capitalize(t("winner"))}: <b>{capitalize(t(getPlayerColor(game.winner) ?? "no one"))}</b></>)}
+          {(game.winner === -1) && (<>, <b>{t("tie-notification")}</b></>)}
         </p>
         {/* {(notifyDecided && (game.winner === 0 || game.winner === 1)) && <Alert variant="success"><b>{capitalize(getPlayerColor(game.winner) ?? "No one")} wins!</b></Alert>} */}
 
@@ -355,7 +409,7 @@ export default function GameComponent(props: any) {
               <th>
                 <div style={{ display: "flex", flexDirection: "column", justifyContent: "center", alignItems: "center" }}>
                   {showTurnInfo && (<>
-                    <span className={styles["badge-player"] + " " + styles[`bg-player-${getPlayerTurnColor()}`]}>{capitalize(getPlayerTurnColor() ?? "No one")}'s turn</span>
+                    <span className={styles["badge-player"] + " " + styles[`bg-player-${getPlayerTurnColor()}`]}>{t("turn-info", { player: t(getPlayerTurnColor() ?? "No one") })}</span>
                     {settings.timeLimit !== false && (<>
                       <Timer className="mt-2" ref={timerRef} running={timerRunning} setRunning={setTimerRunning} initialTime={settings.timeLimit * 1000} onElapsed={() => {
                         apiRequest({
@@ -402,6 +456,14 @@ export default function GameComponent(props: any) {
   </>)
 }
 
-
+export const getStaticProps: GetStaticProps<Props> = async ({
+  locale,
+}) => ({
+  props: {
+    ...(await serverSideTranslations(locale ?? 'en', [
+      'common',
+    ])),
+  },
+})
 
 

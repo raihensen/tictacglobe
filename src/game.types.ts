@@ -2,6 +2,11 @@
 var _ = require('lodash');
 
 
+export enum Language {
+  German = "de",
+  English = "en"
+}
+
 export enum RequestAction {
   ExistingOrNewGame = 0,
   NewGame = 1,
@@ -16,7 +21,8 @@ export type Query = {
   player?: number;
   countryId?: string;
   pos?: string;  // coords like "0,2"
-  difficulty?: "easy" | "medium" | "hard"
+  difficulty?: "easy" | "medium" | "hard";
+  language?: Language;
 }
 
 
@@ -137,7 +143,7 @@ export function getCountry(q: string): Country | null {
 }
 
 import countryData from '../data/countries.json'
-import gameData from '../data/games-20230903-024223-occurence-limit-en.json'
+// import gameData from '../data/games-20230903-024223-occurence-limit-en.json'
 
 export const countries = countryData.map(c => {
   const country = Object.fromEntries(Object.entries(c).filter(([k, v]) => !k.endsWith("_alt")).map(
@@ -150,5 +156,5 @@ export const countries = countryData.map(c => {
   return country
 })
 
-export const gameSetups = gameData as GameSetup[]
+// export const gameSetups = gameData as GameSetup[]
 
