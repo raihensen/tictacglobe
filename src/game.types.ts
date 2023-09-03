@@ -137,7 +137,7 @@ export function getCountry(q: string): Country | null {
 }
 
 import countryData from '../data/countries.json'
-import gameData from '../data/games-20230902-224254-with-difficulty-en.json'
+import gameData from '../data/games-20230903-024223-occurence-limit-en.json'
 
 export const countries = countryData.map(c => {
   const country = Object.fromEntries(Object.entries(c).filter(([k, v]) => !k.endsWith("_alt")).map(

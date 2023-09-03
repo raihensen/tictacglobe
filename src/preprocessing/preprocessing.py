@@ -1,13 +1,14 @@
 
 FIELD_SIZE = 3
 MIN_CELL_SIZE = 1
-MAX_CELL_SIZE = 10
+MAX_CELL_SIZE = None
 GAME_LANGUAGE = "EN"
 
 import json
 import pandas as pd
 import numpy as np
 import itertools
+import datetime
 from game import *
 from generator import *
 from category import *
@@ -17,14 +18,6 @@ from utils import *
 import os
 script_dir = os.path.dirname(os.path.abspath(__file__))
 os.chdir(script_dir)
-
-# IDEAS
-# 3 difficulty levels
-# category flag has star/crest/moon
-# northern/southern hemisphere
-# flag has only 2 colors
-# flag is blue white red
-# limit number of cells a country appears in
 
 # ------------------------------------------------------------------------------------------------------------------
 # Import data
@@ -236,7 +229,10 @@ cell_info["size"] = cell_info["contents"].apply(len)
 # display(cell_info[cell_info["row_cat"] == cell_info["col_cat"]])
 
 # Filter cells w.r.t. number of solutions
-cell_info = cell_info[(cell_info["size"] >= MIN_CELL_SIZE) & (cell_info["size"] <= MAX_CELL_SIZE)]
+if MIN_CELL_SIZE is not None:
+    cell_info = cell_info[(cell_info["size"] >= MIN_CELL_SIZE)]
+if MAX_CELL_SIZE is not None:
+    cell_info = cell_info[(cell_info["size"] <= MAX_CELL_SIZE)]
 cell_keys = cell_info.apply(lambda row: ((row["row_cat"], row["row_val"]), (row["col_cat"], row["col_val"])), axis=1)
 cells = {key: (contents, alt_contents) for key, contents, alt_contents in zip(cell_keys, cell_info["contents"], cell_info["alt_contents"])}
 setkeys_old = setkeys
@@ -266,4 +262,15 @@ def get_generator(constraints, category_probs, field_size, seed=None, selection_
                          selection_mode=selection_mode,
                          uniform=uniform,
                          shuffle=shuffle)
+
+
+def save_games(games, name: str, difficulty_level=None):
+    games = list(games)
+    timestamp = datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
+    info = [timestamp, name, GAME_LANGUAGE.lower()]
+    if difficulty_level is not None:
+        info.append(str(difficulty_level).lower())
+    path = f"../../data/games-{'-'.join(info)}.json"
+    json.dump([game.to_json() for game in games], open(path, mode="w", encoding="utf-8"))
+    print(f"{len(games)} games saved to {path}")
 

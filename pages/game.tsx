@@ -179,7 +179,7 @@ export default function GameComponent(props: any) {
     showIso: false,
     showNumSolutions: true,
     showNumSolutionsHint: false,
-    timeLimit: 10,
+    timeLimit: 45,
   }
 
   const [settings, setSettings] = useState<Settings>(defaultSettings)
@@ -203,7 +203,7 @@ export default function GameComponent(props: any) {
           return
         }
         if (prop == "difficulty") {
-          newSettings.difficulty = e.target.value as string
+          newSettings.difficulty = e.target.value as "easy" | "medium" | "hard"
         }
 
         // boolean

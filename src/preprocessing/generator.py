@@ -1,36 +1,35 @@
 
 import random
 from collections import Counter
-
 import tqdm
-from category import *
-from game import *
 import pandas as pd
 import numpy as np
+import itertools
+from category import *
+from game import *
+
 
 class Constraint:
     def __init__(self, prop, num, mode):
-        # prop: function mapping a set (cat key, value) to some boolean value
+        # prop: CategoryConstraint: function mapping a set (cat key, value) to some boolean value
+        # ...   CellConstraint: function mapping a cell ((key, value), (key, value), solutions) to some boolean value
         # num: number of categories
         # mode: -1: at most *num* matching categories. 0: exactly *num* matching categories. 1: at least *num* categories
         self.prop = prop
         self.num = num
         self.mode = mode
         
-    def match(self, key, value):
-        return self.prop(key, value)
+    def count(self, haystack):
+        return len([item for item in haystack if self.match(*item)])
         
-    def count(self, sets):
-        return len([(key, value) for key, value in sets if self.match(key, value)])
-        
-    def balance(self, sets):
+    def balance(self, haystack):
         # ("needs x more", "only x more allowed")
-        n = self.count(sets)
+        n = self.count(haystack)
         return (self.num - n if self.mode >= 0 else None,
                 self.num - n if self.mode <= 0 else None)
         
-    def apply(self, sets):
-        n = self.count(sets)
+    def apply(self, haystack):
+        n = self.count(haystack)
         if self.mode == -1:
             return n <= self.num
         if self.mode == 0:
@@ -45,19 +44,14 @@ class Constraint:
     
     @staticmethod
     def category(key, n, mode):
-        return Constraint(lambda k, _: k == key, n, mode)
+        return CategoryConstraint(lambda k, _: k == key, n, mode)
     
     @staticmethod
-    def exactly(prop, n):
-        return Constraint(prop, n, 0)
-    
-    @staticmethod
-    def at_most(prop, n):
-        return Constraint(prop, n, -1)
-    
-    @staticmethod
-    def at_least(prop, n):
-        return Constraint(prop, n, 1)
+    def solutions_at_most(country_codes, n):
+        """ This constrained is added for each country. Constraints are not applied to cells, but to  """
+        for c in country_codes:
+            prop = lambda row, col, solutions, c=c: c in solutions
+            yield CellConstraint.at_most(prop, n)
     
     @staticmethod
     def category_exactly(key, n):
@@ -70,23 +64,58 @@ class Constraint:
     @staticmethod
     def category_at_least(key, n):
         return Constraint.category(key, n, 1)
+
+class CategoryConstraint(Constraint):
+        
+    def match(self, key, value):
+        return self.prop(key, value)
+    
+    @staticmethod
+    def exactly(prop, n):
+        return CategoryConstraint(prop, n, 0)
+    
+    @staticmethod
+    def at_most(prop, n):
+        return CategoryConstraint(prop, n, -1)
+    
+    @staticmethod
+    def at_least(prop, n):
+        return CategoryConstraint(prop, n, 1)
     
     @staticmethod
     def once(prop):
-        return Constraint.exactly(prop, 1)
+        return CategoryConstraint.exactly(prop, 1)
     
     @staticmethod
     def never(prop, n):
-        return Constraint.exactly(prop, 0)
+        return CategoryConstraint.exactly(prop, 0)
     
     @staticmethod
     def at_most_once(prop):
-        return Constraint.at_most(prop, 1)
+        return CategoryConstraint.at_most(prop, 1)
     
     @staticmethod
     def dummy():
-        return Constraint(lambda cat: True, 0, 1)
-
+        return CategoryConstraint(lambda cat: True, 0, 1)
+    
+class CellConstraint(Constraint):
+        
+    def match(self, row, col, solutions):
+        return self.prop(row, col, solutions)
+    
+    @staticmethod
+    def exactly(prop, n):
+        return CellConstraint(prop, n, 0)
+    
+    @staticmethod
+    def at_most(prop, n):
+        return CellConstraint(prop, n, -1)
+    
+    @staticmethod
+    def at_least(prop, n):
+        return CellConstraint(prop, n, 1)
+    
+    
 
 class GameGenerator:
     def __init__(self, categories, category_probs, setkeys, cells, field_size, constraints=[], seed=None, selection_mode="shuffle_categories", precompute_probs=True, uniform=False, shuffle=True):
@@ -218,22 +247,12 @@ class GameGenerator:
             # print(sample)
             return sample.apply(lambda row: (row["cat"], row["value"]), axis=1).tolist()
 
+    def _cell_constraint_info(self, rows, cols):
+        # Prepares the arguments to apply a cell constraint.
+        return [(row, col, self._get_solutions(row, col, alt=False)) for row, col in itertools.product(rows, cols)]
+
     def _get_allowed_sets(self, cross_sets, parallel_sets):
-        # Check constraint balances
-        balance = [c.balance(cross_sets + parallel_sets) for c in self.constraints]
-        underfed = [c for (a, b), c in zip(balance, self.constraints) if a is not None and a > 0]
-        overfed = [c for (a, b), c in zip(balance, self.constraints) if b == 0]
-    #     print(f"{len(cross_sets)} cross, {len(parallel_sets)} parallel, {len(underfed)} underfed, {len(overfed)} overfed")
-        
-        # underfed: needs more. overfed: maximum is reached.
         choice = self.setkeys
-        if underfed or overfed:
-            # Only take those sets that satisfy some underfed constraint
-            # TODO this might lead to a "deadlock" when an underfed constrained can only be satisfied by a row, but a column is tried to be sampled
-            # idea: If no underfed constraint can be satisfied, relax and just not satisfy an already overfed constraint (stricly forbidden!)
-            choice = [(key, value) for key, value in choice
-                    if (any(c.match(key, value) for c in underfed) or not underfed)
-                    and not any(c.match(key, value) for c in overfed)]
         # Not 2 identical (cat, value) sets in the game
         choice = set(choice).difference(cross_sets).difference(parallel_sets)
         # Not 2 crossing identical categories, except MultiNominal, but then only 1 each
@@ -243,7 +262,41 @@ class GameGenerator:
         choice = {(cat, value) for cat, value in choice
                 if (cat not in cross_cats and parallel_cats.get(cat, 0) <= 1)
                 or (isinstance(self.categories[cat], MultiNominalCategory) and cross_cats[cat] == 1 and cat not in parallel_cats)}
-    
+        
+        # Generate a preview of the newly added cells with their solutions
+        new_cells_choice = {(key, value): self._cell_constraint_info(cross_sets, [(key, value)]) for key, value in choice}
+        # Filter out where no solutions exist
+        choice = [(cat, value) for cat, value in choice if all([solutions is not None and len(solutions) > 0 for _,_,solutions in new_cells_choice[(cat, value)]])]
+
+
+        # Check constraint balances
+        # print("_cell_constraint_info:", self._cell_constraint_info(cross_sets, parallel_sets))
+        category_constraints = [c for c in self.constraints if isinstance(c, CategoryConstraint)]
+        cell_constraints = [c for c in self.constraints if isinstance(c, CellConstraint)]
+        balance_category = [c.balance(cross_sets + parallel_sets) for c in self.constraints if isinstance(c, CategoryConstraint)]
+        balance_cell = [c.balance(self._cell_constraint_info(cross_sets, parallel_sets)) for c in self.constraints if isinstance(c, CellConstraint)]
+        underfed_category = [c for (a, b), c in zip(balance_category, category_constraints) if a is not None and a > 0]
+        overfed_category = [c for (a, b), c in zip(balance_category, category_constraints) if b == 0]
+        underfed_cell = [c for (a, b), c in zip(balance_cell, cell_constraints) if a is not None and a > 0]
+        overfed_cell = [c for (a, b), c in zip(balance_cell, cell_constraints) if b == 0]
+
+        # underfed: needs more. overfed: maximum is reached.
+        # Strictly prohibited to satisfy an already overfed constraint
+        choice = [(key, value) for key, value in choice
+                if not any(o.match(key, value) for o in overfed_category)
+                and not any(any(o.match(row, col, solutions) for row, col, solutions in new_cells_choice[(key, value)]) for o in overfed_cell)]
+        
+        choice_ignore_underfed = choice
+        # Only take those sets that satisfy some underfed constraint
+        choice_satisfy_underfed = [(key, value) for key, value in choice
+                                   if (any(u.match(key, value) for u in underfed_category) or not underfed_category)
+                                   and (any(any(u.match(row, col, solutions) for row, col, solutions in new_cells_choice[(key, value)]) for u in underfed_cell) or not underfed_cell)]
+        
+        if len(choice_satisfy_underfed) > 0:
+            choice = choice_satisfy_underfed
+        else:
+            choice = choice_ignore_underfed
+        
         return choice
 
     def _get_solutions(self, row, col, alt=False):
@@ -257,6 +310,8 @@ class GameGenerator:
     def _sample_fitting_set(self, cross_sets, parallel_sets):
         """ Samples a new column (assuming cross_sets are the rows and parallel_sets the previous columns. Or the other way round) """
         choice = list(self._get_allowed_sets(cross_sets, parallel_sets))
+        if len(choice) == 0:
+            return None
 
         # if len(cross_sets) + len(parallel_sets) == 1:
         #     print("--- Initial choice -------------------------------------")
@@ -290,7 +345,9 @@ class GameGenerator:
         if len(rows) != self.field_size or len(cols) != self.field_size:
             return None
         # Check constraints
-        if not all(c.apply(rows + cols) for c in self.constraints):
+        if not all(c.apply(rows + cols) for c in self.constraints if isinstance(c, CategoryConstraint)):
+            return None, None
+        if not all(c.apply(self._cell_constraint_info(rows, cols)) for c in self.constraints if isinstance(c, CellConstraint)):
             return None, None
         return rows, cols
 
@@ -304,7 +361,7 @@ class GameGenerator:
                 break
         
         if rows is None or cols is None:
-            print(f"Could not create game setup ({MAX_TRIES} tries)")
+            print(f"Error: Could not create game setup ({MAX_TRIES} tries)")
             return None
             
         if self.shuffle:
@@ -317,10 +374,11 @@ class GameGenerator:
                     alt_solutions=[[self._get_solutions(row, col, alt=True) for col in cols] for row in rows],
                     rows=[(self.categories[cat], value) for cat, value in rows],
                     cols=[(self.categories[cat], value) for cat, value in cols])
-        
+        game.sample_tries = i
         return game
     
     def sample_games(self, n=100, progress_bar=True):
+        print(f"Generate {n} games...")
         iter = tqdm.tqdm(range(n)) if progress_bar else range(n)
         for _ in iter:
             game = self.sample_game()
