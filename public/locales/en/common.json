@@ -1,27 +1,73 @@
 {
     "language": "English",
-    "change-locale": "Change language to \"{{changeTo}}\"",
-    "new-game": "New game",
-    "end-turn": "End turn",
-    "turn-info": "{{player}}'s turn",
-    "continue-playing": "Weiterspielen",
+    "changeLanguage": "Change language to \"{{changeTo}}\"",
+    "newGame": "New game",
+    "endTurn": "End turn",
+    "turnInfo": "{{player}}'s turn",
+    "continuePlaying": "Weiterspielen",
     "winner": "winner",
-    "tie-notification": "It's a draw!",
-    "no one": "no one",
+    "tieNotification": "It's a draw!",
+    "noOne": "no one",
     "blue": "blue",
     "red": "red",
-    "categories": {
-        "island": "Island",
-        "landlocked": "Landlocked",
-        "colors": {
-            "Black": "Black",
-            "White": "White",
-            "Red": "Red",
-            "Yellow/Gold": "Yellow/Gold",
-            "Green": "Green",
-            "Orange": "Orange",
-            "Blue": "Blue"
+    "category": {
+        "startingLetter": {
+            "tooltip": "Country name starts with {{letter}}"
+        },
+        "endingLetter": {
+            "tooltip": "Country name ends with {{letter}}"
+        },
+        "capitalStartingLetter": {
+            "tooltip": "Capital starts with {{letter}}"
+        },
+        "capitalEndingLetter": {
+            "tooltip": "Capital ends with {{letter}}"
+        },
+        "landlocked": {
+            "label": "Landlocked",
+            "tooltip": "Landlocked countries (without direct ocean access)"
+        },
+        "island": {
+            "label": "Island",
+            "tooltip": "Island Nations (all parts of the country are located on islands)"
+        },
+        "flagColor": {
+            "tooltip": "Flag contains the color {{color}}",
+            "values": {
+                "Black": "Black",
+                "White": "White",
+                "Red": "Red",
+                "YellowOrGold": "Yellow/Gold",
+                "Green": "Green",
+                "Orange": "Orange",
+                "Blue": "Blue"
+            }
+        },
+        "continent": {
+            "tooltip": "Continent: {{continent}}",
+            "values": {
+                "EU": "Europe",
+                "AF": "Africa",
+                "AS": "Asia",
+                "OC": "Oceania",
+                "NA": "North America",
+                "SA": "South America"
+            }
         }
+    },
+    "settings": {
+        "settings": "Settings",
+        "close": "Close",
+        "difficultyLevel": {
+            "easy": "Easy",
+            "medium": "Medium",
+            "hard": "Hard"
+        },
+        "showIso": "Show country ISO codes",
+        "showNumSolutions": "Show number of solutions",
+        "showNumSolutionsHint": "Show number of solutions before guess",
+        "timeLimit": "Time limit: {{timeLimit}}",
+        "noLimit": "No limit"
     }
 
 }

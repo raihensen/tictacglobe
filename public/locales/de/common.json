@@ -1,36 +1,73 @@
 {
     "language": "Deutsch",
-    "change-locale": "Sprache zu \"{{changeTo}}\" ändern",
-    "new-game": "Neues Spiel",
-    "end-turn": "Zug beenden",
-    "turn-info": "{{player}} ist dran",
-    "continue-playing": "Weiterspielen",
+    "changeLanguage": "Sprache zu \"{{changeTo}}\" ändern",
+    "newGame": "Neues Spiel",
+    "endTurn": "Zug beenden",
+    "turnInfo": "{{player}} ist dran",
+    "continuePlaying": "Weiterspielen",
     "winner": "Gewinner",
-    "tie-notification": "Unentschieden!",
-    "no one": "niemand",
+    "tieNotification": "Unentschieden!",
+    "noOne": "niemand",
     "blue": "blau",
     "red": "rot",
-    "categories": {
-        "island": "Insel",
-        "landlocked": "Binnenstaat",
-        "colors": {
-            "Black": "Schwarz",
-            "White": "Weiß",
-            "Red": "Rot",
-            "Yellow/Gold": "Gelb/Gold",
-            "Green": "Grün",
-            "Orange": "Orange",
-            "Blue": "Blau"
+    "category": {
+        "startingLetter": {
+            "tooltip": "Land beginnt mit {{letter}}"
+        },
+        "endingLetter": {
+            "tooltip": "Land endet auf {{letter}}"
+        },
+        "capitalStartingLetter": {
+            "tooltip": "Hauptstadt beginnt mit {{letter}}"
+        },
+        "capitalEndingLetter": {
+            "tooltip": "Hauptstadt endet auf {{letter}}"
+        },
+        "landlocked": {
+            "label": "Binnenstaat",
+            "tooltip": "Binnenstaaten (ohne direkten Meereszugang)"
+        },
+        "island": {
+            "label": "Insel",
+            "tooltip": "Inselstaaten (Alle Teile des Landes befinden sich auf Inseln)"
+        },
+        "flagColor": {
+            "tooltip": "Flagge beinhaltet {{color}}",
+            "values": {
+                "Black": "Schwarz",
+                "White": "Weiß",
+                "Red": "Rot",
+                "YellowOrGold": "Gelb/Gold",
+                "Green": "Grün",
+                "Orange": "Orange",
+                "Blue": "Blau"
+            }
+        },
+        "continent": {
+            "tooltip": "Kontinent: {{continent}}",
+            "values": {
+                "EU": "Europa",
+                "AF": "Afrika",
+                "AS": "Asien",
+                "OC": "Ozeanien",
+                "NA": "Nordamerika",
+                "SA": "Südamerika"
+            }
         }
     },
     "settings": {
-        "close": "Close",
-        "difficulty-level": "Difficulty: {{level}}",
-        "show-iso": "Close",
-        "show-num-solutions": "Close",
-        "show-num-solutions-hint": "Close",
-        "time-limit": "Time limit: {{timeLimit}}",
-        "no-limit": "No limit"
+        "settings": "Einstellungen",
+        "close": "Schließen",
+        "difficultyLevel": {
+            "easy": "Einfach",
+            "medium": "Mittel",
+            "hard": "Schwierig"
+        },
+        "showIso": "Länder-Codes anzeigen",
+        "showNumSolutions": "Anzahl der Lösungen anzeigen",
+        "showNumSolutionsHint": "Anzahl der Lösungen vor Tipp anzeigen",
+        "timeLimit": "Zeitlimit: {{timeLimit}}",
+        "noLimit": "kein Limit"
     }
 
 }

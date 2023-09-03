@@ -34,15 +34,8 @@ import { CircleFlagLanguage } from 'react-circle-flags';
 
 // TODO
 // dont show solution list until game is over. Number can still be toggled
-// game winning logic. option to play on. -> two more game states
 // island icon: 3 stack, water, circle-"bordered", circle
-
-// TODO difficulty-limiting constraints
-//    - prevent that a row has only cells with one equal solution
-//    - or total number of cells with just one solution
-//    - limit maximum difficulty score
-// TODO category common neighbor
-// TODO 3 difficulty levels
+// category common neighbor
 
 type Props = {
   // Add custom props here
@@ -152,7 +145,7 @@ export default function GameComponent(props: any) {
         setGame(newGame)
         setNotifyDecided(showNotifyDecided)
         if (timerRef.current) {
-          timerRef.current.reset()
+          (timerRef.current as any).reset()
         }
         setTimerRunning(true)
 
@@ -323,7 +316,7 @@ export default function GameComponent(props: any) {
         {/* <p>{gameData.isNewGame ? "New Game" : "Existing Game"}</p> */}
         <SplitButtonToolbar className="mb-2">
           <div className="left">
-            <IconButton label={t("new-game")} variant="danger" onClick={() => {
+            <IconButton label={t("newGame")} variant="danger" onClick={() => {
               apiRequest({
                 userIdentifier: userIdentifier,
                 action: RequestAction.NewGame,
@@ -332,7 +325,7 @@ export default function GameComponent(props: any) {
               })
             }}><FaArrowsRotate /></IconButton>
             {!notifyDecided && (<>
-              <IconButton label={t("end-turn")} variant="warning" onClick={() => {
+              <IconButton label={t("endTurn")} variant="warning" onClick={() => {
                 apiRequest({
                   userIdentifier: userIdentifier,
                   action: RequestAction.EndTurn,
@@ -341,7 +334,7 @@ export default function GameComponent(props: any) {
               }}><FaPersonCircleXmark /></IconButton>
             </>)}
             {notifyDecided && (<>
-              <IconButton label={t("continue-playing")} variant="secondary" onClick={() => { setNotifyDecided(false) }}><FaEllipsis /></IconButton>
+              <IconButton label={t("continuePlaying")} variant="secondary" onClick={() => { setNotifyDecided(false) }}><FaEllipsis /></IconButton>
             </>)}
             {/* {!timerRunning && (<IconButton variant="secondary" onClick={() => { setTimerRunning(true) }}><FaPlay /></IconButton>)}
             {timerRunning && (<IconButton variant="secondary" onClick={() => { setTimerRunning(false) }}><FaPause /></IconButton>)} */}
@@ -352,23 +345,24 @@ export default function GameComponent(props: any) {
             <IconButton variant="secondary" onClick={() => setShowSettings(true)}><FaGear /></IconButton>
           </div>
         </SplitButtonToolbar>
+
         <Modal show={showSettings} onHide={() => setShowSettings(false)}>
           <Modal.Header closeButton>
-            <Modal.Title>Settings</Modal.Title>
+            <Modal.Title>{t("settings.settings")}</Modal.Title>
           </Modal.Header>
           <Modal.Body>
             <Form.Select onChange={updateSettings} defaultValue={settings.difficulty} id="settingsDifficulty" className="mb-3">
-              <option value="easy">Difficulty: Easy</option>
-              <option value="medium">Difficulty: Medium</option>
-              <option value="hard">Difficulty: Hard</option>
+              {["easy", "medium", "hard"].map((level, i) => (
+                <option value={level} key={i}>{t(`settings.difficultyLevel.${level}`)}</option>
+              ))}
             </Form.Select>
-            <Form.Check type="switch" onChange={updateSettings} checked={settings.showIso} id="settingsShowIso" label="Show country ISO codes" />
-            <Form.Check type="switch" onChange={updateSettings} checked={settings.showNumSolutions} id="settingsShowNumSolutions" label="Show number of solutions" />
-            <Form.Check type="switch" onChange={updateSettings} checked={settings.showNumSolutionsHint} disabled={!settings.showNumSolutions} id="settingsShowNumSolutionsHint" label="Show number of solutions before guess" />
-            <Form.Label className="mt-3">Time Limit: {settings.timeLimit !== false ? formatTimeLimit(settings.timeLimit) : "No limit"}</Form.Label>
+            <Form.Check type="switch" onChange={updateSettings} checked={settings.showIso} id="settingsShowIso" label={t("settings.showIso")} />
+            <Form.Check type="switch" onChange={updateSettings} checked={settings.showNumSolutions} id="settingsShowNumSolutions" label={t("settings.showNumSolutions")} />
+            <Form.Check type="switch" onChange={updateSettings} checked={settings.showNumSolutionsHint} disabled={!settings.showNumSolutions} id="settingsShowNumSolutionsHint" label={t("settings.showNumSolutionsHint")} />
+            <Form.Label className="mt-3">{t("settings.timeLimit", { timeLimit: settings.timeLimit !== false ? formatTimeLimit(settings.timeLimit) : t("settings.noLimit") })}</Form.Label>
             <div className="px-3">
               <Slider
-                marks={Object.fromEntries([...timeLimitValues.map(t => [t, formatTimeLimit(t)]), [timeLimitDummyValue, "No limit"]])}
+                marks={Object.fromEntries([...timeLimitValues.map(t => [t, formatTimeLimit(t)]), [timeLimitDummyValue, t("settings.noLimit")]])}
                 step={null}
                 onChange={(v: number | number[]) => {
                   const t = v as number
@@ -386,20 +380,16 @@ export default function GameComponent(props: any) {
                 className="mb-5"
               />
             </div>
-            {/* <Form.Range id="settingsTimeLimit" list="timeLimitValues" className="mt-5" /> */}
-
           </Modal.Body>
           <Modal.Footer>
-            <Button variant="secondary" onClick={() => setShowSettings(false)}>
-              Close
-            </Button>
+            <Button variant="secondary" onClick={() => setShowSettings(false)}>{t("settings.close")}</Button>
           </Modal.Footer>
         </Modal>
 
         <p>
-          State: <b>{GameState[game.state]}</b>
-          {(game.winner === 0 || game.winner === 1) && (<>, {capitalize(t("winner"))}: <b>{capitalize(t(getPlayerColor(game.winner) ?? "no one"))}</b></>)}
-          {(game.winner === -1) && (<>, <b>{t("tie-notification")}</b></>)}
+          {/* State: <b>{GameState[game.state]}</b> */}
+          {(game.winner === 0 || game.winner === 1) && (<>, {capitalize(t("winner"))}: <b>{capitalize(t(getPlayerColor(game.winner) ?? "noOne"))}</b></>)}
+          {(game.winner === -1) && (<>, <b>{t("tieNotification")}</b></>)}
         </p>
         {/* {(notifyDecided && (game.winner === 0 || game.winner === 1)) && <Alert variant="success"><b>{capitalize(getPlayerColor(game.winner) ?? "No one")} wins!</b></Alert>} */}
 
@@ -409,7 +399,7 @@ export default function GameComponent(props: any) {
               <th>
                 <div style={{ display: "flex", flexDirection: "column", justifyContent: "center", alignItems: "center" }}>
                   {showTurnInfo && (<>
-                    <span className={styles["badge-player"] + " " + styles[`bg-player-${getPlayerTurnColor()}`]}>{t("turn-info", { player: t(getPlayerTurnColor() ?? "No one") })}</span>
+                    <span className={styles["badge-player"] + " " + styles[`bg-player-${getPlayerTurnColor()}`]}>{capitalize(t("turnInfo", { player: t(getPlayerTurnColor() ?? "noOne") }))}</span>
                     {settings.timeLimit !== false && (<>
                       <Timer className="mt-2" ref={timerRef} running={timerRunning} setRunning={setTimerRunning} initialTime={settings.timeLimit * 1000} onElapsed={() => {
                         apiRequest({
