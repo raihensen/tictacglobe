@@ -49,4 +49,4 @@ games = list(generator.sample_games(n=1000))
 difficulty_info = DifficultyEstimator(preprocessor).compute_game_difficulties(games)
 
 # Save games to JSON file
-preprocessor.save_games(games)
+preprocessor.save_games(games, name="first-german")

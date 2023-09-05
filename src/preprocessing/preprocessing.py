@@ -206,7 +206,7 @@ class Preprocessor:
         games = list(games)
         timestamp = datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
         info = [timestamp, name, self.language.lower()]
-        path = f"../../data/games-{'-'.join(info)}.json"
+        path = f"../../data/games/{self.language.lower()}/games-{'-'.join(info)}.json"
         json.dump([game.to_json() for game in games], open(path, mode="w", encoding="utf-8"))
         print(f"{len(games)} games saved to {path}")
 

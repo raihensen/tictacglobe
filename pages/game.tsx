@@ -14,6 +14,8 @@ import styled from "styled-components";
 import { useEffect, useRef, useState } from 'react';
 import { useTranslation, Trans } from 'next-i18next'
 import { serverSideTranslations } from 'next-i18next/serverSideTranslations'
+
+// TODO import translated country data
 import { Game, Country, getCountry, RequestAction, countries, Query, GameData, PlayingMode, GameState, Language } from "../src/game.types"
 import { capitalize, useDarkMode } from "@/src/util"
 var _ = require('lodash');
