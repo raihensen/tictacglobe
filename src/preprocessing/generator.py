@@ -118,13 +118,13 @@ class CellConstraint(Constraint):
     
 
 class GameGenerator:
-    def __init__(self, categories, category_probs, setkeys, cells, field_size, constraints=[], seed=None, selection_mode="shuffle_categories", precompute_probs=True, uniform=False, shuffle=True):
-        self.categories = categories
+    def __init__(self, preprocessor, category_probs, constraints=[], seed=None, selection_mode="shuffle_categories", precompute_probs=True, uniform=False, shuffle=True):
+        self.categories = preprocessor.categories
+        self.setkeys = preprocessor.setkeys
+        self.cells = preprocessor.cells
         # self.category_probs = category_probs if category_probs is not None else DEFAULT_CATEGORY_PROBS
         self.category_probs = category_probs
-        self.setkeys = setkeys
-        self.cells = cells
-        self.field_size = field_size
+        self.field_size = preprocessor.field_size
         self.constraints = constraints
         self.selection_mode = selection_mode
         self.uniform = uniform  # Sample all setkeys uniformly. Otherwise, use defined category probabilities and divide uniformly among possible category values.

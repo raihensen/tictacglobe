@@ -18,7 +18,6 @@ class Game:
 
     def __init__(self, solutions, alt_solutions, rows, cols):
         self.size = len(solutions)
-        self.values = Game.values  # All possible values to be guessed (list of dicts)
         self.solutions = solutions  # 3x3 array containing list of possible solutions
         self.alt_solutions = alt_solutions  # 3x3 array containing list of possible alternative solutions
         self.rows = rows  # rows (tuples of form (Category, value))
@@ -34,8 +33,7 @@ class Game:
             "cols": [{"category": cat.key, "value": value} for cat, value in self.cols],
             "data": {camel_case(key): value for key, value in self.data.items()}
         }
-        if include_values:
-            data["values"] = self.values
+        
         return data
     
     def to_dataframe(self, solution=False):

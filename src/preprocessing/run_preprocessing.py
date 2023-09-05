@@ -1,37 +1,34 @@
 
-import json
-import datetime
-
-import preprocessing
-from generator import Constraint, GameGenerator
-from difficulty import compute_game_difficulties, DifficultyLevel
-
-df = preprocessing.df
-categories = preprocessing.categories
+import pandas as pd
+from generator import Constraint
+from difficulty import DifficultyEstimator, DifficultyLevel
+from utils import *
+from preprocessing import Preprocessor
 
 # Ensure we're running in the right directory
-import os
-script_dir = os.path.dirname(os.path.abspath(__file__))
-os.chdir(script_dir)
+chdir_this_file()
 
-# def export_country_data():
-#     # Export country data
-#     countries = preprocessing.df.to_dict(orient="records")
 
-#     path = "../../data/countries.json"
-#     json.dump(countries, open(path, mode="w"))
-#     print(f"Exported country data to {path}")
+FIELD_SIZE = 3
+MIN_CELL_SIZE = 1
+MAX_CELL_SIZE = None
 
-# df = preprocessing.df
+language = "de"
 
-# print(df)
 
+countries = pd.read_json(f"../../data/countries/countries-{language.lower()}.json", encoding="utf8")
+preprocessor = Preprocessor(countries=countries,
+                            field_size=FIELD_SIZE,
+                            min_cell_size=MIN_CELL_SIZE,
+                            max_cell_size=MAX_CELL_SIZE)
 
 constraints = [
     # Some categories are pretty boring to appear multiple times
     Constraint.category_at_most("capital_ending_letter", 1),
     Constraint.category_at_most("capital_starting_letter", 1),
-    Constraint.category_at_most("ending_letter", 1)
+    Constraint.category_at_most("ending_letter", 1),
+    # Limit the number of cells a country can appear in
+    *Constraint.solutions_at_most(countries.iso.tolist(), 3)
 ]
 category_probs = {
     'continent': 4,
@@ -44,13 +41,12 @@ category_probs = {
     'island': 4
 }
 
-generator = preprocessing.get_generator(constraints, category_probs, field_size=3,
-                                        seed=None, selection_mode="shuffle_setkeys", uniform=False, shuffle=True)
-games = list(generator.sample_games(n=5000))
+generator = preprocessor.get_generator(constraints, category_probs,
+                                       seed=None, selection_mode="shuffle_setkeys", uniform=False, shuffle=True)
+games = list(generator.sample_games(n=1000))
 
 # Difficulty computation
-difficulty_info = compute_game_difficulties(games)
+difficulty_info = DifficultyEstimator(preprocessor).compute_game_difficulties(games)
 
-print(difficulty_info)
-
-# preprocessing.save_games(games)
+# Save games to JSON file
+preprocessor.save_games(games)

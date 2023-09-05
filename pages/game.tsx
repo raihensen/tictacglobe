@@ -99,13 +99,13 @@ export default function GameComponent(props: any) {
   // const [gameData, setGameData] = useState({ isNewGame: true, game: null } as GameData)
   const [notifyDecided, setNotifyDecided] = useState<boolean>(false)
   const [userIdentifier, setUserIdentifier] = useState<string>("")
-  const [playerIndex, setPlayerIndex] = useState<0 | 1>(0)  // who am i? 0/1
+  // const [playerIndex, setPlayerIndex] = useState<0 | 1>(0)  // who am i? 0/1
   const [hasTurn, setHasTurn] = useState<boolean>(true)
 
   // TODO consider using SWR https://nextjs.org/docs/pages/building-your-application/data-fetching/client-side#client-side-data-fetching-with-swr
   function apiRequest(query: Query) {
     // Fetch the game data from the server
-    const { userIdentifier, action, player: playerIndex, countryId, pos } = query
+    const { userIdentifier, action, player, countryId, pos } = query
     const search = Object.entries(query).filter(([key, val]) => val != undefined).map(([key, val]) => `${key}=${encodeURIComponent(val)}`).join("&")
     const url = "/api/game?" + search
     console.log(`API request: ${url}`);

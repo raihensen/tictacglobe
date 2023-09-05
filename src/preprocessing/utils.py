@@ -1,4 +1,7 @@
 
+import os
+import json
+
 
 def get_country_index(df, c):
     if c in df["name"].values:
@@ -70,3 +73,22 @@ def remove_border(df, c1, c2):
 def camel_case(s: str) -> str:
     output = ''.join(x for x in s.title() if x.isalnum())
     return output[0].lower() + output[1:]
+
+
+
+def chdir_this_file():
+    script_dir = os.path.dirname(os.path.abspath(__file__))
+    os.chdir(script_dir)
+
+def export_country_data(df, language):
+    # CSV export
+    csv_path = f"../../data/countries/countries-{language.lower()}.csv"
+    df.to_csv(csv_path, encoding="utf8", index=False)
+    print(f"CSV Country data exported to {csv_path}.")
+
+    # JSON export
+    json_path = f"../../data/countries/countries-{language.lower()}.json"
+    json.dump(df.to_dict(orient="records"),
+              open(json_path, mode="w"))
+    print(f"JSON Country data exported to {json_path}.")
+    
