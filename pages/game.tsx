@@ -16,7 +16,8 @@ import { useTranslation, Trans } from 'next-i18next'
 import { serverSideTranslations } from 'next-i18next/serverSideTranslations'
 
 // TODO import translated country data
-import { Game, Country, getCountry, RequestAction, countries, Query, GameData, PlayingMode, GameState, Language } from "../src/game.types"
+import { Game, Country, RequestAction, Query, PlayingMode, GameState, Language } from "../src/game.types"
+// import { countries } from "../src/game.types"
 import { capitalize, useDarkMode } from "@/src/util"
 var _ = require('lodash');
 
@@ -94,6 +95,7 @@ type BooleanSettingsKeys = {
 
 export default function GameComponent(props: any) {
 
+  const defaultLanguage: Language = Language.English
   const router = useRouter()
   const { t, i18n } = useTranslation('common')
 
@@ -103,6 +105,8 @@ export default function GameComponent(props: any) {
   const [userIdentifier, setUserIdentifier] = useState<string>("")
   // const [playerIndex, setPlayerIndex] = useState<0 | 1>(0)  // who am i? 0/1
   const [hasTurn, setHasTurn] = useState<boolean>(true)
+
+  const [countries, setCountries] = useState<Country[]>([])
 
   // TODO consider using SWR https://nextjs.org/docs/pages/building-your-application/data-fetching/client-side#client-side-data-fetching-with-swr
   function apiRequest(query: Query) {
@@ -146,6 +150,11 @@ export default function GameComponent(props: any) {
 
         setGame(newGame)
         setNotifyDecided(showNotifyDecided)
+        if (data.countries) {
+          console.log(`Received country data (${data.countries.length} countries)`)
+          setCountries(data.countries)
+        }
+
         if (timerRef.current) {
           (timerRef.current as any).reset()
         }

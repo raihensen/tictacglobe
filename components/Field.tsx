@@ -295,14 +295,14 @@ const CountryAutoComplete = ({ countries, makeGuess, onBlur }: CountryAutoComple
   const [searchValue, setSearchValue] = useState("")
 
   const items = countries.map(c => [c.name, ...(c.alternativeValues?.name ?? [])].map((name, i) => ({ country: c, name: name, nameIndex: i, key: `${c.iso}-${i}` }))).flat(1) as AutoCompleteItem[]
+  const normalize = (str: string) => str.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "") // TODO
 
   const noSpoilerSearch = (q: string) => {
-    q = q.toLowerCase()
+    q = normalize(q)
     if (q.length < 3) {
       return []
     }
     // https://stackoverflow.com/questions/990904/remove-accents-diacritics-in-a-string-in-javascript
-    const normalize = (str: string) => str.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "") // TODO
     let results = items.filter(item => normalize(item.name).includes(q))
     // retain only one result per country
     const countryCodes = [...new Set(results.map(item => item.country.iso))]

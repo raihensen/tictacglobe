@@ -1,11 +1,15 @@
 
 var _ = require('lodash');
+// var path = require('path');
+// var fs = require('fs');
 
 
 export enum Language {
   German = "de",
   English = "en"
 }
+
+export const defaultLanguage = Language.English
 
 export enum RequestAction {
   ExistingOrNewGame = 0,
@@ -58,6 +62,7 @@ export enum DifficultyLevel {
 
 export interface GameSetup {
   size: number;
+  language: Language;
   solutions: Country["iso"][][][];
   alternativeSolutions: Country["iso"][][][];
   rows: CategoryValue[];
@@ -142,10 +147,7 @@ export function getCountry(q: string): Country | null {
   return countries.find(c => c.iso == q || c.name == q) || null
 }
 
-import countryData from '../data/countries.json'
-// import gameData from '../data/games-20230903-024223-occurence-limit-en.json'
-
-export const countries = countryData.map(c => {
+export const parseCountry = (c: any) => {
   const country = Object.fromEntries(Object.entries(c).filter(([k, v]) => !k.endsWith("_alt")).map(
     ([k, v]) => [_.camelCase(k), v]
   ).concat([["alternativeValues", {}]])
@@ -154,7 +156,13 @@ export const countries = countryData.map(c => {
     ([k, v]) => [_.camelCase(k.substring(0, k.length - 4)), v]
   ))
   return country
-})
+}
+
+
+import countryData from '../data/countries.json'
+// import gameData from '../data/games-20230903-024223-occurence-limit-en.json'
+
+export const countries = countryData.map(parseCountry)
 
 // export const gameSetups = gameData as GameSetup[]
 

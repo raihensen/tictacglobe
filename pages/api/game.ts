@@ -1,15 +1,18 @@
 
 import { IncomingMessage, ServerResponse } from 'http';
-import { Game, GameSetup, Country, countries, RequestAction, Query, PlayingMode, GameState, Language } from "@/src/game.types"
+import { Game, GameSetup, Country, RequestAction, Query, PlayingMode, GameState, Language, parseCountry, defaultLanguage } from "@/src/game.types"
 import { randomChoice } from "@/src/util";
+import { Lexend_Tera } from 'next/font/google';
 var _ = require('lodash');
-var fs = require('fs');
+var fs = require('fs').promises;
 var path = require('path');
 
 
-var gameUserMap: {[x: string]: Game} = {}
+var gameUserMap: { [x: string]: Game } = {}
+var countryData: { [x: string]: Country[] } = {}
 
-const _winningFormations: {[x: string]: number[][][]} = {}  // saves all combinations of coords leading to a win (axes: combination, coord pair, coord)
+
+const _winningFormations: { [x: string]: number[][][] } = {}  // saves all combinations of coords leading to a win (axes: combination, coord pair, coord)
 function getWinningFormations(size: number) {
   if (size < 2) {
     return []
@@ -30,7 +33,7 @@ function getWinningFormations(size: number) {
 }
 
 
-function makeGuess(game: Game, playerIndex: number, { userIdentifier, countryId, pos }: Query) {
+async function makeGuess(game: Game, playerIndex: number, { userIdentifier, countryId, pos }: Query) {
   const match = (pos as string).match(/^(\d+),(\d+)$/)
   if (!match) {
     console.log(`Error: Invalid pos argument`);
@@ -39,6 +42,11 @@ function makeGuess(game: Game, playerIndex: number, { userIdentifier, countryId,
   const [i, j] = [parseInt(match[1]), parseInt(match[2])]
   if (i < 0 || i >= game.setup.size || j < 0 || j >= game.setup.size) {
     console.log(`Error: Invalid pos argument`);
+    return false
+  }
+  const countries = await getCountryData(game.setup.language)
+  if (!countries) {
+    console.log(`Error: Country data not found!`);
     return false
   }
   const country = countries.find(c => c.iso == countryId)
@@ -123,46 +131,66 @@ function checkWinner(game: Game) {
 }
 
 
-function chooseGame(
+async function chooseGame(
   language: Language,
-  filter: ((gameSetup: GameSetup) => boolean) | null = null,
-  callback: ((gameSetup: GameSetup | null) => void)
-): void {
+  filter: ((gameSetup: GameSetup) => boolean) | null = null
+): Promise<GameSetup | null> {
 
   const dir = path.join(...`data/games/${language}`.split("/"))
   console.log(`Listing game files in directory "${dir}"`)
-  fs.readdir(dir, function (err: any, files: string []) {
-    if (err || !files.length) {
-      return callback(null)
+  try {
+    const files = await fs.readdir(dir)
+    if (!files.length) {
+      return null
     }
     const file = path.join(dir, _.max(files))
     console.log(`Read games from file ${file}`);
-    
-    fs.readFile(file, (err: any, data: string) => {
-      if (err) {
-        return callback(null)
-      }
-      let gameSetups = JSON.parse(data) as GameSetup[]
-      if (filter) {
-        gameSetups = gameSetups.filter(filter)
-      }
-      console.log(`Choose game setup (out of ${gameSetups.length})`)
-      callback(randomChoice(gameSetups))
-    })
+    const data = await fs.readFile(file)
+    let gameSetups = JSON.parse(data).map((props: Omit<GameSetup, "props">) => ({
+      ...props,
+      language: language
+    })) as GameSetup[]
 
-  })
+    if (filter) {
+      gameSetups = gameSetups.filter(filter)
+    }
+    console.log(`Choose game setup (out of ${gameSetups.length})`)
+    return randomChoice(gameSetups)
 
+  } catch (err) {
+    return null
+  }
+}
+
+async function getCountryData(language: Language): Promise<Country[] | null> {
+
+  if (language.toString() in countryData) {
+    return countryData[language.toString()]
+  }
+
+  const file = path.join(...`data/countries/countries-${language}.json`.split("/"))
+  console.log(`Read countries from file ${file}...`)
+  try {
+    const data: any = await fs.readFile(file)
+    let countries = JSON.parse(data).map(parseCountry) as Country[]
+    countryData[language.toString()] = countries
+    return countries
+  } catch (err) {
+    return null
+  }
 }
 
 type Request = IncomingMessage & { query: Query };
 
-function executeAndRespond(
+async function executeAndRespond(
   query: Query,
   game: Game,
   isNewGame: boolean,
+  additionalResponseData: any,
   res: ServerResponse<Request>) {
 
   const { userIdentifier, action, player, countryId, pos, difficulty } = query
+  const language = query.language ?? defaultLanguage
 
   // --- Action / Response ------------------------------------------------
   // actions
@@ -175,14 +203,15 @@ function executeAndRespond(
   }
 
   if (action == RequestAction.ExistingOrNewGame || action == RequestAction.NewGame) {
+
     // Just load / initialize game
     result = !!game
 
   } else if (game.state != GameState.Finished && playerIndex !== undefined) {
-    // in-game actions: Need unfinished game and a playerIndex
 
+    // in-game actions: Need unfinished game and a playerIndex
     if (action == RequestAction.MakeGuess && countryId && pos) {
-      result = makeGuess(game, playerIndex, query)
+      result = await makeGuess(game, playerIndex, query)
 
       // Check winner, if not already decided
       if (game.state != GameState.Decided) {
@@ -197,7 +226,7 @@ function executeAndRespond(
       }
 
     }
-    
+
     if (action == RequestAction.EndTurn || action == RequestAction.TimeElapsed) {
       result = endTurn(game, playerIndex, query)
     }
@@ -207,7 +236,7 @@ function executeAndRespond(
   console.log(`${RequestAction[action]}: ${result ? "successful" : "not successful"}`)
 
   res.statusCode = 200
-  res.end(JSON.stringify({ isNewGame: isNewGame, game: game }))
+  res.end(JSON.stringify({ isNewGame: isNewGame, game: game, ...additionalResponseData }))
 
 }
 
@@ -215,10 +244,10 @@ function respondWithError(res: ServerResponse<Request>, err: string = "API Error
   res.end(JSON.stringify({ error: err }))
 }
 
-export default (req: Request, res: ServerResponse<Request> ) => {
+export default async (req: Request, res: ServerResponse<Request>) => {
 
   const { userIdentifier, action, player, countryId, pos, difficulty, language }: Query = req.query
-  
+
   // --- Load / Initialize the game ------------------------------------------------
   // get the Game instance, or create a new one
   let game = _.get(gameUserMap, userIdentifier, null) as Game | null
@@ -227,30 +256,35 @@ export default (req: Request, res: ServerResponse<Request> ) => {
   const newGame = !game || action == RequestAction.NewGame
   if (newGame || !game) {
     if (difficulty && language) {
-      chooseGame(
+      const gameSetup: GameSetup | null = await chooseGame(
         language,
         gameSetup => {
           return gameSetup.data.difficultyLevel == difficulty
-        },
-        gameSetup => {
-          if (!gameSetup) {
-            return respondWithError(res, "Game could not be initialized")
-          }
-          game = new Game(
-            gameSetup,
-            [userIdentifier],  // 1 element for offline game, 2 for online
-            PlayingMode.Offline
-          )
-          gameUserMap[userIdentifier] = game
-          executeAndRespond(req.query, game, newGame, res)
         }
       )
+      if (!gameSetup) {
+        return respondWithError(res, "Game could not be initialized")
+      }
+      game = new Game(
+        gameSetup,
+        [userIdentifier],  // 1 element for offline game, 2 for online
+        PlayingMode.Offline
+      )
+      gameUserMap[userIdentifier] = game
+
+      // Add country data to response
+      const countries = await getCountryData(language)
+      if (!countries) {
+        return respondWithError(res, "Country data could not be read")
+      }
+      await executeAndRespond(req.query, game, newGame, { countries: countries }, res)
+
     } else {
       respondWithError(res, "Missing parameters for game selection")
     }
 
   } else {
-    executeAndRespond(req.query, game, newGame, res)
+    await executeAndRespond(req.query, game, newGame, {}, res)
   }
 
 }
