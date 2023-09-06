@@ -155,7 +155,11 @@ async function chooseGame(
       gameSetups = gameSetups.filter(filter)
     }
     console.log(`Choose game setup (out of ${gameSetups.length})`)
-    return randomChoice(gameSetups)
+    const gameSetup =  randomChoice(gameSetups)
+    if (!gameSetup) {
+      return null
+    }
+    return gameSetup
 
   } catch (err) {
     return null
