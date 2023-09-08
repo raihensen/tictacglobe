@@ -383,7 +383,7 @@ const CountryAutoComplete = ({ countries, makeGuess, onBlur }: CountryAutoComple
       inputProps={{
         style: { width: "100%" },
         onBlur: () => { onBlur() },
-        autoFocus: 1
+        autoFocus: true
       }}
     />
   )
