@@ -80,7 +80,7 @@ const TimerComponent = forwardRef(({
   </>)
 })
 
-export const Timer = styled(TimerComponent)`
+const Timer = styled(TimerComponent)`
   font-family: "Roboto Slab", Arial;
   font-weight: bold;
   display: flex;
@@ -100,3 +100,5 @@ export const Timer = styled(TimerComponent)`
 
 }`
 
+Timer.displayName = "Timer"
+export default Timer;

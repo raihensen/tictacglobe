@@ -22,7 +22,7 @@ import { capitalize, useDarkMode } from "@/src/util"
 var _ = require('lodash');
 
 import styles from '@/pages/Game.module.css'
-import { Timer } from "@/components/Timer";
+import Timer from "@/components/Timer";
 import { Field } from "@/components/Field";
 import { TableHeading, RowHeading, ColHeading } from '@/components/TableHeading';
 import { FaArrowsRotate, FaEllipsis, FaGear, FaMoon, FaPause, FaPersonCircleXmark, FaPlay } from "react-icons/fa6";
