@@ -4,8 +4,9 @@ import { Game, GameSetup, Country, RequestAction, Query, PlayingMode, GameState,
 import { randomChoice } from "@/src/util";
 import { Lexend_Tera } from 'next/font/google';
 var _ = require('lodash');
+// import { promises as fs } from 'fs';
 var fs = require('fs').promises;
-var path = require('path');
+import path from 'path';
 
 
 var gameUserMap: { [x: string]: Game } = {}
@@ -136,11 +137,11 @@ async function chooseGame(
   filter: ((gameSetup: GameSetup) => boolean) | null = null
 ): Promise<GameSetup | null> {
 
-  const allFiles = await fs.readdir("./data")
-  console.log(`all files: ${allFiles.join(", ")}`)
+  // const allFiles = await fs.readdir("./data")
+  // console.log(`all files: ${allFiles.join(", ")}`)
   
-
-  const dir = `./data/games/${language}`
+  const dir = path.join(process.cwd(), 'public', 'data', 'games', language)
+  // const dir = `./data/games/${language}`
   console.log(`Listing game files in directory "${dir}"`)
   try {
     const files = await fs.readdir(dir)
