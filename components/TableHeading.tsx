@@ -30,9 +30,11 @@ const colorMap = {
 
 export const TableHeading = ({ category, value }: CategoryValue) => {
   const { t, i18n } = useTranslation('common')
+
+  const tooltipId = useId()
   
   if (category == "landlocked") {
-    const tooltipCategoryInfo = (<Tooltip id={`tooltipCategoryInfo-${useId()}`}>{t("category.landlocked.tooltip")}</Tooltip>)
+    const tooltipCategoryInfo = (<Tooltip id={`tooltipCategoryInfo-${tooltipId}`}>{t("category.landlocked.tooltip")}</Tooltip>)
     return (
       <OverlayTrigger placement="top" overlay={tooltipCategoryInfo}>
         <CategoryBadge>
@@ -47,7 +49,7 @@ export const TableHeading = ({ category, value }: CategoryValue) => {
     
   }
   if (category == "island") {
-    const tooltipCategoryInfo = (<Tooltip id={`tooltipCategoryInfo-${useId()}`}>{t("category.island.tooltip")}</Tooltip>)
+    const tooltipCategoryInfo = (<Tooltip id={`tooltipCategoryInfo-${tooltipId}`}>{t("category.island.tooltip")}</Tooltip>)
     return (
       <OverlayTrigger placement="top" overlay={tooltipCategoryInfo}>
         <CategoryBadge>
@@ -64,7 +66,7 @@ export const TableHeading = ({ category, value }: CategoryValue) => {
   if (isStartsWith || isEndsWith) {
     const isCapital = category.startsWith("capital")
     const letter = (value as string).toUpperCase()
-    const tooltipCategoryInfo = (<Tooltip id={`tooltipCategoryInfo-${useId()}`}>{t(`category.${_.camelCase(category)}.tooltip`, { letter })}</Tooltip>)
+    const tooltipCategoryInfo = (<Tooltip id={`tooltipCategoryInfo-${tooltipId}`}>{t(`category.${_.camelCase(category)}.tooltip`, { letter })}</Tooltip>)
     return (
       <OverlayTrigger placement="top" overlay={tooltipCategoryInfo}>
         <CategoryBadge>
@@ -83,7 +85,7 @@ export const TableHeading = ({ category, value }: CategoryValue) => {
     const color = value as string
     const colorClass = _.get(colorMap, color, styles.flagColorBlack)
     const i18Key = "category.flagColor.values." + _.get({ "Yellow/Gold": "YellowOrGold" }, color, color)
-    const tooltipCategoryInfo = (<Tooltip id={`tooltipCategoryInfo-${useId()}`}>{t("category.flagColor.tooltip", { color: t(i18Key) })}</Tooltip>)
+    const tooltipCategoryInfo = (<Tooltip id={`tooltipCategoryInfo-${tooltipId}`}>{t("category.flagColor.tooltip", { color: t(i18Key) })}</Tooltip>)
     return (
       <OverlayTrigger placement="top" overlay={tooltipCategoryInfo}>
         <CategoryBadge className={`flagColorBadge ${colorClass}`}>
@@ -97,7 +99,7 @@ export const TableHeading = ({ category, value }: CategoryValue) => {
   if (category == "continent") {
     const continent = value as string
     const ContinentIcon = _.get(continentIconMap, continent, FaEarthAfrica)
-    const tooltipCategoryInfo = (<Tooltip id={`tooltipCategoryInfo-${useId()}`}>{t("category.continent.tooltip", { continent: t(`category.continent.values.${continent}`) })}</Tooltip>)
+    const tooltipCategoryInfo = (<Tooltip id={`tooltipCategoryInfo-${tooltipId}`}>{t("category.continent.tooltip", { continent: t(`category.continent.values.${continent}`) })}</Tooltip>)
     return (<OverlayTrigger placement="top" overlay={tooltipCategoryInfo}>
       <CategoryBadge>
         <ContinentIcon className={styles.categoryIcon} />

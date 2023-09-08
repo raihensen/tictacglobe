@@ -93,7 +93,7 @@ type BooleanSettingsKeys = {
 }[keyof Settings];
 
 
-export default function GameComponent(props: any) {
+const GameComponent = (props: any) => {
 
   const defaultLanguage: Language = Language.English
   const router = useRouter()
@@ -465,6 +465,6 @@ export const getStaticProps: GetStaticProps<Props> = async ({
       'common',
     ])),
   },
-})
+});
 
-
+export default GameComponent;

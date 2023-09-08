@@ -248,7 +248,7 @@ function respondWithError(res: ServerResponse<Request>, err: string = "API Error
   res.end(JSON.stringify({ error: err }))
 }
 
-export default async (req: Request, res: ServerResponse<Request>) => {
+const gameApi = async (req: Request, res: ServerResponse<Request>) => {
 
   const { userIdentifier, action, player, countryId, pos, difficulty, language }: Query = req.query
 
@@ -292,4 +292,6 @@ export default async (req: Request, res: ServerResponse<Request>) => {
   }
 
 }
+
+export default gameApi;
 
