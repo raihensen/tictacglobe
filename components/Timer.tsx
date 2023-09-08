@@ -11,6 +11,9 @@ type TimerProps = {
   className?: string | undefined,
 }
 
+// {!timerRunning && (<IconButton variant="secondary" onClick={() => { setTimerRunning(true) }}><FaPlay /></IconButton>)}
+// {timerRunning && (<IconButton variant="secondary" onClick={() => { setTimerRunning(false) }}><FaPause /></IconButton>)}
+
 const TimerComponent = forwardRef(({
   initialTime,
   running,

@@ -1,22 +1,16 @@
 
 import Button from "react-bootstrap/Button";
 import ButtonToolbar from 'react-bootstrap/ButtonToolbar';
-import ButtonGroup from 'react-bootstrap/ButtonGroup';
 import Alert from 'react-bootstrap/Alert';
-import Form from 'react-bootstrap/Form';
-import Dropdown from 'react-bootstrap/Dropdown';
-import Modal from 'react-bootstrap/Modal';
 import { confirm } from 'react-bootstrap-confirmation';
 
 import 'bootstrap/dist/css/bootstrap.min.css';
 import styled from "styled-components";
-import { ReactNode, useEffect, useRef, useState } from 'react';
-import { useTranslation, Trans } from 'next-i18next'
+import { useEffect, useRef, useState } from 'react';
+import { useTranslation } from 'next-i18next'
 import { serverSideTranslations } from 'next-i18next/serverSideTranslations'
 
-// TODO import translated country data
-import { Game, Country, RequestAction, Query, PlayingMode, GameState, Language } from "../src/game.types"
-// import { countries } from "../src/game.types"
+import { Game, Country, RequestAction, FrontendQuery, PlayingMode, GameState, Language, GameSession, SessionWithoutGames, defaultLanguage } from "../src/game.types"
 import { capitalize, useDarkMode } from "@/src/util"
 var _ = require('lodash');
 
@@ -25,15 +19,12 @@ import Timer from "@/components/Timer";
 import { Field } from "@/components/Field";
 import { TableHeading, RowHeading, ColHeading } from '@/components/TableHeading';
 import { FaArrowsRotate, FaEllipsis, FaGear, FaMoon, FaPause, FaPersonCircleXmark, FaPlay } from "react-icons/fa6";
-import Slider from 'rc-slider';
-import 'rc-slider/assets/index.css';
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/router";
 import type { GetStaticProps, InferGetStaticPropsType } from 'next'
-import { DropdownButton } from "react-bootstrap";
-import { CircleFlag } from 'react-circle-flags';
 import { PageProps } from "./_app";
+import { Settings, SettingsModal, useSettings, LanguageSelector, changeLanguage } from "@/components/Settings";
 
 // TODO
 // dont show solution list until game is over. Number can still be toggled
@@ -69,39 +60,27 @@ const IconButton = ({ children, label, className, ...props }: any) => (
   </Button>
 )
 
-const initUserIdentifier = () => {
-  let storedUserIdentifier = localStorage.getItem('userIdentifier')
-
-  if (!storedUserIdentifier) {
-    console.log(`userIdentifier not found in localStorage. Generating ...`);
-    // Generate a random user identifier
-    storedUserIdentifier = Math.random().toString(36).substring(10)
-    localStorage.setItem('userIdentifier', storedUserIdentifier)
-  }
-  return storedUserIdentifier
+const defaultSettings: Settings = {
+  difficulty: "easy",
+  showIso: false,
+  showNumSolutions: true,
+  showNumSolutionsHint: false,
+  timeLimit: 45,
 }
 
-type Settings = {
-  difficulty: "easy" | "medium" | "hard";
-  showIso: boolean;
-  showNumSolutions: boolean;
-  showNumSolutionsHint: boolean;
-  timeLimit: number | false;
-}
-type BooleanSettingsKeys = {
-  [K in keyof Settings]: Settings[K] extends boolean ? K : never;
-}[keyof Settings];
-
-
-const GamePage = ({ darkMode, toggleDarkMode }: PageProps) => {
-  const [userIdentifier, setUserIdentifier] = useState<string>("")
-
-  const defaultLanguage: Language = Language.English
+const GamePage = ({ darkMode, toggleDarkMode, userIdentifier }: PageProps) => {
+  
   const router = useRouter()
   const { t, i18n } = useTranslation('common')
 
+  // TODO
+  const playingMode = PlayingMode.Online
+
+
+  const [settings, setSettings] = useSettings(defaultSettings)
+  const [showSettings, setShowSettings] = useState(false)
+
   const [game, setGame] = useState<Game | null>(null)
-  // const [gameData, setGameData] = useState({ isNewGame: true, game: null } as GameData)
   const [notifyDecided, setNotifyDecided] = useState<boolean>(false)
   
   // const [playerIndex, setPlayerIndex] = useState<0 | 1>(0)  // who am i? 0/1
@@ -110,9 +89,18 @@ const GamePage = ({ darkMode, toggleDarkMode }: PageProps) => {
   const [countries, setCountries] = useState<Country[]>([])
 
   // TODO consider using SWR https://nextjs.org/docs/pages/building-your-application/data-fetching/client-side#client-side-data-fetching-with-swr
-  function apiRequest(query: Query) {
+  function apiRequest(params: FrontendQuery) {
     // Fetch the game data from the server
-    const { userIdentifier, action, player, countryId, pos } = query
+    const query = {
+      userIdentifier: userIdentifier,
+      playingMode: playingMode,
+      ...params
+    }
+    if (params.action == RequestAction.NewGame || params.action == RequestAction.ExistingOrNewGame) {
+      query.difficulty = settings.difficulty,
+      query.language = (router.locale ?? defaultLanguage) as Language
+    }
+
     const search = Object.entries(query).filter(([key, val]) => val != undefined).map(([key, val]) => `${key}=${encodeURIComponent(val)}`).join("&")
     const url = "/api/game?" + search
     console.log(`API request: ${url}`);
@@ -120,8 +108,14 @@ const GamePage = ({ darkMode, toggleDarkMode }: PageProps) => {
     fetch(url)
       .then(response => response.json())
       .then(data => {
-        const newGame = Game.fromApi(data.game)
+        let newGame: Game | null = Game.fromApi(data.game)
+        const session = data.session as SessionWithoutGames
 
+        if (!newGame || !session) {
+          return false
+        }
+
+        console.log("Session: " + JSON.stringify(session))
         if (newGame.playingMode == PlayingMode.Offline) {
 
           // in offline mode, userIndex != playerIndex (there's only one user at index 0)
@@ -130,11 +124,13 @@ const GamePage = ({ darkMode, toggleDarkMode }: PageProps) => {
 
         } else if (newGame.playingMode == PlayingMode.Online) {
           // TODO Online mode
-          // const userIndex = data.game.users.indexOf(userIdentifier)
-          // if (userIndex != -1) {
-          //   setPlayerIndex(userIndex)
-          // }
-          // setHasTurn(playerIndex == data.game.turn)
+          const userIndex = newGame.users.indexOf(userIdentifier)
+          if (userIndex == -1) {
+            console.log("userIdentifier is not part of the game!")
+            return false
+            // setPlayerIndex(userIndex)
+          }
+          setHasTurn(userIndex == newGame.turn)
         }
 
         // console.log("Update game");
@@ -152,7 +148,6 @@ const GamePage = ({ darkMode, toggleDarkMode }: PageProps) => {
         setGame(newGame)
         setNotifyDecided(showNotifyDecided)
         if (data.countries) {
-          console.log(`Received country data (${data.countries.length} countries)`)
           setCountries(data.countries)
         }
 
@@ -160,91 +155,25 @@ const GamePage = ({ darkMode, toggleDarkMode }: PageProps) => {
           (timerRef.current as any).reset()
         }
         setTimerRunning(true)
-
+        return true
 
       })
   }
 
-  // Actions to execute when the game is loaded
-  // useEffect(() => {
-
-  // }, [game])
-
-
   useEffect(() => {
     // First client-side init
-    const storedUserIdentifier = initUserIdentifier()
-    setUserIdentifier(storedUserIdentifier)
-    apiRequest({
-      userIdentifier: storedUserIdentifier,
-      action: RequestAction.ExistingOrNewGame,
-      difficulty: settings.difficulty,
-      language: router.locale as Language
-    })
+    console.log(`First client-side init (GamePage) - userIdentifier ${userIdentifier}`)
+    apiRequest({ action: RequestAction.ExistingOrNewGame })
     return () => {
       // this is called to finalize the effect hook, before it is triggered again
     }
   }, [])
-
 
   const getPlayerColor = (player: number | null) => {
     return player === 0 ? "blue" : (player === 1 ? "red" : null)
   }
   const getPlayerTurnColor = () => {
     return getPlayerColor(game?.turn ?? null)
-  }
-
-  const defaultSettings: Settings = {
-    difficulty: "easy",
-    showIso: false,
-    showNumSolutions: true,
-    showNumSolutionsHint: false,
-    timeLimit: 45,
-  }
-
-  const [settings, setSettings] = useState<Settings>(defaultSettings)
-
-  // Two settings objects/states: Active + Apply for next game
-  // TODO
-  // const [nextGameSettings, setNextGameSettings] = useState<Settings>(defaultSettings)
-
-
-  type SettingsValues = { id: "settingsTimeLimit", value: number | false }
-  // | { id: "settingsLanguage", value: Language }
-
-  function updateSettings(e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement> | { target: SettingsValues}) {
-    // const newSettings = {
-    //   showIso: e.target.id == "settingsShowIso" ? e.target.checked : settings.showIso,
-    //   showNumSolutions: e.target.id == "settingsShowNumSolutions" ? e.target.checked : settings.showNumSolutions,
-    //   showNumSolutionsHint: e.target.id == "settingsShowNumSolutionsHint" ? e.target.checked : settings.showNumSolutionsHint,
-    //   timeLimit: e.target.id == "settingsTimeLimit" ? Number(e.target.value) : settings.timeLimit,  // TODO
-    // } as Settings
-    const newSettings = {...settings} as Settings
-    Object.entries(settings).forEach(([prop, value]) => {
-      if (e.target.id == `settings${capitalize(prop)}`) {
-        if (prop == "timeLimit") {
-          newSettings.timeLimit = e.target.value as number | false
-          return
-        }
-        if (prop == "difficulty") {
-          newSettings.difficulty = e.target.value as "easy" | "medium" | "hard"
-        }
-        // if (prop == "language") {
-          
-        // }
-
-        // boolean
-        if ("checked" in e.target) {
-          (newSettings as any)[prop as keyof Settings] = e.target.checked
-        }
-      }
-    })
-
-    console.log(`New settings: ${JSON.stringify(newSettings)}`)
-    if (!newSettings.showNumSolutions) {
-      newSettings.showNumSolutionsHint = false
-    }
-    setSettings(newSettings)
   }
 
   const [showTurnInfo, setShowTurnInfo] = useState(false)
@@ -262,81 +191,8 @@ const GamePage = ({ darkMode, toggleDarkMode }: PageProps) => {
     }
   }, [game, notifyDecided])
 
-  const [showSettings, setShowSettings] = useState(false)
-  // const [darkMode, toggleDarkMode] = useDarkMode()
-
   const [timerRunning, setTimerRunning] = useState(false)
   const timerRef = useRef()
-
-  const timeLimitValues = [10, 20, 30, 45, 60, 90, 120]
-  const timeLimitDummyValue = 150
-  const [timeLimitSliderValue, setTimeLimitSliderValue] = useState(settings.timeLimit !== false ? settings.timeLimit : timeLimitDummyValue)
-
-  const formatTimeLimit = (t: number): string => {
-    
-    if (t <= 90) {
-      return `${t} s`
-    }
-    const mins = Math.floor(t / 60)
-    const secs = Math.floor(t % 60)
-    if (secs == 0) {
-      return `${mins} min`
-    }
-    return `${mins}:${secs}`
-  }
-
-  const LanguageSelector = () => {
-    const { t, i18n } = useTranslation()
-    const router = useRouter()
-
-    const changeLanguage = (language: string | null) => {
-      language = language?.toString() || defaultLanguage
-      i18n.changeLanguage(language)
-      router.push(router.asPath, undefined, { locale: language })
-    }
-
-    const languageToCountry = (languageCode: string) => {
-      return _.get({
-        "en": "gb"
-      }, languageCode, languageCode) as string
-    }
-
-    return (
-      <Dropdown onSelect={async (language) => {
-        if (language == router.locale) {
-          return
-        }
-        const oldLanguage = router.locale ?? defaultLanguage
-        changeLanguage(language)
-        if (await confirm(t("changeLanguage.confirm.question"), {
-          title: t("changeLanguage.confirm.title"),
-          okText: t("newGame"),
-          cancelText: t("cancel")
-        })) {
-          apiRequest({
-            userIdentifier: userIdentifier,
-            action: RequestAction.NewGame,
-            difficulty: settings.difficulty,
-            language: language as Language
-          })
-        } else {
-          changeLanguage(oldLanguage)
-        }
-      }}>
-        <Dropdown.Toggle variant="secondary" className={styles.languageSelector}>
-          <CircleFlag countryCode={languageToCountry(router.locale ?? "en")} height={18} />
-        </Dropdown.Toggle>
-        <Dropdown.Menu>
-          {Object.values(Language).map(language => (<>
-            <Dropdown.Item eventKey={language} className={styles.languageSelectorItem}>
-              <CircleFlag countryCode={languageToCountry(language)} height={18} />
-              <span>{language.toString().toUpperCase()}</span>
-            </Dropdown.Item>
-          </>))}
-        </Dropdown.Menu>
-      </Dropdown>
-    )
-  }
 
   return (<>
     {!game && <Alert variant="warning">Game could not be initialized.</Alert>}
@@ -345,74 +201,46 @@ const GamePage = ({ darkMode, toggleDarkMode }: PageProps) => {
       <SplitButtonToolbar className="mb-2">
         <div className="left">
           <IconButton label={t("newGame")} variant="danger" onClick={() => {
-            apiRequest({
-              userIdentifier: userIdentifier,
-              action: RequestAction.NewGame,
-              difficulty: settings.difficulty,
-              language: router.locale as Language
-            })
+            apiRequest({ action: RequestAction.NewGame })
           }}><FaArrowsRotate /></IconButton>
+
           {!notifyDecided && (<>
             <IconButton label={t("endTurn")} variant="warning" onClick={() => {
               apiRequest({
-                userIdentifier: userIdentifier,
                 action: RequestAction.EndTurn,
                 player: game.turn
               })
             }}><FaPersonCircleXmark /></IconButton>
           </>)}
-          {notifyDecided && (<>
+
+          <span>hasTurn: {hasTurn ? "y" : "n"}</span>
+
+          {(notifyDecided && game.state != GameState.Finished) && (<>
             <IconButton label={t("continuePlaying")} variant="secondary" onClick={() => { setNotifyDecided(false) }}><FaEllipsis /></IconButton>
           </>)}
-          {/* {!timerRunning && (<IconButton variant="secondary" onClick={() => { setTimerRunning(true) }}><FaPlay /></IconButton>)}
-          {timerRunning && (<IconButton variant="secondary" onClick={() => { setTimerRunning(false) }}><FaPause /></IconButton>)} */}
+          
         </div>
         <div className="right">
           <IconButton variant="secondary" onClick={toggleDarkMode} className="me-2"><FaMoon /></IconButton>
-          <LanguageSelector />
+          <LanguageSelector onChange={async (oldLanguage, newLanguage) => {
+            if (await confirm(t("changeLanguage.confirm.question"), {
+              title: t("changeLanguage.confirm.title"),
+              okText: t("newGame"),
+              cancelText: t("cancel")
+            })) {
+              apiRequest({ action: RequestAction.NewGame })  // TODO if language change does not work, have to pass newLanguage here
+              return true
+            } else {
+              // undo change
+              changeLanguage(router, i18n, oldLanguage)
+              return false
+            }
+          }} />
           <IconButton variant="secondary" onClick={() => setShowSettings(true)}><FaGear /></IconButton>
         </div>
       </SplitButtonToolbar>
 
-      <Modal show={showSettings} onHide={() => setShowSettings(false)}>
-        <Modal.Header closeButton>
-          <Modal.Title>{t("settings.settings")}</Modal.Title>
-        </Modal.Header>
-        <Modal.Body>
-          <Form.Select onChange={updateSettings} defaultValue={settings.difficulty} id="settingsDifficulty" className="mb-3">
-            {["easy", "medium", "hard"].map((level, i) => (
-              <option value={level} key={i}>{t(`settings.difficultyLevel.${level}`)}</option>
-            ))}
-          </Form.Select>
-          <Form.Check type="switch" onChange={updateSettings} checked={settings.showIso} id="settingsShowIso" label={t("settings.showIso")} />
-          <Form.Check type="switch" onChange={updateSettings} checked={settings.showNumSolutions} id="settingsShowNumSolutions" label={t("settings.showNumSolutions")} />
-          <Form.Check type="switch" onChange={updateSettings} checked={settings.showNumSolutionsHint} disabled={!settings.showNumSolutions} id="settingsShowNumSolutionsHint" label={t("settings.showNumSolutionsHint")} />
-          <Form.Label className="mt-3">{t("settings.timeLimit", { timeLimit: settings.timeLimit !== false ? formatTimeLimit(settings.timeLimit) : t("settings.noLimit") })}</Form.Label>
-          <div className="px-3">
-            <Slider
-              marks={Object.fromEntries([...timeLimitValues.map(t => [t, formatTimeLimit(t)]), [timeLimitDummyValue, t("settings.noLimit")]])}
-              step={null}
-              onChange={(v: number | number[]) => {
-                const t = v as number
-                setTimeLimitSliderValue(t)
-                updateSettings({ target: { id: "settingsTimeLimit", value: t < timeLimitDummyValue ? t : false }})
-              }}
-              min={Math.min(...timeLimitValues)}
-              max={timeLimitDummyValue}
-              value={timeLimitSliderValue}
-              railStyle={{ backgroundColor: 'var(--bs-gray-100)' }} // Customize the rail color
-              trackStyle={{ backgroundColor: 'var(--bs-primary)' }} // Customize the track color
-              handleStyle={{ backgroundColor: 'var(--bs-primary)', border: "none", opacity: 1 }} // Customize the handle color
-              dotStyle={{ backgroundColor: 'var(--bs-gray-100)', border: "none", width: "12px", height: "12px", bottom: "-4px" }} // Customize the handle color
-              activeDotStyle={{ border: "2px solid var(--bs-primary)" }} // Customize the handle color
-              className="mb-5"
-            />
-          </div>
-        </Modal.Body>
-        <Modal.Footer>
-          <Button variant="secondary" onClick={() => setShowSettings(false)}>{t("settings.close")}</Button>
-        </Modal.Footer>
-      </Modal>
+      <SettingsModal settings={settings} setSettings={setSettings} showSettings={showSettings} setShowSettings={setShowSettings} />
 
       <p>
         {/* State: <b>{GameState[game.state]}</b> */}
@@ -431,7 +259,6 @@ const GamePage = ({ darkMode, toggleDarkMode }: PageProps) => {
                   {settings.timeLimit !== false && (<>
                     <Timer className="mt-2" ref={timerRef} running={timerRunning} setRunning={setTimerRunning} initialTime={settings.timeLimit * 1000} onElapsed={() => {
                       apiRequest({
-                        userIdentifier: userIdentifier,
                         action: RequestAction.TimeElapsed,
                         player: game.turn
                       })

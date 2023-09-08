@@ -4,7 +4,6 @@ import Head from 'next/head';
 import Image from "next/image";
 import Link from "next/link";
 import { ReactNode } from "react";
-import { useDarkMode } from "@/src/util";
 var _ = require('lodash');
 
 
@@ -21,7 +20,7 @@ function Layout({ darkMode, children }: LayoutProps) {
     </Head>
     <Container style={{ maxWidth: "720px" }}>
       <div className="my-3">
-        <Image src={`tictacglobe-logo${darkMode ? "-white" : ""}.svg`} width={80} height={80} alt={"TicTacGlobe logo"} />
+        <Image src={`/tictacglobe-logo${darkMode ? "-white" : ""}.svg`} width={80} height={80} alt={"TicTacGlobe logo"} />
       </div>
       {children}
     </Container>
@@ -29,3 +28,4 @@ function Layout({ darkMode, children }: LayoutProps) {
 }
 
 export default Layout;
+

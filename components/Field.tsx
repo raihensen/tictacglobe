@@ -1,7 +1,7 @@
 
 import styled from "styled-components";
 import { forwardRef, useEffect, useId, useMemo, useState } from 'react';
-import { Game, Country, CategoryValue, RequestAction, Query, GameData, PlayingMode, GameState } from "@/src/game.types"
+import { Game, Country, CategoryValue, RequestAction, FrontendQuery, GameData, PlayingMode, GameState } from "@/src/game.types"
 import Autocomplete from 'react-autocomplete'
 import { PlusCircleFill } from 'react-bootstrap-icons';
 import Badge from 'react-bootstrap/Badge';
@@ -87,7 +87,7 @@ export type FieldProps = {
   row: CategoryValue;
   col: CategoryValue;
   userIdentifier: string;
-  apiRequest: (query: Query) => any;
+  apiRequest: (query: FrontendQuery) => any;
   hasTurn: boolean;
   notifyDecided: boolean;
   countries: Country[];
@@ -169,7 +169,6 @@ export const Field = ({ pos, game, row, col, userIdentifier, apiRequest, hasTurn
   const makeGuess = (country: Country) => {
     const correct = game.isValidGuess(i, j, country)
     apiRequest({
-      userIdentifier: userIdentifier,
       action: RequestAction.MakeGuess,
       player: game.turn,  // offline only
       countryId: country.iso,
@@ -217,7 +216,6 @@ export const Field = ({ pos, game, row, col, userIdentifier, apiRequest, hasTurn
   return (
     <TableCellInner>
       {/* <span>{mode}</span> */}
-      {/* <span>pt: {playerTurn}, has: {hasTurn ? "y" : "n"}</span> */}
       {fieldState.mode == FieldMode.INITIAL && <>
         {/* Field is still free */}
         {!notifyDecided && <>
@@ -305,8 +303,8 @@ const CountryAutoComplete = ({ countries, makeGuess, onBlur }: CountryAutoComple
     let [word, others] = t(`equivalentCountryWords.${key}`).split(":").map(s => s.trim())
     word = word.toLowerCase().substring(1, word.length - 1)
     const words = others.split(",").map(w => w.trim().toLowerCase().substring(1, w.trim().length - 1))
-    const regexes = words.map(w => new RegExp(`\\b${_.escapeRegExp(w)}\\b`, "gi"))
-    console.log(`Built regexes ${regexes.join(", ")} for word "${word.toLowerCase()}"`);
+    const regexes = words.map(w => new RegExp(`(?<prefix>\\s|^)(?<hit>${_.escapeRegExp(w)})(?<suffix>\\s|$)`, "gi"))  // \b does not work for w = "St."
+    // console.log(`Built regexes ${regexes.join(", ")} for word "${word.toLowerCase()}"`);
     
     return [regexes, word.toLowerCase()]
     // const [word, others] = t(`equivalentCountryWords.${key}`).split(":").map(s => s.trim())
@@ -322,9 +320,8 @@ const CountryAutoComplete = ({ countries, makeGuess, onBlur }: CountryAutoComple
     // normalize equivalent words ("Saint", "and" etc.)
     equivalentWordReplacements.forEach(([regexes, word]) => {
       const str0 = str1
-      const replaceInfo = regexes.map(regex => str0.replaceAll(regex, word)).filter(s => s != str0)
+      const replaceInfo = regexes.map(regex => str0.replaceAll(regex, `$<prefix>${word}$<suffix>`)).filter(s => s != str0) as string[]
       if (replaceInfo.length) {
-        console.log(JSON.stringify(replaceInfo))
         // Find regex that caused the longest hit ("St." vs "St") -> shortest replacement
         const lengths = replaceInfo.map(s => s.length)
         str1 = replaceInfo[lengths.indexOf(Math.min(...lengths))]
@@ -332,8 +329,7 @@ const CountryAutoComplete = ({ countries, makeGuess, onBlur }: CountryAutoComple
     })
     // replace diacritics
     str1 = str1.normalize("NFD").replace(/[\u0300-\u036f]/g, "")
-
-    console.log(`Normalize: "${str}" -> "${str1}"`)
+    // console.log(`Normalize: "${str}" -> "${str1}"`)
     return str1
   }
 

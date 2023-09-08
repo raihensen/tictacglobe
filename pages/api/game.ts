@@ -1,6 +1,6 @@
 
 import { IncomingMessage, ServerResponse } from 'http';
-import { Game, GameSetup, Country, RequestAction, Query, PlayingMode, GameState, Language, parseCountry, defaultLanguage } from "@/src/game.types"
+import { Game, GameSetup, Country, RequestAction, Query, PlayingMode, GameState, Language, parseCountry, defaultLanguage, PlayerIndex, GameSession } from "@/src/game.types"
 import { randomChoice } from "@/src/util";
 import { Lexend_Tera } from 'next/font/google';
 var _ = require('lodash');
@@ -9,7 +9,13 @@ var fs = require('fs').promises;
 import path from 'path';
 
 
-var gameUserMap: { [x: string]: Game } = {}
+var userGameMap: { [x: string]: Game } = {}
+
+
+var userSessionMap: { [x: string]: GameSession } = {}
+var sessionIndex = 0
+var sessions: GameSession[] = []
+
 var countryData: { [x: string]: Country[] } = {}
 
 
@@ -34,7 +40,7 @@ function getWinningFormations(size: number) {
 }
 
 
-async function makeGuess(game: Game, playerIndex: number, { userIdentifier, countryId, pos }: Query) {
+async function makeGuess(game: Game, playerIndex: PlayerIndex, { userIdentifier, countryId, pos }: Query) {
   const match = (pos as string).match(/^(\d+),(\d+)$/)
   if (!match) {
     console.log(`Error: Invalid pos argument`);
@@ -72,14 +78,14 @@ async function makeGuess(game: Game, playerIndex: number, { userIdentifier, coun
   // check correct solution
   if (!game.isValidGuess(i, j, country)) {
     console.log(`Error: Wrong guess ((${i},${j}), ${country.name})`)
-    game.turn = 1 - game.turn
+    switchTurns(game)
     return true  // might return false?
   }
 
   // execute
   game.marking[i][j] = playerIndex
   game.guesses[i][j] = country.iso
-  game.turn = 1 - game.turn
+  switchTurns(game)
   console.log(`Set (${i},${j}) to ${country.iso} (player ${playerIndex} / user ${userIndex} / ${userIdentifier})`);
 
   return true
@@ -91,8 +97,12 @@ function endTurn(game: Game, playerIndex: number, query: Query) {
     console.log(`Error: It's not player ${playerIndex}'s turn!`);
     return false
   }
-  game.turn = 1 - game.turn
+  switchTurns(game)
   return true
+}
+
+function switchTurns(game: Game) {
+  game.turn = 1 - game.turn as PlayerIndex
 }
 
 /**
@@ -132,7 +142,7 @@ function checkWinner(game: Game) {
 }
 
 
-async function chooseGame(
+async function chooseGameSetup(
   language: Language,
   filter: ((gameSetup: GameSetup) => boolean) | null = null
 ): Promise<GameSetup | null> {
@@ -193,12 +203,12 @@ type Request = IncomingMessage & { query: Query };
 async function executeAndRespond(
   query: Query,
   game: Game,
+  session: GameSession,
   isNewGame: boolean,
   additionalResponseData: any,
   res: ServerResponse<Request>) {
 
-  const { userIdentifier, action, player, countryId, pos, difficulty } = query
-  const language = query.language ?? defaultLanguage
+  const { action, player, countryId, pos } = query
 
   // --- Action / Response ------------------------------------------------
   // actions
@@ -242,9 +252,15 @@ async function executeAndRespond(
   }
 
   console.log(`${RequestAction[action]}: ${result ? "successful" : "not successful"}`)
+  
+  const { currentGame, previousGames, ...sessionWithoutGames } = session  // type SessionWithoutGames
 
   res.statusCode = 200
-  res.end(JSON.stringify({ isNewGame: isNewGame, game: game, ...additionalResponseData }))
+  res.end(JSON.stringify({
+    isNewGame: isNewGame,
+    game: game,
+    session: sessionWithoutGames,
+    ...additionalResponseData }))
 
 }
 
@@ -254,46 +270,98 @@ function respondWithError(res: ServerResponse<Request>, err: string = "API Error
 
 const gameApi = async (req: Request, res: ServerResponse<Request>) => {
 
-  const { userIdentifier, action, player, countryId, pos, difficulty, language }: Query = req.query
+  const { userIdentifier, playingMode, action, player, difficulty, language }: Query = req.query
 
   // --- Load / Initialize the game ------------------------------------------------
   // get the Game instance, or create a new one
-  let game = _.get(gameUserMap, userIdentifier, null) as Game | null
-  console.log(`userIdentifier ${userIdentifier}: ` + (game ? "Found game." : "No game found.") + " All games: " + JSON.stringify(Object.entries(gameUserMap).map(([k, v]) => k)))
+  // let game = _.get(userGameMap, userIdentifier, null) as Game | null
+  let session = _.get(userSessionMap, userIdentifier, null) as GameSession | null
+  let game = session ? session.currentGame : null
 
-  const newGame = !game || action == RequestAction.NewGame
-  if (newGame || !game) {
-    if (difficulty && language) {
-      const gameSetup: GameSetup | null = await chooseGame(
-        language,
-        gameSetup => {
-          return gameSetup.data.difficultyLevel == difficulty
-        }
-      )
-      if (!gameSetup) {
-        return respondWithError(res, "Game could not be initialized")
+  console.log(`userIdentifier ${userIdentifier}: ` + (game ? "Found existing session." : "No existing session."))
+  console.log("All users in sessions: " +  JSON.stringify(Object.entries(userSessionMap).map(([k, v]) => k)))
+  console.log("Number of sessions: " + sessions.length)
+
+  const newGame = !session || !game || action == RequestAction.NewGame
+  const newSession = !session
+
+  if (!newSession && !newGame && session && session.currentGame) {
+    await executeAndRespond(req.query, session.currentGame, session, false, {}, res)
+    return
+  }
+  if (!difficulty || !language) {
+    respondWithError(res, "Missing parameters for game selection")
+    return
+  }
+
+
+  if (newSession) {
+    // Find/create a new session for the user
+    if (playingMode == PlayingMode.Online) {
+
+      // find session with free spots
+      const availableSessions = sessions.filter(session => session.users.length < 2)
+      // TODO TTG-31 filter for sessions with matching settings (difficulty, language)
+      if (availableSessions.length) {
+        session = availableSessions[0]
+        session.users.push(userIdentifier)
+        userSessionMap[userIdentifier] = session
       }
-      game = new Game(
-        gameSetup,
-        [userIdentifier],  // 1 element for offline game, 2 for online
-        PlayingMode.Offline
-      )
-      gameUserMap[userIdentifier] = game
-
-      // Add country data to response
-      const countries = await getCountryData(language)
-      if (!countries) {
-        return respondWithError(res, "Country data could not be read")
-      }
-      await executeAndRespond(req.query, game, newGame, { countries: countries }, res)
-
-    } else {
-      respondWithError(res, "Missing parameters for game selection")
     }
 
-  } else {
-    await executeAndRespond(req.query, game, newGame, {}, res)
+    if (!session) {
+      session = {
+        index: sessionIndex++,
+        playingMode: playingMode,
+        currentGame: null,
+        previousGames: [],
+        users: [userIdentifier],
+        score: [0, 0]
+      }
+      sessions.push(session)
+      userSessionMap[userIdentifier] = session
+      console.log(`Created a new session: ${JSON.stringify(session)}`)
+    }
+
   }
+
+  if (!session) {
+    respondWithError(res, "Session could not be initialized")
+    return
+  }
+
+  // Archive the current game to then create a new one
+  if (session.currentGame) {
+    session.previousGames.push(session.currentGame)
+    session.currentGame = null
+  }
+  
+  // Create new game
+  const gameSetup: GameSetup | null = await chooseGameSetup(
+    language,
+    gameSetup => {
+      return gameSetup.data.difficultyLevel == difficulty
+    }
+  )
+  if (!gameSetup) {
+    return respondWithError(res, "Game could not be initialized")
+  }
+  game = new Game(
+    gameSetup,
+    [...session.users],
+    playingMode
+    // TODO specify which player starts
+  )
+  session.currentGame = game
+  // userGameMap[userIdentifier] = game
+
+  // Add country data to response
+  const countries = await getCountryData(language)
+  if (!countries) {
+    return respondWithError(res, "Country data could not be read")
+  }
+  await executeAndRespond(req.query, game, session, newGame, { countries: countries }, res)
+
 
 }
 

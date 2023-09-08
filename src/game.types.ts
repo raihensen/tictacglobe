@@ -21,6 +21,7 @@ export enum RequestAction {
 
 export type Query = {
   userIdentifier: string;
+  playingMode: PlayingMode;
   action: RequestAction;
   player?: number;
   countryId?: string;
@@ -28,7 +29,17 @@ export type Query = {
   difficulty?: "easy" | "medium" | "hard";
   language?: Language;
 }
+export type FrontendQuery = Omit<Query, "userIdentifier" | "playingMode">
 
+export type GameSession = {
+  index: number;
+  playingMode: PlayingMode;
+  currentGame: Game | null;
+  previousGames: Game[];
+  users: string[];
+  score: number[];
+}
+export type SessionWithoutGames = Omit<GameSession, "currentGame" | "previousGames">
 
 export interface Country {
   iso: string;
@@ -96,16 +107,20 @@ type GameProperties = {
   [K in GamePropertyKeys]: Game[K];
 };
 
+export type PlayerIndex = 0 | 1;
+export type NoPlayer = -1;
+
 export class Game {
   setup: GameSetup;
   users: string[];  // userIdentifiers. index: 0 ~ O/blue, 1 ~ X/red
-  marking: number[][];  // 0 ~ O/blue, 1 ~ X/red, -1 ~ [empty]
+  marking: (PlayerIndex | NoPlayer)[][];  // 0 ~ O/blue, 1 ~ X/red, -1 ~ [empty]
   guesses: (Country["iso"] | null)[][];
-  turn: number;
+  turn: PlayerIndex;   // whose turn is it? 0/1
   playingMode: PlayingMode;
   state: GameState;
   winCoords: number[][] | null;  // coords of the winning formation
-  winner: number | null;
+  winner: (PlayerIndex | NoPlayer) | null;
+  turnCounter: number;
 
   constructor(setup: GameSetup, users: string[], playingMode: PlayingMode) {
     this.setup = setup
@@ -117,6 +132,7 @@ export class Game {
     this.state = GameState.Running
     this.winner = null
     this.winCoords = null
+    this.turnCounter = 0
   }
 
   static fromApi(data: GameProperties): Game {

@@ -13,50 +13,36 @@ type InitialPageProps = {
 export type PageProps = InitialPageProps & {
   darkMode: boolean;
   toggleDarkMode: () => void;
-  // userIdentifier: string;
+  userIdentifier: string;
 }
 
-// const initUserIdentifier = () => {
-//   let storedUserIdentifier = localStorage.getItem('userIdentifier')
+const initUserIdentifier = () => {
+  let storedUserIdentifier = localStorage.getItem('userIdentifier')
 
-//   if (!storedUserIdentifier) {
-//     console.log(`userIdentifier not found in localStorage. Generating ...`);
-//     // Generate a random user identifier
-//     storedUserIdentifier = Math.random().toString(36).substring(10)
-//     localStorage.setItem('userIdentifier', storedUserIdentifier)
-//   }
-//   return storedUserIdentifier
-// }
+  if (!storedUserIdentifier) {
+    console.log(`userIdentifier not found in localStorage. Generating ...`);
+    // Generate a random user identifier
+    storedUserIdentifier = Math.random().toString(36).substring(10)
+    localStorage.setItem('userIdentifier', storedUserIdentifier)
+  }
+  return storedUserIdentifier
+}
 
 
 const MyApp = ({ Component, pageProps }: AppProps<InitialPageProps>) => {
+  const isClient = typeof window !== 'undefined'
+  const userIdentifier = isClient ? initUserIdentifier() : undefined
 
   const [darkMode, toggleDarkMode] = useDarkMode()
   // const getLayout = Component.getLayout ?? ((page: NextComponentType) => page)
 
-
-  // useEffect(() => {
-  //   // First client-side init
-  //   const storedUserIdentifier = initUserIdentifier()
-  //   setUserIdentifier(storedUserIdentifier)
-  //   apiRequest({
-  //     userIdentifier: storedUserIdentifier,
-  //     action: RequestAction.ExistingOrNewGame,
-  //     difficulty: settings.difficulty,
-  //     language: router.locale as Language
-  //   })
-  //   return () => {
-  //     // this is called to finalize the effect hook, before it is triggered again
-  //   }
-  // }, [])
-  
 
   return (<>
     <Layout darkMode={darkMode}>
       <Component
         darkMode={darkMode}
         toggleDarkMode={toggleDarkMode}
-        // userIdentifier={userIdentifier}
+        userIdentifier={userIdentifier}
         {...pageProps}
       />
     </Layout>
