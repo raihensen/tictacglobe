@@ -1,6 +1,6 @@
 {
     "language": "English",
-    "changeLanguage": "Change language to \"{{changeTo}}\"",
+    "cancel": "Cancel",
     "newGame": "New game",
     "endTurn": "End turn",
     "turnInfo": "{{player}}'s turn",
@@ -57,6 +57,12 @@
                 "NA": "North America",
                 "SA": "South America"
             }
+        }
+    },
+    "changeLanguage": {
+        "confirm": {
+            "title": "Start a new game?",
+            "question": "Changing the language is not possible mid-game. Do you want to start a new game?"
         }
     },
     "settings": {

@@ -27,6 +27,7 @@
     "react": "18.2.0",
     "react-autocomplete": "^1.8.1",
     "react-bootstrap": "^2.8.0",
+    "react-bootstrap-confirmation": "^1.0.4",
     "react-bootstrap-icons": "^1.10.3",
     "react-circle-flags": "^0.0.19",
     "react-dom": "18.2.0",

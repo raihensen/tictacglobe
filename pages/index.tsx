@@ -8,6 +8,7 @@ import Alert from 'react-bootstrap/Alert';
 import Form from 'react-bootstrap/Form';
 import Dropdown from 'react-bootstrap/Dropdown';
 import Modal from 'react-bootstrap/Modal';
+import { confirm } from 'react-bootstrap-confirmation';
 
 import 'bootstrap/dist/css/bootstrap.min.css';
 import styled from "styled-components";
@@ -284,18 +285,37 @@ const GameComponent = (props: any) => {
     return `${mins}:${secs}`
   }
 
+  // const ConfirmModal = ({ show, handleClose }) => {
+  //   return (
+  //     <Modal show={show}>
+  //       <Modal.Header closeButton>
+  //         <Modal.Title>Start a new game?</Modal.Title>
+  //       </Modal.Header>
+
+  //       <Modal.Body>
+  //         <p>Changing the language is not possible mid-game. Do you want to start a new game?</p>
+  //       </Modal.Body>
+
+  //       <Modal.Footer>
+  //         <Button variant="secondary">Cancel</Button>
+  //         <Button variant="primary">New Game</Button>
+  //       </Modal.Footer>
+  //     </Modal>
+  //   )
+  // }
+
   const LanguageSelector = () => {
     const { t, i18n } = useTranslation()
     const router = useRouter()
 
     const changeLanguage = (language: string | null) => {
-      language = language?.toString() || "en"
-      apiRequest({
-        userIdentifier: userIdentifier,
-        action: RequestAction.ExistingOrNewGame,
-        difficulty: settings.difficulty,
-        language: router.locale as Language
-      })
+      language = language?.toString() || defaultLanguage
+      // apiRequest({
+      //   userIdentifier: userIdentifier,
+      //   action: RequestAction.ExistingOrNewGame,
+      //   difficulty: settings.difficulty,
+      //   language: router.locale as Language
+      // })
       i18n.changeLanguage(language)
       router.push(router.asPath, undefined, { locale: language })
     }
@@ -307,13 +327,37 @@ const GameComponent = (props: any) => {
     }
 
     return (
-      <Dropdown onSelect={changeLanguage}>
+      <Dropdown onSelect={async (language) => {
+        if (language == router.locale) {
+          return
+        }
+        const oldLanguage = router.locale ?? defaultLanguage
+        changeLanguage(language)
+        if (await confirm(t("changeLanguage.confirm.question"), {
+          title: t("changeLanguage.confirm.title"),
+          okText: t("newGame"),
+          cancelText: t("cancel")
+        })) {
+          apiRequest({
+            userIdentifier: userIdentifier,
+            action: RequestAction.NewGame,
+            difficulty: settings.difficulty,
+            language: language as Language
+          })
+        } else {
+          changeLanguage(oldLanguage)
+        }
+      }}>
         <Dropdown.Toggle variant="secondary" className={styles.languageSelector}>
           <CircleFlag countryCode={languageToCountry(router.locale ?? "en")} height={18} />
         </Dropdown.Toggle>
         <Dropdown.Menu>
-          <Dropdown.Item eventKey="en" className={styles.languageSelectorItem}><CircleFlag countryCode="gb" height={18} /><span>EN</span></Dropdown.Item>
-          <Dropdown.Item eventKey="de" className={styles.languageSelectorItem}><CircleFlag countryCode="de" height={18} /><span>DE</span></Dropdown.Item>
+          {Object.values(Language).map(language => (<>
+            <Dropdown.Item eventKey={language} className={styles.languageSelectorItem}>
+              <CircleFlag countryCode={languageToCountry(language)} height={18} />
+              <span>{language.toString().toUpperCase()}</span>
+            </Dropdown.Item>
+          </>))}
         </Dropdown.Menu>
       </Dropdown>
     )

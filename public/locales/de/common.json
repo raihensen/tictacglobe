@@ -1,6 +1,6 @@
 {
     "language": "Deutsch",
-    "changeLanguage": "Sprache zu \"{{changeTo}}\" ändern",
+    "cancel": "Abbrechen",
     "newGame": "Neues Spiel",
     "endTurn": "Zug beenden",
     "turnInfo": "{{player}} ist dran",
@@ -57,6 +57,12 @@
                 "NA": "Nordamerika",
                 "SA": "Südamerika"
             }
+        }
+    },
+    "changeLanguage": {
+        "confirm": {
+            "title": "Neues Spiel starten?",
+            "question": "Die Sprache kann nicht während des Spiels geändert werden. Möchstest du ein neues Spiel starten?"
         }
     },
     "settings": {
