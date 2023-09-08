@@ -354,7 +354,6 @@ const CountryAutoComplete = ({ countries, makeGuess, onBlur }: CountryAutoComple
   return (
     <Autocomplete
       items={items}
-      searchCache={searchCache}
       getItemValue={(item: AutoCompleteItem) => item.country.iso}
       renderItem={(item: AutoCompleteItem, isHighlighted: boolean) =>
         <div key={`${item.country.iso}-${item.nameIndex}`} className={styles.autoCompleteItem} style={{ background: isHighlighted ? 'lightgray' : 'white' }}>
