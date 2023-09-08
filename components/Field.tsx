@@ -289,6 +289,7 @@ type CountryAutoCompleteProps = {
 type AutoCompleteItem = {
   country: Country;
   name: string;  // the country's name or one of the alternative names
+  nameNormalized: string;
   nameIndex: number;
   key: string;
 }
@@ -300,22 +301,49 @@ const CountryAutoComplete = ({ countries, makeGuess, onBlur }: CountryAutoComple
 
   // Init regexes to replace equivalent words
   const equivalentWordCategories = ["saint", "and"]
-  const equivalentWordReplacements = equivalentWordCategories.map(word => {
-    const words = t(`equivalentCountryWords.${word}`).split(", ").map(w => w.trim().substring(1, w.trim().length - 1))
-    const regex = new RegExp(`\\b${words.map(w => _.escapeRegExp(w)).join("|")}\\b`, "gi")
-    return [regex, word]
-  })  // TODO Reduce the number this gets executed
-
-  const items = countries.map(c => [c.name, ...(c.alternativeValues?.name ?? [])].map((name, i) => ({ country: c, name: name, nameIndex: i, key: `${c.iso}-${i}` }))).flat(1) as AutoCompleteItem[]
+  const equivalentWordReplacements = equivalentWordCategories.map(key => {
+    let [word, others] = t(`equivalentCountryWords.${key}`).split(":").map(s => s.trim())
+    word = word.toLowerCase().substring(1, word.length - 1)
+    const words = others.split(",").map(w => w.trim().toLowerCase().substring(1, w.trim().length - 1))
+    const regexes = words.map(w => new RegExp(`\\b${_.escapeRegExp(w)}\\b`, "gi"))
+    console.log(`Built regexes ${regexes.join(", ")} for word "${word.toLowerCase()}"`);
+    
+    return [regexes, word.toLowerCase()]
+    // const [word, others] = t(`equivalentCountryWords.${key}`).split(":").map(s => s.trim())
+    // const words = others.split(", ").map(w => w.trim().toLowerCase().substring(1, w.trim().length - 1))
+    // const regex = new RegExp(`\\b(${words.map(w => `(${_.escapeRegExp(w)})`).join("|")})\\b`, "gi")
+    // console.log(`Built regex ${regex} for word "${word.toLowerCase()}"`);
+  }) as [RegExp[], string][]  // TODO Reduce the number this gets executed
+  
   const normalize = (str: string) => {
-    // replace diacritics
-    str = str.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "")
+    // let str1 = str.toLowerCase()
+    str = str.toLowerCase()
+    let str1 = str
     // normalize equivalent words ("Saint", "and" etc.)
-    equivalentWordReplacements.forEach(([ regex, word ]) => {
-      str = str.replaceAll(regex as RegExp, word as string)
+    equivalentWordReplacements.forEach(([regexes, word]) => {
+      const str0 = str1
+      const replaceInfo = regexes.map(regex => str0.replaceAll(regex, word)).filter(s => s != str0)
+      if (replaceInfo.length) {
+        console.log(JSON.stringify(replaceInfo))
+        // Find regex that caused the longest hit ("St." vs "St") -> shortest replacement
+        const lengths = replaceInfo.map(s => s.length)
+        str1 = replaceInfo[lengths.indexOf(Math.min(...lengths))]
+      }
     })
-    return str
+    // replace diacritics
+    str1 = str1.normalize("NFD").replace(/[\u0300-\u036f]/g, "")
+
+    console.log(`Normalize: "${str}" -> "${str1}"`)
+    return str1
   }
+
+  const items = countries.map(c => [c.name, ...(c.alternativeValues?.name ?? [])].map((name, i) => ({
+    country: c,
+    name: name,
+    nameNormalized: normalize(name),
+    nameIndex: i,
+    key: `${c.iso}-${i}`
+  }))).flat(1) as AutoCompleteItem[]
 
   const noSpoilerSearch = (q: string) => {
     q = normalize(q)
@@ -323,7 +351,7 @@ const CountryAutoComplete = ({ countries, makeGuess, onBlur }: CountryAutoComple
       return []
     }
     // https://stackoverflow.com/questions/990904/remove-accents-diacritics-in-a-string-in-javascript
-    let results = items.filter(item => normalize(item.name).includes(q))
+    let results = items.filter(item => item.nameNormalized.includes(q))
     // retain only one result per country
     const countryCodes = [...new Set(results.map(item => item.country.iso))]
     results.sort((a, b) => {
@@ -343,8 +371,8 @@ const CountryAutoComplete = ({ countries, makeGuess, onBlur }: CountryAutoComple
       // unique result
       return results
     }
-    const exactResults = results.filter(item => normalize(item.name) == q)
-    const prefixResults = results.filter(item => normalize(item.name).startsWith(q))
+    const exactResults = results.filter(item => item.nameNormalized == q)
+    const prefixResults = results.filter(item => item.nameNormalized.startsWith(q))
     if (exactResults.length) {
       // if there's an exact hit "A", also return others named "ABC"
       return prefixResults

@@ -11,8 +11,8 @@
     "blue": "blue",
     "red": "red",
     "equivalentCountryWords": {
-        "saint": "'St.', 'St', 'Saint'",
-        "and": "'and', '&', 'n', '+'"
+        "saint": "'Saint': 'St.', 'St'",
+        "and": "'and': '&', 'n', '+'"
     },
     "category": {
         "startingLetter": {

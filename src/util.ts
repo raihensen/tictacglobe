@@ -58,7 +58,7 @@ export function useUpdateEffect(effect: () => any, dependencies: any[] = []) {
 }
 
 
-export function useDarkMode(initialValue: boolean = false) {
+export function useDarkMode(initialValue: boolean = false): [boolean, () => void] {
 
   const [darkMode, setDarkMode] = useState(initialValue);
 
