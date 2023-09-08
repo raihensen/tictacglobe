@@ -10,6 +10,10 @@
     "noOne": "niemand",
     "blue": "blau",
     "red": "rot",
+    "equivalentCountryWords": {
+        "saint": "'Sankt', 'St.', 'St', 'Saint'",
+        "and": "'und', '&', '+'"
+    },
     "category": {
         "startingLetter": {
             "tooltip": "Land beginnt mit {{letter}}"

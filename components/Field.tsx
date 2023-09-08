@@ -8,7 +8,9 @@ import Badge from 'react-bootstrap/Badge';
 import { OverlayTrigger, Tooltip } from "react-bootstrap";
 import { CircleFlag } from 'react-circle-flags'
 import styles from '@/pages/Game.module.css'
+import { useTranslation } from "next-i18next";
 const NodeCache = require( "node-cache" );
+var _ = require('lodash');
 
 
 const TableCellInner = styled.div`
@@ -110,6 +112,7 @@ type FieldState = {
 
 
 export const Field = ({ pos, game, row, col, userIdentifier, apiRequest, hasTurn, notifyDecided, countries, settings }: FieldProps) => {
+  const { t, i18n } = useTranslation('common')
   const [i, j] = pos
   const solutions = countries.filter(c => game.setup.solutions[i][j].includes(c.iso))
   const alternativeSolutions = countries.filter(c => game.setup.alternativeSolutions[i][j].includes(c.iso))
@@ -291,11 +294,28 @@ type AutoCompleteItem = {
 }
 
 const CountryAutoComplete = ({ countries, makeGuess, onBlur }: CountryAutoCompleteProps) => {
+  const { t, i18n } = useTranslation('common')
 
   const [searchValue, setSearchValue] = useState("")
 
+  // Init regexes to replace equivalent words
+  const equivalentWordCategories = ["saint", "and"]
+  const equivalentWordReplacements = equivalentWordCategories.map(word => {
+    const words = t(`equivalentCountryWords.${word}`).split(", ").map(w => w.trim().substring(1, w.trim().length - 1))
+    const regex = new RegExp(`\\b${words.map(w => _.escapeRegExp(w)).join("|")}\\b`, "gi")
+    return [regex, word]
+  })  // TODO Reduce the number this gets executed
+
   const items = countries.map(c => [c.name, ...(c.alternativeValues?.name ?? [])].map((name, i) => ({ country: c, name: name, nameIndex: i, key: `${c.iso}-${i}` }))).flat(1) as AutoCompleteItem[]
-  const normalize = (str: string) => str.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "") // TODO
+  const normalize = (str: string) => {
+    // replace diacritics
+    str = str.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "")
+    // normalize equivalent words ("Saint", "and" etc.)
+    equivalentWordReplacements.forEach(([ regex, word ]) => {
+      str = str.replaceAll(regex as RegExp, word as string)
+    })
+    return str
+  }
 
   const noSpoilerSearch = (q: string) => {
     q = normalize(q)
