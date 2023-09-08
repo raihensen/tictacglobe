@@ -136,6 +136,10 @@ async function chooseGame(
   filter: ((gameSetup: GameSetup) => boolean) | null = null
 ): Promise<GameSetup | null> {
 
+  const allFiles = await fs.readdir("./public")
+  console.log(`all files: ${allFiles.join(", ")}`)
+  
+
   const dir = `./public/data/games/${language}`
   console.log(`Listing game files in directory "${dir}"`)
   try {
