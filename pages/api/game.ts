@@ -176,8 +176,7 @@ async function getCountryData(language: Language): Promise<Country[] | null> {
   if (language.toString() in countryData) {
     return countryData[language.toString()]
   }
-
-  const file = `./data/countries/countries-${language}.json`
+  const file = path.join(process.cwd(), 'public', 'data', 'countries', `countries-${language}.json`)
   console.log(`Read countries from file ${file}...`)
   try {
     const data: any = await fs.readFile(file)
