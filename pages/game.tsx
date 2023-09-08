@@ -33,7 +33,7 @@ import Link from "next/link";
 import { useRouter } from "next/router";
 import type { GetStaticProps, InferGetStaticPropsType } from 'next'
 import { DropdownButton } from "react-bootstrap";
-import { CircleFlagLanguage } from 'react-circle-flags';
+import { CircleFlag } from 'react-circle-flags';
 
 // TODO
 // dont show solution list until game is over. Number can still be toggled
@@ -300,14 +300,20 @@ const GameComponent = (props: any) => {
       router.push(router.asPath, undefined, { locale: language })
     }
 
+    const languageToCountry = (languageCode: string) => {
+      return _.get({
+        "en": "gb"
+      }, languageCode, languageCode) as string
+    }
+
     return (
       <Dropdown onSelect={changeLanguage}>
         <Dropdown.Toggle variant="secondary" className={styles.languageSelector}>
-          <CircleFlagLanguage languageCode={router.locale ?? "en"} height={18} />
+          <CircleFlag countryCode={languageToCountry(router.locale ?? "en")} height={18} />
         </Dropdown.Toggle>
         <Dropdown.Menu>
-          <Dropdown.Item eventKey="en" className={styles.languageSelectorItem}><CircleFlagLanguage languageCode="en" height={18} /><span>EN</span></Dropdown.Item>
-          <Dropdown.Item eventKey="de" className={styles.languageSelectorItem}><CircleFlagLanguage languageCode="de" height={18} /><span>DE</span></Dropdown.Item>
+          <Dropdown.Item eventKey="en" className={styles.languageSelectorItem}><CircleFlag countryCode="gb" height={18} /><span>EN</span></Dropdown.Item>
+          <Dropdown.Item eventKey="de" className={styles.languageSelectorItem}><CircleFlag countryCode="de" height={18} /><span>DE</span></Dropdown.Item>
         </Dropdown.Menu>
       </Dropdown>
     )
