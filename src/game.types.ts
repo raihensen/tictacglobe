@@ -143,10 +143,6 @@ export function range(startOrLength: number, stop: number | null = null): number
   return Array(stop - start).map((_, i) => start + i)
 }
 
-export function getCountry(q: string): Country | null {
-  return countries.find(c => c.iso == q || c.name == q) || null
-}
-
 export const parseCountry = (c: any) => {
   const country = Object.fromEntries(Object.entries(c).filter(([k, v]) => !k.endsWith("_alt")).map(
     ([k, v]) => [_.camelCase(k), v]
@@ -157,12 +153,4 @@ export const parseCountry = (c: any) => {
   ))
   return country
 }
-
-
-import countryData from '../data/countries.json'
-// import gameData from '../data/games-20230903-024223-occurence-limit-en.json'
-
-export const countries = countryData.map(parseCountry)
-
-// export const gameSetups = gameData as GameSetup[]
 

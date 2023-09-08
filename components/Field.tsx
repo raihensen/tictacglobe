@@ -1,7 +1,7 @@
 
 import styled from "styled-components";
 import { forwardRef, useEffect, useId, useMemo, useState } from 'react';
-import { Game, Country, CategoryValue, getCountry, RequestAction, countries, Query, GameData, PlayingMode, GameState } from "@/src/game.types"
+import { Game, Country, CategoryValue, RequestAction, Query, GameData, PlayingMode, GameState } from "@/src/game.types"
 import Autocomplete from 'react-autocomplete'
 import { PlusCircleFill } from 'react-bootstrap-icons';
 import Badge from 'react-bootstrap/Badge';
