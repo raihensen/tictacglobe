@@ -136,7 +136,7 @@ async function chooseGame(
   filter: ((gameSetup: GameSetup) => boolean) | null = null
 ): Promise<GameSetup | null> {
 
-  const dir = path.join(...`public/data/games/${language}`.split("/"))
+  const dir = path.join(...`data/games/${language}`.split("/"))
   console.log(`Listing game files in directory "${dir}"`)
   try {
     const files = await fs.readdir(dir)
@@ -172,7 +172,7 @@ async function getCountryData(language: Language): Promise<Country[] | null> {
     return countryData[language.toString()]
   }
 
-  const file = path.join(...`public/data/countries/countries-${language}.json`.split("/"))
+  const file = path.join(...`data/countries/countries-${language}.json`.split("/"))
   console.log(`Read countries from file ${file}...`)
   try {
     const data: any = await fs.readFile(file)
