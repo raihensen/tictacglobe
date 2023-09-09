@@ -7,6 +7,8 @@ var _ = require('lodash');
 // import { promises as fs } from 'fs';
 var fs = require('fs').promises;
 import path from 'path';
+import { ClientReferenceManifestPlugin } from 'next/dist/build/webpack/plugins/flight-manifest-plugin';
+import { Mutex } from 'async-mutex';
 
 
 var userGameMap: { [x: string]: Game } = {}
@@ -15,6 +17,8 @@ var userGameMap: { [x: string]: Game } = {}
 var userSessionMap: { [x: string]: GameSession } = {}
 var sessionIndex = 0
 var sessions: GameSession[] = []
+
+var sessionsMutex = new Mutex()
 
 var countryData: { [x: string]: Country[] } = {}
 
@@ -152,7 +156,7 @@ async function chooseGameSetup(
   
   const dir = path.join(process.cwd(), 'public', 'data', 'games', language)
   // const dir = `./data/games/${language}`
-  console.log(`Listing game files in directory "${dir}"`)
+  // console.log(`Listing game files in directory "${dir}"`)
   try {
     const files = await fs.readdir(dir)
     if (!files.length) {
@@ -169,7 +173,7 @@ async function chooseGameSetup(
     if (filter) {
       gameSetups = gameSetups.filter(filter)
     }
-    console.log(`Choose game setup (out of ${gameSetups.length})`)
+    // console.log(`Choose game setup (out of ${gameSetups.length})`)
     const gameSetup =  randomChoice(gameSetups)
     if (!gameSetup) {
       return null
@@ -205,19 +209,32 @@ async function executeAndRespond(
   game: Game,
   session: GameSession,
   isNewGame: boolean,
-  additionalResponseData: any,
+  addCountryData: boolean,
   res: ServerResponse<Request>) {
 
-  const { action, player, countryId, pos } = query
+  const { action, player, countryId, pos, language } = query
 
   // --- Action / Response ------------------------------------------------
   // actions
   let result = false
+  const additionalResponseData: {countries?: Country[]} = {}
 
   // from now on, need a playerIndex
   let playerIndex = player !== undefined ? Number(player) : undefined
   if (playerIndex !== 0 && playerIndex !== 1) {
     playerIndex = undefined
+  }
+
+  if (addCountryData) {
+    // Add country data to response
+    let countries: Country[] | null = null
+    if (language) {
+      countries = await getCountryData(language)
+    }
+    if (!countries) {
+      return respondWithError(res, "Country data could not be read")
+    }
+    additionalResponseData.countries = countries
   }
 
   if (action == RequestAction.ExistingOrNewGame || action == RequestAction.NewGame) {
@@ -268,100 +285,120 @@ function respondWithError(res: ServerResponse<Request>, err: string = "API Error
   res.end(JSON.stringify({ error: err }))
 }
 
+async function cleanCache() {
+  sessionsMutex.runExclusive(() => {
+
+    // delete sessions without users
+    sessions = sessions.filter(session => session.users.length >= 1)
+    Object.entries(userSessionMap).filter(([user, session]) => !sessions.includes(session)).forEach(([user, session]) => {
+      delete userSessionMap[user]
+    })
+
+  })
+}
+
 const gameApi = async (req: Request, res: ServerResponse<Request>) => {
 
   const { userIdentifier, playingMode, action, player, difficulty, language }: Query = req.query
 
+  cleanCache()
+
   // --- Load / Initialize the game ------------------------------------------------
   // get the Game instance, or create a new one
   // let game = _.get(userGameMap, userIdentifier, null) as Game | null
-  let session = _.get(userSessionMap, userIdentifier, null) as GameSession | null
-  let game = session ? session.currentGame : null
 
-  console.log(`userIdentifier ${userIdentifier}: ` + (game ? "Found existing session." : "No existing session."))
-  console.log("All users in sessions: " +  JSON.stringify(Object.entries(userSessionMap).map(([k, v]) => k)))
-  console.log("Number of sessions: " + sessions.length)
+  await sessionsMutex.runExclusive(async () => {
 
-  const newGame = !session || !game || action == RequestAction.NewGame
-  const newSession = !session
+    console.log()
+    console.log(`Incoming request from ${userIdentifier}: ${JSON.stringify(req.query)}`)
 
-  if (!newSession && !newGame && session && session.currentGame) {
-    await executeAndRespond(req.query, session.currentGame, session, false, {}, res)
-    return
-  }
-  if (!difficulty || !language) {
-    respondWithError(res, "Missing parameters for game selection")
-    return
-  }
+    let session = _.get(userSessionMap, userIdentifier, null) as GameSession | null
+    let game = session ? session.currentGame : null
+
+    console.log(`userIdentifier ${userIdentifier}: ` + (session ? `Found existing session (#${session.index}).` : "No existing session."))
+    console.log("All users in sessions: " +  JSON.stringify(Object.entries(userSessionMap).map(([k, v]) => k)) + " - Number of sessions: " + sessions.length)
+
+    const newGame = !session || !game || action == RequestAction.NewGame
+    const newSession = !session
+
+    if (!newSession && !newGame && session && session.currentGame) {
+      // It might still be a new game to the user (when the other one started a new game)
+      const gameHasChanged = false  // TODO detect if the user had a different game before (add some ID to the query?)
+      const addCountryData = action == RequestAction.ExistingOrNewGame || gameHasChanged
+      console.log(`Returning existing game (${addCountryData ? "do not " : ""}add country data)`)
+      await executeAndRespond(req.query, session.currentGame, session, false, addCountryData, res)
+      return
+    }
+    if (!difficulty || !language) {
+      respondWithError(res, "Missing parameters for game selection")
+      return
+    }
 
 
-  if (newSession) {
-    // Find/create a new session for the user
-    if (playingMode == PlayingMode.Online) {
+    if (newSession) {
+      // Find/create a new session for the user
+      if (playingMode == PlayingMode.Online) {
 
-      // find session with free spots
-      const availableSessions = sessions.filter(session => session.users.length < 2)
-      // TODO TTG-31 filter for sessions with matching settings (difficulty, language)
-      if (availableSessions.length) {
-        session = availableSessions[0]
-        session.users.push(userIdentifier)
-        userSessionMap[userIdentifier] = session
+        // find session with free spots
+        const availableSessions = sessions.filter(session => session.users.length < 2)
+        // TODO TTG-31 filter for sessions with matching settings (difficulty, language)
+        if (availableSessions.length) {
+          session = availableSessions[0]
+          session.users.push(userIdentifier)
+          userSessionMap[userIdentifier] = session
+          console.log(`Assigned existing session #${session.index}`)
+        }
       }
+
+      if (!session) {
+        session = {
+          index: sessionIndex++,
+          playingMode: playingMode,
+          currentGame: null,
+          previousGames: [],
+          users: [userIdentifier],
+          score: [0, 0]
+        }
+        sessions.push(session)
+        userSessionMap[userIdentifier] = session
+        console.log(`Created a new session: ${JSON.stringify(session)}`)
+      }
+
     }
 
     if (!session) {
-      session = {
-        index: sessionIndex++,
-        playingMode: playingMode,
-        currentGame: null,
-        previousGames: [],
-        users: [userIdentifier],
-        score: [0, 0]
+      respondWithError(res, "Session could not be initialized")
+      return
+    }
+
+    // Archive the current game to then create a new one
+    if (session.currentGame) {
+      session.previousGames.push(session.currentGame)
+      session.currentGame = null
+    }
+    
+    // Create new game
+    const gameSetup: GameSetup | null = await chooseGameSetup(
+      language,
+      gameSetup => {
+        return gameSetup.data.difficultyLevel == difficulty
       }
-      sessions.push(session)
-      userSessionMap[userIdentifier] = session
-      console.log(`Created a new session: ${JSON.stringify(session)}`)
+    )
+    if (!gameSetup) {
+      return respondWithError(res, "Game could not be initialized")
     }
+    game = new Game(
+      gameSetup,
+      [...session.users],
+      playingMode
+      // TODO specify which player starts
+    )
+    session.currentGame = game
+    // userGameMap[userIdentifier] = game
 
-  }
+    await executeAndRespond(req.query, game, session, newGame, true, res)
 
-  if (!session) {
-    respondWithError(res, "Session could not be initialized")
-    return
-  }
-
-  // Archive the current game to then create a new one
-  if (session.currentGame) {
-    session.previousGames.push(session.currentGame)
-    session.currentGame = null
-  }
-  
-  // Create new game
-  const gameSetup: GameSetup | null = await chooseGameSetup(
-    language,
-    gameSetup => {
-      return gameSetup.data.difficultyLevel == difficulty
-    }
-  )
-  if (!gameSetup) {
-    return respondWithError(res, "Game could not be initialized")
-  }
-  game = new Game(
-    gameSetup,
-    [...session.users],
-    playingMode
-    // TODO specify which player starts
-  )
-  session.currentGame = game
-  // userGameMap[userIdentifier] = game
-
-  // Add country data to response
-  const countries = await getCountryData(language)
-  if (!countries) {
-    return respondWithError(res, "Country data could not be read")
-  }
-  await executeAndRespond(req.query, game, session, newGame, { countries: countries }, res)
-
+  })
 
 }
 

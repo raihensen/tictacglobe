@@ -26,6 +26,8 @@ import type { GetStaticProps, InferGetStaticPropsType } from 'next'
 import { PageProps } from "./_app";
 import { Settings, SettingsModal, useSettings, LanguageSelector, changeLanguage } from "@/components/Settings";
 
+import { useSearchParams } from 'next/navigation'
+
 // TODO
 // dont show solution list until game is over. Number can still be toggled
 // island icon: 3 stack, water, circle-"bordered", circle
@@ -65,13 +67,19 @@ const defaultSettings: Settings = {
   showIso: false,
   showNumSolutions: true,
   showNumSolutionsHint: false,
-  timeLimit: 45,
+  timeLimit: false,
 }
 
 const GamePage = ({ darkMode, toggleDarkMode, userIdentifier }: PageProps) => {
   
+  const isClient = typeof window !== 'undefined'
+  const searchParams = useSearchParams()
+  const sessionIdentifier = searchParams?.get("session")
+  const userIdentifier2 = userIdentifier + (sessionIdentifier ? "-" + sessionIdentifier : "")
+
   const router = useRouter()
   const { t, i18n } = useTranslation('common')
+
 
   // TODO
   const playingMode = PlayingMode.Online
@@ -92,7 +100,7 @@ const GamePage = ({ darkMode, toggleDarkMode, userIdentifier }: PageProps) => {
   function apiRequest(params: FrontendQuery) {
     // Fetch the game data from the server
     const query = {
-      userIdentifier: userIdentifier,
+      userIdentifier: userIdentifier2,
       playingMode: playingMode,
       ...params
     }
@@ -124,9 +132,9 @@ const GamePage = ({ darkMode, toggleDarkMode, userIdentifier }: PageProps) => {
 
         } else if (newGame.playingMode == PlayingMode.Online) {
           // TODO Online mode
-          const userIndex = newGame.users.indexOf(userIdentifier)
+          const userIndex = newGame.users.indexOf(userIdentifier2)
           if (userIndex == -1) {
-            console.log("userIdentifier is not part of the game!")
+            console.log("userIdentifier2 is not part of the game!")
             return false
             // setPlayerIndex(userIndex)
           }
@@ -162,7 +170,7 @@ const GamePage = ({ darkMode, toggleDarkMode, userIdentifier }: PageProps) => {
 
   useEffect(() => {
     // First client-side init
-    console.log(`First client-side init (GamePage) - userIdentifier ${userIdentifier}`)
+    console.log(`First client-side init (GamePage) - userIdentifier ${userIdentifier2}`)
     apiRequest({ action: RequestAction.ExistingOrNewGame })
     return () => {
       // this is called to finalize the effect hook, before it is triggered again
@@ -195,6 +203,8 @@ const GamePage = ({ darkMode, toggleDarkMode, userIdentifier }: PageProps) => {
   const timerRef = useRef()
 
   return (<>
+    {/* {sessionInfo.length && (<h3>{sessionInfo}</h3>)} */}
+    <h3>Session: {sessionIdentifier}</h3>
     {!game && <Alert variant="warning">Game could not be initialized.</Alert>}
     {game && (<>
       {/* <p>{gameData.isNewGame ? "New Game" : "Existing Game"}</p> */}
@@ -283,7 +293,7 @@ const GamePage = ({ darkMode, toggleDarkMode, userIdentifier }: PageProps) => {
                     game={game}
                     row={game.setup.rows[i]}
                     col={game.setup.cols[j]}
-                    userIdentifier={userIdentifier}
+                    userIdentifier={userIdentifier2}
                     apiRequest={apiRequest}
                     hasTurn={hasTurn}
                     notifyDecided={notifyDecided}
