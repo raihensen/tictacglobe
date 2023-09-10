@@ -5,6 +5,8 @@ import { useDarkMode } from '@/src/util'
 import { NextComponentType } from 'next'
 import Layout from '@/components/Layout'
 import { useEffect, useState } from 'react'
+import { useSearchParams } from 'next/navigation'
+import Alert from 'react-bootstrap/Alert'
 
 type InitialPageProps = {
   [x: string]: any;
@@ -13,8 +15,11 @@ type InitialPageProps = {
 export type PageProps = InitialPageProps & {
   darkMode: boolean;
   toggleDarkMode: () => void;
-  userIdentifier: string;
-  sessionIdentifier: string;
+  userIdentifier: string | undefined;
+  // userIdentifier2: string | undefined;
+  // sessionIdentifier: string;
+  errorMessage: string | false;
+  setErrorMessage: (msg: string | false) => void;
 }
 
 // userIdentifier: unique ID that is consistent across the browser (saved in localStorage)
@@ -46,20 +51,30 @@ const initSessionIdentifier = () => {
 
 const MyApp = ({ Component, pageProps }: AppProps<InitialPageProps>) => {
   const isClient = typeof window !== 'undefined'
-  const userIdentifier = isClient ? initUserIdentifier() : undefined
-  const sessionIdentifier = isClient ? initSessionIdentifier() : undefined
+
+  const searchParams = useSearchParams()
+
+  const [userIdentifier, setUserIdentifier] = useState<string | undefined>(undefined)
+  useEffect(() => {
+    let newUserIdentifier = searchParams?.get("user") || initUserIdentifier()
+    setUserIdentifier(newUserIdentifier ?? undefined)
+    // console.log(`App: set userIdentifier to "${newUserIdentifier ?? undefined}"`)
+  }, [searchParams])
 
   const [darkMode, toggleDarkMode] = useDarkMode()
-  // const getLayout = Component.getLayout ?? ((page: NextComponentType) => page)
-
+  const [errorMessage, setErrorMessage] = useState<string | false>(false)
 
   return (<>
     <Layout darkMode={darkMode}>
+      {errorMessage && <Alert variant="danger">Error: {errorMessage}</Alert>}
       <Component
         darkMode={darkMode}
         toggleDarkMode={toggleDarkMode}
         userIdentifier={userIdentifier}
-        sessionIdentifier={sessionIdentifier}
+        errorMessage={errorMessage}
+        setErrorMessage={setErrorMessage}
+        // userIdentifier2={userIdentifier2}
+        // sessionIdentifier={sessionIdentifier}
         {...pageProps}
       />
     </Layout>

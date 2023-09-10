@@ -202,22 +202,36 @@ async function getCountryData(language: Language): Promise<Country[] | null> {
   }
 }
 
+function isIngameAction(action: RequestAction) {
+  return action == RequestAction.NewGame || action == RequestAction.MakeGuess || action == RequestAction.EndTurn || action == RequestAction.TimeElapsed
+}
+function isGameInitAction(action: RequestAction) {
+  return action == RequestAction.NewGame || action == RequestAction.ExistingOrNewGame
+}
+function isSessionInitAction(action: RequestAction) {
+  return action == RequestAction.JoinSession || action == RequestAction.InitSessionFriend || action == RequestAction.InitSessionRandom
+}
+
 type Request = IncomingMessage & { query: Query };
 
 async function executeAndRespond(
+  res: ServerResponse<Request>,
   query: Query,
-  game: Game,
+  game: Game | null,
   session: GameSession,
-  isNewGame: boolean,
-  addCountryData: boolean,
-  res: ServerResponse<Request>) {
+  // isNewGame: boolean,
+  addCountryData: boolean = false
+) {
 
   const { action, player, countryId, pos, language } = query
 
   // --- Action / Response ------------------------------------------------
   // actions
   let result = false
-  const additionalResponseData: {countries?: Country[]} = {}
+  const additionalResponseData: {
+    countries?: Country[],
+    invitationCode?: string
+  } = {}
 
   // from now on, need a playerIndex
   let playerIndex = player !== undefined ? Number(player) : undefined
@@ -237,12 +251,12 @@ async function executeAndRespond(
     additionalResponseData.countries = countries
   }
 
-  if (action == RequestAction.ExistingOrNewGame || action == RequestAction.NewGame) {
+  if (action == RequestAction.ExistingOrNewGame || action == RequestAction.NewGame || action == RequestAction.Refresh) {
 
     // Just load / initialize game
     result = !!game
 
-  } else if (game.state != GameState.Finished && playerIndex !== undefined) {
+  } else if (game && isIngameAction(action) && game.state != GameState.Finished && playerIndex !== undefined) {
 
     // in-game actions: Need unfinished game and a playerIndex
     if (action == RequestAction.MakeGuess && countryId && pos) {
@@ -266,15 +280,22 @@ async function executeAndRespond(
       result = endTurn(game, playerIndex, query)
     }
 
+  } else if (isSessionInitAction(action)) {
+
+    result = !!session
+    if (action == RequestAction.InitSessionFriend) {
+      result = result && !!session.invitationCode
+    }
+
   }
 
   console.log(`${RequestAction[action]}: ${result ? "successful" : "not successful"}`)
-  
+
   const { currentGame, previousGames, ...sessionWithoutGames } = session  // type SessionWithoutGames
 
   res.statusCode = 200
   res.end(JSON.stringify({
-    isNewGame: isNewGame,
+    // isNewGame: isNewGame,
     game: game,
     session: sessionWithoutGames,
     ...additionalResponseData }))
@@ -286,90 +307,194 @@ function respondWithError(res: ServerResponse<Request>, err: string = "API Error
 }
 
 async function cleanCache() {
-  sessionsMutex.runExclusive(() => {
 
-    // delete sessions without users
-    sessions = sessions.filter(session => session.users.length >= 1)
-    Object.entries(userSessionMap).filter(([user, session]) => !sessions.includes(session)).forEach(([user, session]) => {
-      delete userSessionMap[user]
-    })
-
+  // delete sessions without users
+  sessions = sessions.filter(session => session.users.length >= 1)
+  Object.entries(userSessionMap).filter(([user, session]) => !sessions.includes(session)).forEach(([user, session]) => {
+    delete userSessionMap[user]
   })
+
+}
+
+function sessionInfo(session: GameSession) {
+  return `#${session.index} [${session.users.join(", ")}]`
+}
+
+function createSession(userIdentifier: string, playingMode: PlayingMode, invitationCode: string | undefined = undefined) {
+
+  // Create new session
+  const session = {
+    index: sessionIndex++,
+    playingMode: playingMode,
+    invitationCode: invitationCode,
+    currentGame: null,
+    previousGames: [],
+    users: [userIdentifier],
+    score: [0, 0]
+  } as GameSession
+
+  sessions.push(session)
+  userSessionMap[userIdentifier] = session
+
+  console.log(`Created a new session: ${JSON.stringify(session)}`)
+  return session
+
+}
+
+function joinSession(session: GameSession, userIdentifier: string) {
+  if (session.users.length >= 2) {
+    return false
+  }
+  session.users.push(userIdentifier)
+  userSessionMap[userIdentifier] = session
+  if (session.currentGame) {
+    // joined a session with a running game
+    if (session.currentGame.users.length >= 2) {
+      return false
+    }
+    session.currentGame.users.push(userIdentifier)
+  }
+  return true
 }
 
 const gameApi = async (req: Request, res: ServerResponse<Request>) => {
 
-  const { userIdentifier, playingMode, action, player, difficulty, language }: Query = req.query
-
-  cleanCache()
-
-  // --- Load / Initialize the game ------------------------------------------------
-  // get the Game instance, or create a new one
-  // let game = _.get(userGameMap, userIdentifier, null) as Game | null
+  const { userIdentifier, playingMode, invitationCode, action, player, difficulty, language }: Query = req.query
 
   await sessionsMutex.runExclusive(async () => {
 
-    console.log()
-    console.log(`Incoming request from ${userIdentifier}: ${JSON.stringify(req.query)}`)
+    console.log(`\nIncoming request [${RequestAction[action]}] from ${userIdentifier}: ${JSON.stringify(req.query)}`)
+    // console.log(`isSessionInitAction: ${isSessionInitAction(action)}, isGameInitAction: ${isGameInitAction(action)}, isIngameAction: ${isIngameAction(action)}`)
+    
+    if (isSessionInitAction(action)) {
 
-    let session = _.get(userSessionMap, userIdentifier, null) as GameSession | null
-    let game = session ? session.currentGame : null
+      // remove user from all existing sessions
+      sessions.forEach(session => {
+        if (session.users.includes(userIdentifier)) {
+          session.users = session.users.filter(u => u != userIdentifier)
+        }
+      })
 
-    console.log(`userIdentifier ${userIdentifier}: ` + (session ? `Found existing session (#${session.index}).` : "No existing session."))
-    console.log("All users in sessions: " +  JSON.stringify(Object.entries(userSessionMap).map(([k, v]) => k)) + " - Number of sessions: " + sessions.length)
-
-    const newGame = !session || !game || action == RequestAction.NewGame
-    const newSession = !session
-
-    if (!newSession && !newGame && session && session.currentGame) {
-      // It might still be a new game to the user (when the other one started a new game)
-      const gameHasChanged = false  // TODO detect if the user had a different game before (add some ID to the query?)
-      const addCountryData = action == RequestAction.ExistingOrNewGame || gameHasChanged
-      console.log(`Returning existing game (${addCountryData ? "do not " : ""}add country data)`)
-      await executeAndRespond(req.query, session.currentGame, session, false, addCountryData, res)
-      return
-    }
-    if (!difficulty || !language) {
-      respondWithError(res, "Missing parameters for game selection")
-      return
     }
 
+    cleanCache()
+    let session = null
+    let game = null
 
-    if (newSession) {
+    if (!isSessionInitAction(action)) {
+      // need a game (find or create)
+      // find the user's session and game if exists
+      session = _.get(userSessionMap, userIdentifier, null) as GameSession | null
+      game = session ? session.currentGame : null
+
+      console.log(`userIdentifier ${userIdentifier}: ` + (session ? `Found existing session (#${session.index}).` : "No existing session."))
+      console.log(`All sessions: ${sessions.map(session => sessionInfo(session)).join(", ")}`)
+
+      const newSession = !session
+      const newGame = newSession || !game || action == RequestAction.NewGame
+
+      if (!newSession && !newGame && session && game) {
+        // Return existing game
+        // It might still be a new game to the user (when the other one started a new game)
+        const gameHasChanged = false  // TODO detect if the user had a different game before (add some ID to the query?)
+        const addCountryData = action == RequestAction.ExistingOrNewGame || gameHasChanged
+        console.log(`Returning existing game (${addCountryData ? "do not " : ""}add country data)`)
+        return await executeAndRespond(res, req.query, session.currentGame, session, addCountryData)
+      }
+
+    }
+    if (isGameInitAction(action) && (!difficulty || !language)) {
+      return respondWithError(res, "Missing parameters for game selection")
+    }
+
+    if (isSessionInitAction(action)) {
+      
       // Find/create a new session for the user
+      
+      if (playingMode == PlayingMode.Offline) {  // TODO ExistingOrNewGame -> !isSessionInitAction
+        // console.log("playingMode Offline");
+        // create offline session
+        // TODO
+      }
+      
       if (playingMode == PlayingMode.Online) {
+        // console.log("playingMode Online");
+        
 
-        // find session with free spots
-        const availableSessions = sessions.filter(session => session.users.length < 2)
-        // TODO TTG-31 filter for sessions with matching settings (difficulty, language)
-        if (availableSessions.length) {
+        if (action == RequestAction.InitSessionFriend) {
+          // console.log("action InitSessionFriend");
+          // create invitation code
+          const characters = 'ABCDEFGHJKLPQRSTUVWXYZ456789'
+          const invitationCode = _.range(4).map(() => characters.charAt(Math.floor(Math.random() * characters.length))).join("")
+          session = createSession(userIdentifier, playingMode, invitationCode)
+          return await executeAndRespond(res, req.query, null, session)
+
+        }
+        if (action == RequestAction.InitSessionRandom) {  // init or join. might rename
+          // console.log("action InitSessionRandom");
+
+          // find session with free spots
+          // TODO TTG-31 filter for sessions with matching settings (difficulty, language)
+          const availableSessions = sessions.filter(session => session.users.length < 2 && !session.invitationCode)
+          if (availableSessions.length) {
+            session = availableSessions[0]
+            if (!joinSession(session, userIdentifier)) {
+              return respondWithError(res, "Session could not be joined.")
+            }
+            console.log(`Joined session #${sessionInfo(session)} via invitation code.`)
+            game = session.currentGame
+            if (game) {
+              // joined a session with a running game
+              return await executeAndRespond(res, req.query, game, session, true)
+            }
+            return await executeAndRespond(res, req.query, null, session)
+          }
+
+          if (!session) {
+            session = createSession(userIdentifier, playingMode)
+            return await executeAndRespond(res, req.query, null, session)
+          }
+          
+        }
+
+        if (action == RequestAction.JoinSession) {
+          // console.log("action JoinSession");
+
+          if (!invitationCode) {
+            return respondWithError(res, "Invitation code not specified.")
+          }
+          const availableSessions = sessions.filter(session => session.users.length < 2 && session.invitationCode && session.invitationCode == invitationCode)
+          if (availableSessions.length != 1) {
+            return respondWithError(res, "Invalid invitation code - try again!")
+          }
           session = availableSessions[0]
-          session.users.push(userIdentifier)
-          userSessionMap[userIdentifier] = session
-          console.log(`Assigned existing session #${session.index}`)
+          if (!joinSession(session, userIdentifier)) {
+            return respondWithError(res, "Session could not be joined.")
+          }
+          console.log(`Joined session #${sessionInfo(session)} via invitation code.`)
+          game = session.currentGame
+          if (game) {
+            // joined a session with a running game
+            return await executeAndRespond(res, req.query, game, session, true)
+          }
+          return await executeAndRespond(res, req.query, null, session)
+          
         }
-      }
 
-      if (!session) {
-        session = {
-          index: sessionIndex++,
-          playingMode: playingMode,
-          currentGame: null,
-          previousGames: [],
-          users: [userIdentifier],
-          score: [0, 0]
-        }
-        sessions.push(session)
-        userSessionMap[userIdentifier] = session
-        console.log(`Created a new session: ${JSON.stringify(session)}`)
+        
       }
-
     }
 
     if (!session) {
-      respondWithError(res, "Session could not be initialized")
+      // return respondWithError(res, "Session could not be initialized")
+      console.log("ERROR - TODO: session should have been initialized")
       return
     }
+    if (!isGameInitAction(action) || !language || !difficulty) {
+      console.log("ERROR - TODO: isGameInitAction should be true")
+      return
+    }
+
 
     // Archive the current game to then create a new one
     if (session.currentGame) {
@@ -396,7 +521,7 @@ const gameApi = async (req: Request, res: ServerResponse<Request>) => {
     session.currentGame = game
     // userGameMap[userIdentifier] = game
 
-    await executeAndRespond(req.query, game, session, newGame, true, res)
+    return await executeAndRespond(res, req.query, game, session, true)
 
   })
 

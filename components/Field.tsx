@@ -86,7 +86,7 @@ export type FieldProps = {
   game: Game;
   row: CategoryValue;
   col: CategoryValue;
-  userIdentifier: string;
+  userIdentifier: string | undefined;
   apiRequest: (query: FrontendQuery) => any;
   hasTurn: boolean;
   notifyDecided: boolean;

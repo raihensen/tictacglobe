@@ -57,6 +57,22 @@ export function useUpdateEffect(effect: () => any, dependencies: any[] = []) {
   }, dependencies);
 }
 
+/**
+ * A custom useEffect hook that only triggers on first update of a state (or multiple states)
+ * @param {() => any} effect
+ * @param {any[]} dependencies
+ */
+export function useInitEffect(effect: () => any, dependencies: any[] = []) {
+  const isInitialMount = useRef(true)
+
+  useEffect(() => {
+    if (isInitialMount.current) {
+      isInitialMount.current = false
+      return effect()
+    }
+  }, dependencies)
+}
+
 
 export function useDarkMode(initialValue: boolean = false): [boolean, () => void] {
 

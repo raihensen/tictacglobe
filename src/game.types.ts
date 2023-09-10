@@ -17,11 +17,16 @@ export enum RequestAction {
   MakeGuess = 2,
   EndTurn = 3,
   TimeElapsed = 4,
+  Refresh = 5,
+  InitSessionFriend=6,
+  InitSessionRandom=7,
+  JoinSession=8,
 }
 
 export type Query = {
   userIdentifier: string;
   playingMode: PlayingMode;
+  invitationCode?: string;
   action: RequestAction;
   player?: number;
   countryId?: string;
@@ -33,6 +38,7 @@ export type FrontendQuery = Omit<Query, "userIdentifier" | "playingMode">
 
 export type GameSession = {
   index: number;
+  invitationCode?: string;
   playingMode: PlayingMode;
   currentGame: Game | null;
   previousGames: Game[];
@@ -93,7 +99,7 @@ export enum GameState {
 }
 
 export type GameData = {
-  isNewGame: boolean;
+  // isNewGame: boolean;
   game: Game | null;
 }
 

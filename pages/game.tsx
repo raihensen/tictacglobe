@@ -10,8 +10,8 @@ import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'next-i18next'
 import { serverSideTranslations } from 'next-i18next/serverSideTranslations'
 
-import { Game, Country, RequestAction, FrontendQuery, PlayingMode, GameState, Language, GameSession, SessionWithoutGames, defaultLanguage } from "../src/game.types"
-import { capitalize, useDarkMode } from "@/src/util"
+import { Game, Country, RequestAction, FrontendQuery, PlayingMode, GameState, Language, GameSession, SessionWithoutGames, defaultLanguage, PlayerIndex } from "../src/game.types"
+import { capitalize, useInitEffect } from "@/src/util"
 var _ = require('lodash');
 
 import styles from '@/pages/Game.module.css'
@@ -27,6 +27,11 @@ import { PageProps } from "./_app";
 import { Settings, SettingsModal, useSettings, LanguageSelector, changeLanguage } from "@/components/Settings";
 
 import { useSearchParams } from 'next/navigation'
+import { Mutex } from "async-mutex";
+
+
+const autoRefreshInterval = 2500  // interval [ms] for auto refresh
+
 
 // TODO
 // dont show solution list until game is over. Number can still be toggled
@@ -70,20 +75,28 @@ const defaultSettings: Settings = {
   timeLimit: false,
 }
 
-const GamePage = ({ darkMode, toggleDarkMode, userIdentifier }: PageProps) => {
+const autoRefreshIntervalMutex = new Mutex()
+
+const GamePage = ({ darkMode, toggleDarkMode, userIdentifier, errorMessage, setErrorMessage }: PageProps) => {
   
-  const isClient = typeof window !== 'undefined'
-  const searchParams = useSearchParams()
-  const sessionIdentifier = searchParams?.get("session")
-  const userIdentifier2 = userIdentifier + (sessionIdentifier ? "-" + sessionIdentifier : "")
+  const [isClient, setIsClient] = useState<boolean>(false)
+
+  useEffect(() => {
+    setIsClient(true)
+    if (userIdentifier) {
+      // First client-side init
+      console.log(`First client-side init (GamePage) - userIdentifier ${userIdentifier}`)
+      apiRequest({ action: RequestAction.ExistingOrNewGame })
+    }
+  }, [userIdentifier])
+
+  const [autoRefreshIntervalHandle, setAutoRefreshIntervalHandle] = useState<NodeJS.Timeout>()
 
   const router = useRouter()
   const { t, i18n } = useTranslation('common')
 
-
   // TODO
-  const playingMode = PlayingMode.Online
-
+  const playingMode: PlayingMode = PlayingMode.Online as PlayingMode
 
   const [settings, setSettings] = useSettings(defaultSettings)
   const [showSettings, setShowSettings] = useState(false)
@@ -91,16 +104,40 @@ const GamePage = ({ darkMode, toggleDarkMode, userIdentifier }: PageProps) => {
   const [game, setGame] = useState<Game | null>(null)
   const [notifyDecided, setNotifyDecided] = useState<boolean>(false)
   
-  // const [playerIndex, setPlayerIndex] = useState<0 | 1>(0)  // who am i? 0/1
+  const [userIndex, setUserIndex] = useState<PlayerIndex>(0)  // who am i? 0/1
   const [hasTurn, setHasTurn] = useState<boolean>(true)
 
   const [countries, setCountries] = useState<Country[]>([])
 
+  const clearAutoRefresh = () => {
+    autoRefreshIntervalMutex.runExclusive(() => {
+      if (typeof autoRefreshIntervalHandle !== 'undefined') {
+        clearTimeout(autoRefreshIntervalHandle)
+      }
+    })
+  }
+  const scheduleAutoRefresh = () => {
+    autoRefreshIntervalMutex.runExclusive(() => {
+      if (typeof autoRefreshIntervalHandle !== 'undefined') {
+        clearTimeout(autoRefreshIntervalHandle)
+      }
+      setAutoRefreshIntervalHandle(setTimeout(() => {
+        apiRequest({ action: RequestAction.Refresh })
+      }, autoRefreshInterval))
+    })
+  }
+
   // TODO consider using SWR https://nextjs.org/docs/pages/building-your-application/data-fetching/client-side#client-side-data-fetching-with-swr
   function apiRequest(params: FrontendQuery) {
+    if (!userIdentifier) {
+      return false
+    }
+
+    clearAutoRefresh()
+
     // Fetch the game data from the server
     const query = {
-      userIdentifier: userIdentifier2,
+      userIdentifier: userIdentifier,
       playingMode: playingMode,
       ...params
     }
@@ -116,33 +153,43 @@ const GamePage = ({ darkMode, toggleDarkMode, userIdentifier }: PageProps) => {
     fetch(url)
       .then(response => response.json())
       .then(data => {
-        let newGame: Game | null = Game.fromApi(data.game)
-        const session = data.session as SessionWithoutGames
+        const newGame = data.game ? Game.fromApi(data.game) : null
+        const session = data.session ? data.session as SessionWithoutGames : null
+        const error = data.error ? data.error as string : null
+
+        if (error) {
+          setErrorMessage(error)
+          return false
+        } else {
+          setErrorMessage(false)
+        }
 
         if (!newGame || !session) {
+          setErrorMessage("Error loading the game.")
           return false
         }
 
         console.log("Session: " + JSON.stringify(session))
-        if (newGame.playingMode == PlayingMode.Offline) {
 
-          // in offline mode, userIndex != playerIndex (there's only one user at index 0)
-          // setPlayerIndex(newGame.turn)
+        if (newGame.playingMode == PlayingMode.Offline) {
           setHasTurn(true)
 
         } else if (newGame.playingMode == PlayingMode.Online) {
           // TODO Online mode
-          const userIndex = newGame.users.indexOf(userIdentifier2)
-          if (userIndex == -1) {
-            console.log("userIdentifier2 is not part of the game!")
+          const newUserIndex = newGame.users.indexOf(userIdentifier) as PlayerIndex | -1
+          if (newUserIndex == -1) {
+            setErrorMessage("userIdentifier is not part of the game!")
             return false
-            // setPlayerIndex(userIndex)
           }
-          setHasTurn(userIndex == newGame.turn)
-        }
+          setUserIndex(newUserIndex)
+          const willHaveTurn = userIndex == newGame.turn
+          setHasTurn(willHaveTurn)
 
-        // console.log("Update game");
-        // setGameData(data)
+          if (!willHaveTurn) {
+            scheduleAutoRefresh()
+          }
+
+        }
 
         let showNotifyDecided = false
         if (game) {  // game had been loaded before
@@ -163,19 +210,11 @@ const GamePage = ({ darkMode, toggleDarkMode, userIdentifier }: PageProps) => {
           (timerRef.current as any).reset()
         }
         setTimerRunning(true)
+
         return true
 
       })
   }
-
-  useEffect(() => {
-    // First client-side init
-    console.log(`First client-side init (GamePage) - userIdentifier ${userIdentifier2}`)
-    apiRequest({ action: RequestAction.ExistingOrNewGame })
-    return () => {
-      // this is called to finalize the effect hook, before it is triggered again
-    }
-  }, [])
 
   const getPlayerColor = (player: number | null) => {
     return player === 0 ? "blue" : (player === 1 ? "red" : null)
@@ -204,8 +243,8 @@ const GamePage = ({ darkMode, toggleDarkMode, userIdentifier }: PageProps) => {
 
   return (<>
     {/* {sessionInfo.length && (<h3>{sessionInfo}</h3>)} */}
-    <h3>Session: {sessionIdentifier}</h3>
-    {!game && <Alert variant="warning">Game could not be initialized.</Alert>}
+    <h3>{isClient ? (<>User: {userIdentifier}</>) : "---"}</h3>
+    {(!errorMessage && !game) && <Alert variant="warning">Waiting for game to be initialized.</Alert>}
     {game && (<>
       {/* <p>{gameData.isNewGame ? "New Game" : "Existing Game"}</p> */}
       <SplitButtonToolbar className="mb-2">
@@ -222,8 +261,6 @@ const GamePage = ({ darkMode, toggleDarkMode, userIdentifier }: PageProps) => {
               })
             }}><FaPersonCircleXmark /></IconButton>
           </>)}
-
-          <span>hasTurn: {hasTurn ? "y" : "n"}</span>
 
           {(notifyDecided && game.state != GameState.Finished) && (<>
             <IconButton label={t("continuePlaying")} variant="secondary" onClick={() => { setNotifyDecided(false) }}><FaEllipsis /></IconButton>
@@ -254,7 +291,10 @@ const GamePage = ({ darkMode, toggleDarkMode, userIdentifier }: PageProps) => {
 
       <p>
         {/* State: <b>{GameState[game.state]}</b> */}
-        {(game.winner === 0 || game.winner === 1) && (<>, {capitalize(t("winner"))}: <b>{capitalize(t(getPlayerColor(game.winner) ?? "noOne"))}</b></>)}
+        {(game.winner === 0 || game.winner === 1) && (<>
+          {playingMode == PlayingMode.Offline && (<>{capitalize(t("winner"))}: <b>{capitalize(t(getPlayerColor(game.winner) ?? "noOne"))}</b></>)}
+          {playingMode == PlayingMode.Online && (<>{capitalize(t("winNotificationOnline", { player: t(game.winner == userIndex ? "youWin" : "youLose") }))}</>)}
+        </>)}
         {(game.winner === -1) && (<>, <b>{t("tieNotification")}</b></>)}
       </p>
       {/* {(notifyDecided && (game.winner === 0 || game.winner === 1)) && <Alert variant="success"><b>{capitalize(getPlayerColor(game.winner) ?? "No one")} wins!</b></Alert>} */}
@@ -265,7 +305,10 @@ const GamePage = ({ darkMode, toggleDarkMode, userIdentifier }: PageProps) => {
             <th>
               <div style={{ display: "flex", flexDirection: "column", justifyContent: "center", alignItems: "center" }}>
                 {showTurnInfo && (<>
-                  <span className={styles["badge-player"] + " " + styles[`bg-player-${getPlayerTurnColor()}`]}>{capitalize(t("turnInfo", { player: t(getPlayerTurnColor() ?? "noOne") }))}</span>
+                  <span className={styles["badge-player"] + " " + styles[`bg-player-${getPlayerTurnColor()}`]}>
+                    {playingMode == PlayingMode.Offline && capitalize(t("turnInfoOffline", { player: t(getPlayerTurnColor() ?? "noOne") }))}
+                    {playingMode == PlayingMode.Online && capitalize(t("turnInfoOnline", { player: t(hasTurn ? "yourTurn" : "opponentsTurn") }))}
+                  </span>
                   {settings.timeLimit !== false && (<>
                     <Timer className="mt-2" ref={timerRef} running={timerRunning} setRunning={setTimerRunning} initialTime={settings.timeLimit * 1000} onElapsed={() => {
                       apiRequest({
@@ -293,7 +336,7 @@ const GamePage = ({ darkMode, toggleDarkMode, userIdentifier }: PageProps) => {
                     game={game}
                     row={game.setup.rows[i]}
                     col={game.setup.cols[j]}
-                    userIdentifier={userIdentifier2}
+                    userIdentifier={userIdentifier}
                     apiRequest={apiRequest}
                     hasTurn={hasTurn}
                     notifyDecided={notifyDecided}
