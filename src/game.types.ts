@@ -3,6 +3,8 @@ var _ = require('lodash');
 // var path = require('path');
 // var fs = require('fs');
 
+export const autoRefreshInterval = 2000  // interval [ms] for auto refresh
+
 
 export enum Language {
   German = "de",
@@ -17,10 +19,11 @@ export enum RequestAction {
   MakeGuess = 2,
   EndTurn = 3,
   TimeElapsed = 4,
-  Refresh = 5,
-  InitSessionFriend=6,
-  InitSessionRandom=7,
-  JoinSession=8,
+  RefreshGame = 5,
+  InitSessionFriend = 6,
+  InitSessionRandom = 7,
+  RefreshSession = 8,
+  JoinSession = 9,
 }
 
 export type Query = {

@@ -16,6 +16,7 @@ export type PageProps = InitialPageProps & {
   darkMode: boolean;
   toggleDarkMode: () => void;
   userIdentifier: string | undefined;
+  isCustomUserIdentifier: boolean;
   // userIdentifier2: string | undefined;
   // sessionIdentifier: string;
   errorMessage: string | false;
@@ -29,23 +30,10 @@ const initUserIdentifier = () => {
   if (!storedUserIdentifier) {
     console.log(`userIdentifier not found in localStorage. Generating ...`);
     // Generate a random user identifier
-    storedUserIdentifier = Math.random().toString(36).substring(10)
+    storedUserIdentifier = `${Date.now() % 1000000}-${Math.random().toString(36).substring(10)}`
     localStorage.setItem('userIdentifier', storedUserIdentifier)
   }
   return storedUserIdentifier
-}
-
-// sessionIdentifier: unique ID that changes in every browser tab etc.
-const initSessionIdentifier = () => {
-  let storedSessionIdentifier = sessionStorage.getItem('sessionIdentifier')
-
-  if (!storedSessionIdentifier) {
-    console.log(`storedSessionIdentifier not found in sessionStorage. Generating ...`);
-    // Generate a random session identifier
-    storedSessionIdentifier = Math.random().toString(36).substring(10)
-    localStorage.setItem('sessionIdentifier', storedSessionIdentifier)
-  }
-  return storedSessionIdentifier
 }
 
 
@@ -55,9 +43,17 @@ const MyApp = ({ Component, pageProps }: AppProps<InitialPageProps>) => {
   const searchParams = useSearchParams()
 
   const [userIdentifier, setUserIdentifier] = useState<string | undefined>(undefined)
+  const [isCustomUserIdentifier, setIsCustomUserIdentifier] = useState<boolean>(false)
+
   useEffect(() => {
-    let newUserIdentifier = searchParams?.get("user") || initUserIdentifier()
-    setUserIdentifier(newUserIdentifier ?? undefined)
+    if (searchParams?.get("user")) {
+      setIsCustomUserIdentifier(true)
+      setUserIdentifier(searchParams.get("user") ?? undefined)
+    } else {
+      setIsCustomUserIdentifier(false)
+      setUserIdentifier(initUserIdentifier())
+    }
+
     // console.log(`App: set userIdentifier to "${newUserIdentifier ?? undefined}"`)
   }, [searchParams])
 
@@ -71,6 +67,7 @@ const MyApp = ({ Component, pageProps }: AppProps<InitialPageProps>) => {
         darkMode={darkMode}
         toggleDarkMode={toggleDarkMode}
         userIdentifier={userIdentifier}
+        isCustomUserIdentifier={isCustomUserIdentifier}
         errorMessage={errorMessage}
         setErrorMessage={setErrorMessage}
         // userIdentifier2={userIdentifier2}

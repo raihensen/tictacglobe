@@ -10,8 +10,8 @@ import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'next-i18next'
 import { serverSideTranslations } from 'next-i18next/serverSideTranslations'
 
-import { Game, Country, RequestAction, FrontendQuery, PlayingMode, GameState, Language, GameSession, SessionWithoutGames, defaultLanguage, PlayerIndex } from "../src/game.types"
-import { capitalize, useInitEffect } from "@/src/util"
+import { Game, Country, RequestAction, FrontendQuery, PlayingMode, GameState, Language, GameSession, SessionWithoutGames, defaultLanguage, PlayerIndex, autoRefreshInterval } from "../src/game.types"
+import { capitalize, useAutoRefresh, useInitEffect } from "@/src/util"
 var _ = require('lodash');
 
 import styles from '@/pages/Game.module.css'
@@ -25,12 +25,6 @@ import { useRouter } from "next/router";
 import type { GetStaticProps, InferGetStaticPropsType } from 'next'
 import { PageProps } from "./_app";
 import { Settings, SettingsModal, useSettings, LanguageSelector, changeLanguage } from "@/components/Settings";
-
-import { useSearchParams } from 'next/navigation'
-import { Mutex } from "async-mutex";
-
-
-const autoRefreshInterval = 2500  // interval [ms] for auto refresh
 
 
 // TODO
@@ -75,9 +69,8 @@ const defaultSettings: Settings = {
   timeLimit: false,
 }
 
-const autoRefreshIntervalMutex = new Mutex()
 
-const GamePage = ({ darkMode, toggleDarkMode, userIdentifier, errorMessage, setErrorMessage }: PageProps) => {
+const GamePage = ({ darkMode, toggleDarkMode, userIdentifier, isCustomUserIdentifier, errorMessage, setErrorMessage }: PageProps) => {
   
   const [isClient, setIsClient] = useState<boolean>(false)
 
@@ -90,7 +83,6 @@ const GamePage = ({ darkMode, toggleDarkMode, userIdentifier, errorMessage, setE
     }
   }, [userIdentifier])
 
-  const [autoRefreshIntervalHandle, setAutoRefreshIntervalHandle] = useState<NodeJS.Timeout>()
 
   const router = useRouter()
   const { t, i18n } = useTranslation('common')
@@ -109,23 +101,17 @@ const GamePage = ({ darkMode, toggleDarkMode, userIdentifier, errorMessage, setE
 
   const [countries, setCountries] = useState<Country[]>([])
 
-  const clearAutoRefresh = () => {
-    autoRefreshIntervalMutex.runExclusive(() => {
-      if (typeof autoRefreshIntervalHandle !== 'undefined') {
-        clearTimeout(autoRefreshIntervalHandle)
-      }
-    })
+  const getIndexUrl = (absolute: boolean = false) => {
+    let url = ""
+    if (absolute) {
+      url = isClient && window.location.origin ? window.location.origin : ""
+    }
+    return url + `/${isCustomUserIdentifier ? `?user=${userIdentifier}` : ""}`
   }
-  const scheduleAutoRefresh = () => {
-    autoRefreshIntervalMutex.runExclusive(() => {
-      if (typeof autoRefreshIntervalHandle !== 'undefined') {
-        clearTimeout(autoRefreshIntervalHandle)
-      }
-      setAutoRefreshIntervalHandle(setTimeout(() => {
-        apiRequest({ action: RequestAction.Refresh })
-      }, autoRefreshInterval))
-    })
-  }
+
+  const { scheduleAutoRefresh, clearAutoRefresh } = useAutoRefresh(() => {
+    apiRequest({ action: RequestAction.RefreshGame })
+  }, autoRefreshInterval)
 
   // TODO consider using SWR https://nextjs.org/docs/pages/building-your-application/data-fetching/client-side#client-side-data-fetching-with-swr
   function apiRequest(params: FrontendQuery) {
@@ -182,7 +168,7 @@ const GamePage = ({ darkMode, toggleDarkMode, userIdentifier, errorMessage, setE
             return false
           }
           setUserIndex(newUserIndex)
-          const willHaveTurn = userIndex == newGame.turn
+          const willHaveTurn = newUserIndex == newGame.turn
           setHasTurn(willHaveTurn)
 
           if (!willHaveTurn) {
@@ -242,27 +228,35 @@ const GamePage = ({ darkMode, toggleDarkMode, userIdentifier, errorMessage, setE
   const timerRef = useRef()
 
   return (<>
-    {/* {sessionInfo.length && (<h3>{sessionInfo}</h3>)} */}
-    <h3>{isClient ? (<>User: {userIdentifier}</>) : "---"}</h3>
-    {(!errorMessage && !game) && <Alert variant="warning">Waiting for game to be initialized.</Alert>}
+    {(isClient && isCustomUserIdentifier) && (<h3>User: {userIdentifier}</h3>)}
+    {(!errorMessage && !game) && <Alert variant="warning">Loading game...</Alert>}
+    {errorMessage && (<>
+      <p>
+        <Button variant="secondary" onClick={() => { 
+          router.push(getIndexUrl())
+        }}>Enter new game</Button>
+      </p>
+    </>)}
     {game && (<>
       {/* <p>{gameData.isNewGame ? "New Game" : "Existing Game"}</p> */}
       <SplitButtonToolbar className="mb-2">
         <div className="left">
-          <IconButton label={t("newGame")} variant="danger" onClick={() => {
-            apiRequest({ action: RequestAction.NewGame })
-          }}><FaArrowsRotate /></IconButton>
+          {(!(game.state == GameState.Running && !hasTurn)) && (<>
+            <IconButton label={t("newGame")} variant="danger" onClick={() => {
+              apiRequest({ action: RequestAction.NewGame })
+            }}><FaArrowsRotate /></IconButton>
 
-          {!notifyDecided && (<>
-            <IconButton label={t("endTurn")} variant="warning" onClick={() => {
-              apiRequest({
-                action: RequestAction.EndTurn,
-                player: game.turn
-              })
-            }}><FaPersonCircleXmark /></IconButton>
+            {!notifyDecided && (<>
+              <IconButton label={t("endTurn")} variant="warning" onClick={() => {
+                apiRequest({
+                  action: RequestAction.EndTurn,
+                  player: game.turn
+                })
+              }}><FaPersonCircleXmark /></IconButton>
+            </>)}
           </>)}
 
-          {(notifyDecided && game.state != GameState.Finished) && (<>
+          {(notifyDecided && game.state != GameState.Finished && hasTurn) && (<>
             <IconButton label={t("continuePlaying")} variant="secondary" onClick={() => { setNotifyDecided(false) }}><FaEllipsis /></IconButton>
           </>)}
           
@@ -295,7 +289,7 @@ const GamePage = ({ darkMode, toggleDarkMode, userIdentifier, errorMessage, setE
           {playingMode == PlayingMode.Offline && (<>{capitalize(t("winner"))}: <b>{capitalize(t(getPlayerColor(game.winner) ?? "noOne"))}</b></>)}
           {playingMode == PlayingMode.Online && (<>{capitalize(t("winNotificationOnline", { player: t(game.winner == userIndex ? "youWin" : "youLose") }))}</>)}
         </>)}
-        {(game.winner === -1) && (<>, <b>{t("tieNotification")}</b></>)}
+        {(game.winner === -1) && (<b>{t("tieNotification")}</b>)}
       </p>
       {/* {(notifyDecided && (game.winner === 0 || game.winner === 1)) && <Alert variant="success"><b>{capitalize(getPlayerColor(game.winner) ?? "No one")} wins!</b></Alert>} */}
 

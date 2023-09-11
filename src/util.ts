@@ -1,3 +1,4 @@
+import { Mutex } from "async-mutex";
 import { useEffect, useRef, useState } from "react";
 
 
@@ -109,3 +110,44 @@ export function useDarkMode(initialValue: boolean = false): [boolean, () => void
   return [darkMode, toggleDarkMode]
 
 }
+
+/**
+ * This hook offers an auto-refresh feature. The action is executed after the specified duration when calling scheduleAutoRefresh().
+ * Existing schedules can be deleted by calling clearAutoRefresh().
+ * For repeated execution, include a call to scheduleAutoRefresh in the action.
+ * @param action The action to be executed.
+ * @param interval The time duration [ms].
+ * @returns an object with the two functions scheduleAutoRefresh and clearAutoRefresh.
+ */
+export function useAutoRefresh(action: () => void, interval: number) {
+
+  const autoRefreshIntervalMutex = new Mutex()
+  const [autoRefreshIntervalHandle, setAutoRefreshIntervalHandle] = useState<NodeJS.Timeout>()
+
+  const clearAutoRefresh = () => {
+    autoRefreshIntervalMutex.runExclusive(() => {
+      if (typeof autoRefreshIntervalHandle !== 'undefined') {
+        clearTimeout(autoRefreshIntervalHandle)
+      }
+    })
+  }
+
+  const scheduleAutoRefresh = () => {
+    autoRefreshIntervalMutex.runExclusive(() => {
+      if (typeof autoRefreshIntervalHandle !== 'undefined') {
+        clearTimeout(autoRefreshIntervalHandle)
+      }
+      setAutoRefreshIntervalHandle(setTimeout(() => {
+        action()
+      }, interval))
+    })
+  }
+
+  return {
+    scheduleAutoRefresh: scheduleAutoRefresh,
+    clearAutoRefresh: clearAutoRefresh
+  }
+
+}
+
+
