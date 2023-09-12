@@ -27,7 +27,7 @@ function getWinningFormations(size: number) {
     ...eachCoord.map(i => eachCoord.map(j => [i, j])),  // rows
     ...eachCoord.map(j => eachCoord.map(i => [i, j])),  // columns
     eachCoord.map(i => [i, i]),  // diagonal 1
-    eachCoord.map(i => [i, size - i])  // diagonal 2
+    eachCoord.map(i => [i, size - i - 1])  // diagonal 2
   ]
   _winningFormations[sizeKey] = formations
   return formations
