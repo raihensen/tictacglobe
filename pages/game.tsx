@@ -12,7 +12,7 @@ import { serverSideTranslations } from 'next-i18next/serverSideTranslations'
 
 import { Game, Country, RequestAction, FrontendQuery, PlayingMode, GameState, Language, GameSession, SessionWithoutGames, defaultLanguage, PlayerIndex, autoRefreshInterval } from "../src/game.types"
 import { capitalize, useAutoRefresh, useInitEffect } from "@/src/util"
-var _ = require('lodash');
+import _ from "lodash";
 
 import styles from '@/pages/Game.module.css'
 import Timer from "@/components/Timer";
@@ -70,19 +70,15 @@ const defaultSettings: Settings = {
 }
 
 
-const GamePage = ({ darkMode, toggleDarkMode, userIdentifier, isCustomUserIdentifier, errorMessage, setErrorMessage }: PageProps) => {
-  
-  const [isClient, setIsClient] = useState<boolean>(false)
+const GamePage = ({ isClient, toggleDarkMode, userIdentifier, isCustomUserIdentifier, hasError, setErrorMessage, isLoading, setLoadingText }: PageProps) => {
 
   useEffect(() => {
-    setIsClient(true)
     if (userIdentifier) {
       // First client-side init
       console.log(`First client-side init (GamePage) - userIdentifier ${userIdentifier}`)
       apiRequest({ action: RequestAction.ExistingOrNewGame })
     }
   }, [userIdentifier])
-
 
   const router = useRouter()
   const { t, i18n } = useTranslation('common')
@@ -196,6 +192,8 @@ const GamePage = ({ darkMode, toggleDarkMode, userIdentifier, isCustomUserIdenti
         }
         setTimerRunning(true)
 
+        setLoadingText(false)
+
         return true
 
       })
@@ -228,8 +226,8 @@ const GamePage = ({ darkMode, toggleDarkMode, userIdentifier, isCustomUserIdenti
 
   return (<>
     {(isClient && isCustomUserIdentifier) && (<h3>User: {userIdentifier}</h3>)}
-    {(!errorMessage && !game) && <Alert variant="warning">Loading game...</Alert>}
-    {errorMessage && (<>
+    {(!hasError && !game) && <Alert variant="warning">Loading game...</Alert>}
+    {hasError && (<>
       <p>
         <Button variant="secondary" onClick={() => { 
           router.push(getIndexUrl())

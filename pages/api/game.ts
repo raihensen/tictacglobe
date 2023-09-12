@@ -3,7 +3,7 @@ import { IncomingMessage, ServerResponse } from 'http';
 import { Game, GameSetup, Country, RequestAction, Query, PlayingMode, GameState, Language, parseCountry, defaultLanguage, PlayerIndex, GameSession, DifficultyLevel } from "@/src/game.types"
 import { randomChoice } from "@/src/util";
 import { Lexend_Tera } from 'next/font/google';
-var _ = require('lodash');
+import _ from "lodash";
 // import { promises as fs } from 'fs';
 var fs = require('fs').promises;
 import path from 'path';

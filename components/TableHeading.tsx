@@ -7,7 +7,7 @@ import styled from "styled-components";
 import { useId } from "react";
 import { CategoryValue } from "@/src/game.types";
 import { useTranslation } from "next-i18next";
-var _ = require('lodash');
+import _ from "lodash";
 
 const continentIconMap = {
   AS: FaEarthAsia,

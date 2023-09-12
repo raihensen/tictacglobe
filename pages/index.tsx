@@ -16,7 +16,7 @@ import { serverSideTranslations } from 'next-i18next/serverSideTranslations'
 import { Game, Country, RequestAction, Query, PlayingMode, GameState, Language, FrontendQuery, SessionWithoutGames, GameSession, autoRefreshInterval } from "../src/game.types"
 // import { countries } from "../src/game.types"
 import { capitalize, useAutoRefresh, useDarkMode } from "@/src/util"
-var _ = require('lodash');
+import _ from "lodash";
 
 import styles from '@/pages/Game.module.css'
 import Image from "next/image";
@@ -33,11 +33,10 @@ enum PageState {
   EnterCode = 3,
 }
 
-const StartPage = ({ darkMode, userIdentifier, isCustomUserIdentifier, errorMessage, setErrorMessage }: PageProps) => {
+const StartPage = ({ isClient, userIdentifier, isCustomUserIdentifier, hasError, setErrorMessage, isLoading, setLoadingText }: PageProps) => {
 
   const router = useRouter()
   const [state, setState] = useState<PageState>(PageState.Init)
-  const [isClient, setIsClient] = useState<boolean>(false)
 
   const [session, setSession] = useState<SessionWithoutGames | null>()
   const searchParams = useSearchParams()
@@ -45,11 +44,11 @@ const StartPage = ({ darkMode, userIdentifier, isCustomUserIdentifier, errorMess
   const [isWaiting, setIsWaiting] = useState<boolean>(false)
 
   useEffect(() => {
-    setIsClient(true)
-    if (userIdentifier) {
-      // First client-side init
-      console.log(`First client-side init (StartPage) - userIdentifier ${userIdentifier}`)
-    }
+    setLoadingText(false)
+    // if (userIdentifier) {
+    //   // First client-side init
+    //   console.log(`First client-side init (StartPage) - userIdentifier ${userIdentifier}`)
+    // }
   }, [userIdentifier])
   useEffect(() => {
     const invitationCode = searchParams?.get("invitationCode") ?? null

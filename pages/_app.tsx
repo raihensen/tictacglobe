@@ -13,14 +13,15 @@ type InitialPageProps = {
 }
 
 export type PageProps = InitialPageProps & {
+  isClient: boolean;
   darkMode: boolean;
   toggleDarkMode: () => void;
   userIdentifier: string | undefined;
   isCustomUserIdentifier: boolean;
-  // userIdentifier2: string | undefined;
-  // sessionIdentifier: string;
-  errorMessage: string | false;
+  hasError: boolean;
   setErrorMessage: (msg: string | false) => void;
+  isLoading: boolean;
+  setLoadingText: (text: string | false) => void;
 }
 
 // userIdentifier: unique ID that is consistent across the browser (saved in localStorage)
@@ -38,7 +39,10 @@ const initUserIdentifier = () => {
 
 
 const MyApp = ({ Component, pageProps }: AppProps<InitialPageProps>) => {
-  const isClient = typeof window !== 'undefined'
+  const [isClient, setIsClient] = useState<boolean>(false)
+  useEffect(() => {
+    setIsClient(true)
+  }, [])
 
   const searchParams = useSearchParams()
 
@@ -59,19 +63,32 @@ const MyApp = ({ Component, pageProps }: AppProps<InitialPageProps>) => {
 
   const [darkMode, toggleDarkMode] = useDarkMode()
   const [errorMessage, setErrorMessage] = useState<string | false>(false)
+  const [hasError, setHasError] = useState<boolean>(false)
+  useEffect(() => {
+    setHasError(!!errorMessage)
+    if (!!errorMessage) {
+      setLoadingText(false)
+    }
+  }, [errorMessage])
+
+  const [isLoading, setIsLoading] = useState<boolean>(true)
+  const [loadingText, setLoadingText] = useState<string | false>("Loading")
+  useEffect(() => {
+    setIsLoading(!!loadingText)
+  }, [loadingText])
 
   return (<>
-    <Layout darkMode={darkMode}>
-      {errorMessage && <Alert variant="danger">Error: {errorMessage}</Alert>}
+    <Layout darkMode={darkMode} hasError={hasError} errorMessage={errorMessage} isLoading={isLoading} loadingText={loadingText}>
       <Component
+        isClient={isClient}
         darkMode={darkMode}
         toggleDarkMode={toggleDarkMode}
         userIdentifier={userIdentifier}
         isCustomUserIdentifier={isCustomUserIdentifier}
-        errorMessage={errorMessage}
+        hasError={hasError}
         setErrorMessage={setErrorMessage}
-        // userIdentifier2={userIdentifier2}
-        // sessionIdentifier={sessionIdentifier}
+        isLoading={isLoading}
+        setLoadingText={setLoadingText}
         {...pageProps}
       />
     </Layout>

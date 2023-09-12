@@ -10,7 +10,7 @@ import { CircleFlag } from 'react-circle-flags'
 import styles from '@/pages/Game.module.css'
 import { useTranslation } from "next-i18next";
 const NodeCache = require( "node-cache" );
-var _ = require('lodash');
+import _ from "lodash";
 
 
 const TableCellInner = styled.div`

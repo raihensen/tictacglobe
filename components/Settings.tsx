@@ -14,7 +14,7 @@ import { Dropdown } from "react-bootstrap";
 import { CircleFlag } from "react-circle-flags";
 import styles from '@/pages/Game.module.css'
 import styled from "styled-components";
-var _ = require('lodash');
+import _ from "lodash";
 
 
 export type Settings = {
