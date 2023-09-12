@@ -9,94 +9,14 @@ import { OverlayTrigger, Tooltip } from "react-bootstrap";
 import { CircleFlag } from 'react-circle-flags'
 import styles from '@/pages/Game.module.css'
 import { useTranslation } from "next-i18next";
-const NodeCache = require( "node-cache" );
+const NodeCache = require("node-cache");
 import _ from "lodash";
-
-
-const TableCellInner = styled.div`
-  position: relative;
-  top: 0;
-  left: 0;
-  width: 150px;
-  height: 150px;
-  .field-flex {
-    padding: 5px;
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    align-items: center;
-    > span {
-      display: block;
-      width: 100%;
-      margin-top: 5px;
-      text-align: center;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      &.label {
-        .iso {
-          color: var(--bs-secondary);
-        }
-      }
-      &.capital {
-        color: var(--bs-secondary);
-        font-size: 75%;
-      }
-    }
-  }
-  .field-abs-top-left {
-    position: absolute;
-    top: 5px;
-    left: 5px;
-  }
-  .field-center-50 {
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    width: 50px;
-    height: 50px;
-    margin-top: -25px;
-    margin-left: -25px;
-  }
-  .field-bottom {
-    position: absolute;
-    left: 0; bottom: 0;
-    width: 100%; height: 50px;
-  }
-`
-const MarkingBackground = styled.div<{ $player: number, $isWinning: boolean }>`
-  background: var(${props => props.$player === 0 ? "--bs-blue" : (props => props.$player === 1 ? "--bs-red" : "--bs-gray")});
-  display: block;
-  opacity: ${props => props.$isWinning ? ".5" : ".25"};
-  position: absolute;
-  left: 0;
-  top: 0;
-  right: 0;
-  bottom: 0;
-  z-index: -10;
-`
+import { AutoCompleteItem, TableCellInner, MarkingBackground } from "@/components/styles";
 
 
 const CountryFlag = ({ country, size, onClick }: { country: Country | null, size: number, onClick?: any }) => (
   <CircleFlag countryCode={country?.iso?.toLowerCase() ?? "xx"} height={size} onClick={onClick} />
 );
-
-export type FieldProps = {
-  pos: number[];
-  game: Game;
-  row: CategoryValue;
-  col: CategoryValue;
-  userIdentifier: string | undefined;
-  apiRequest: (query: FrontendQuery) => any;
-  hasTurn: boolean;
-  notifyDecided: boolean;
-  countries: Country[];
-  settings: {
-    showIso: boolean;
-    showNumSolutions: boolean;
-    showNumSolutionsHint: boolean;
-  }
-}
 
 enum FieldMode {
   INITIAL = 0,
@@ -110,8 +30,7 @@ type FieldState = {
   mode: FieldMode;
 }
 
-
-export const Field = ({ pos, game, row, col, userIdentifier, apiRequest, hasTurn, notifyDecided, countries, settings }: FieldProps) => {
+const Field = ({ pos, game, row, col, userIdentifier, apiRequest, hasTurn, notifyDecided, countries, settings }: FieldProps) => {
   const { t, i18n } = useTranslation('common')
   const [i, j] = pos
   const solutions = countries.filter(c => game.setup.solutions[i][j].includes(c.iso))
@@ -400,12 +319,12 @@ const CountryAutoComplete = ({ countries, makeGuess, onBlur }: CountryAutoComple
       items={items}
       getItemValue={(item: AutoCompleteItem) => item.country.iso}
       renderItem={(item: AutoCompleteItem, isHighlighted: boolean) =>
-        <div key={`${item.country.iso}-${item.nameIndex}`} className={styles.autoCompleteItem} style={{ background: isHighlighted ? 'lightgray' : 'white' }}>
+        <AutoCompleteItem key={`${item.country.iso}-${item.nameIndex}`} highlighted={isHighlighted}>
           {item.nameIndex == 0 && item.country.name}
           {item.nameIndex != 0 && (<>
             {item.name} <small className="text-muted">({item.country.name})</small>
           </>)}
-        </div>
+        </AutoCompleteItem>
       }
       value={searchValue}
       onChange={(e: any, q: string) => {
@@ -431,3 +350,24 @@ const CountryAutoComplete = ({ countries, makeGuess, onBlur }: CountryAutoComple
     />
   )
 }
+
+
+
+export type FieldProps = {
+  pos: number[];
+  game: Game;
+  row: CategoryValue;
+  col: CategoryValue;
+  userIdentifier: string | undefined;
+  apiRequest: (query: FrontendQuery) => any;
+  hasTurn: boolean;
+  notifyDecided: boolean;
+  countries: Country[];
+  settings: {
+    showIso: boolean;
+    showNumSolutions: boolean;
+    showNumSolutionsHint: boolean;
+  }
+}
+
+export default Field;

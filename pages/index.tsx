@@ -42,6 +42,9 @@ const StartPage = ({ isClient, userIdentifier, isCustomUserIdentifier, hasError,
   const searchParams = useSearchParams()
 
   const [isWaiting, setIsWaiting] = useState<boolean>(false)
+  useEffect(() => {
+    setLoadingText(isWaiting ? "Loading" : false)
+  }, [isWaiting])
 
   useEffect(() => {
     setLoadingText(false)
@@ -84,6 +87,10 @@ const StartPage = ({ isClient, userIdentifier, isCustomUserIdentifier, hasError,
     const search = Object.entries(query).filter(([key, val]) => val != undefined).map(([key, val]) => `${key}=${encodeURIComponent(val)}`).join("&")
     const url = "/api/game?" + search
     console.log(`API request: ${url}`);
+
+    if (action != RequestAction.RefreshSession) {
+      setIsWaiting(true)
+    }
 
     fetch(url)
       .then(response => response.json())
@@ -169,7 +176,6 @@ const StartPage = ({ isClient, userIdentifier, isCustomUserIdentifier, hasError,
     if (invitationCode.length != 4) {
       return false
     }
-    setIsWaiting(true)
     apiRequest(
       PlayingMode.Online, {
         action: RequestAction.JoinSession,

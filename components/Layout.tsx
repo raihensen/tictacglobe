@@ -1,12 +1,14 @@
 
+import _ from "lodash";
+import { ReactNode } from "react";
 import Container from "react-bootstrap/Container";
+import ButtonToolbar from "react-bootstrap/ButtonToolbar";
+import Alert from "react-bootstrap/Alert";
 import Head from 'next/head';
 import Image from "next/image";
 import Link from "next/link";
-import { ReactNode } from "react";
-import Alert from "react-bootstrap/Alert";
 import Spinner from "@/components/Loading";
-import _ from "lodash";
+import styled from "styled-components";
 
 
 type LayoutProps = {
@@ -42,3 +44,16 @@ function Layout({ darkMode, hasError, errorMessage, isLoading, loadingText, chil
 
 export default Layout;
 
+export const SplitButtonToolbar = styled(ButtonToolbar)`
+  & > .left {
+    margin-right: auto;
+  }
+  & > .left, & > .right {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: flex-start;
+    & > :not(:last-child) {
+      margin-right: .5rem !important;
+    }
+  }
+`

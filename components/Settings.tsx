@@ -14,6 +14,7 @@ import { Dropdown } from "react-bootstrap";
 import { CircleFlag } from "react-circle-flags";
 import styles from '@/pages/Game.module.css'
 import styled from "styled-components";
+import { LanguageSelectorToggle, LanguageSelectorItem } from "@/components/styles"
 import _ from "lodash";
 
 
@@ -185,15 +186,15 @@ export const LanguageSelector = ({ onChange, value, disabled }: LanguageSelector
       changeLanguage(router, i18n, language)
       onChange(oldLanguage, language)
     }}>
-      <Dropdown.Toggle variant="secondary" className={styles.languageSelector} disabled={disabled}>
+      <LanguageSelectorToggle variant="secondary" disabled={disabled}>
         <CircleFlag countryCode={languageToCountry(value)} height={18} />
-      </Dropdown.Toggle>
+      </LanguageSelectorToggle>
       <Dropdown.Menu>
         {Object.values(Language).map((language, i) => (
-          <Dropdown.Item key={i} eventKey={language} className={styles.languageSelectorItem}>
+          <LanguageSelectorItem key={i} eventKey={language}>
             <CircleFlag countryCode={languageToCountry(language)} height={18} />
             <span>{language.toString().toUpperCase()}</span>
-          </Dropdown.Item>
+          </LanguageSelectorItem>
         ))}
       </Dropdown.Menu>
     </Dropdown>

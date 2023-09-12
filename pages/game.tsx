@@ -1,65 +1,29 @@
 
 import Button from "react-bootstrap/Button";
-import ButtonToolbar from 'react-bootstrap/ButtonToolbar';
 import Alert from 'react-bootstrap/Alert';
 import { confirm } from 'react-bootstrap-confirmation';
 
 import 'bootstrap/dist/css/bootstrap.min.css';
-import styled from "styled-components";
 import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'next-i18next'
 import { serverSideTranslations } from 'next-i18next/serverSideTranslations'
 
-import { Game, Country, RequestAction, FrontendQuery, PlayingMode, GameState, Language, GameSession, SessionWithoutGames, defaultLanguage, PlayerIndex, autoRefreshInterval } from "../src/game.types"
-import { capitalize, useAutoRefresh, useInitEffect } from "@/src/util"
+import { Game, Country, RequestAction, FrontendQuery, PlayingMode, GameState, Language, SessionWithoutGames, defaultLanguage, PlayerIndex, autoRefreshInterval } from "../src/game.types"
+import { capitalize, useAutoRefresh } from "@/src/util"
 import _ from "lodash";
 
-import styles from '@/pages/Game.module.css'
 import Timer from "@/components/Timer";
-import { Field } from "@/components/Field";
+import Field from "@/components/Field";
 import { TableHeading, RowHeading, ColHeading } from '@/components/TableHeading';
 import { FaArrowsRotate, FaEllipsis, FaGear, FaMoon, FaPause, FaPersonCircleXmark, FaPlay } from "react-icons/fa6";
-import Image from "next/image";
-import Link from "next/link";
 import { useRouter } from "next/router";
-import type { GetStaticProps, InferGetStaticPropsType } from 'next'
+import type { GetStaticProps } from 'next'
 import { PageProps } from "./_app";
 import { Settings, SettingsModal, useSettings, LanguageSelector, changeLanguage } from "@/components/Settings";
+import { SplitButtonToolbar } from "@/components/Layout";
+// import styles from '@/pages/Game.module.css'
+import { IconButton, PlayerBadge, TableCell } from "@/components/styles";
 
-
-// TODO
-// dont show solution list until game is over. Number can still be toggled
-// island icon: 3 stack, water, circle-"bordered", circle
-// category common neighbor
-
-type Props = {
-  // Add custom props here
-}
-
-const TableCell = styled.td`
-  border: 1px solid rgba(0,0,0,.25);
-  padding: 0;
-`
-const SplitButtonToolbar = styled(ButtonToolbar)`
-  & > .left {
-    margin-right: auto;
-  }
-  & > .left, & > .right {
-    display: flex;
-    flex-wrap: wrap;
-    justify-content: flex-start;
-    & > :not(:last-child) {
-      margin-right: .5rem !important;
-    }
-  }
-`
-
-const IconButton = ({ children, label, className, ...props }: any) => (
-  <Button className={([styles.btnIcon].concat(className ? [className] : [])).join(" ")} {...props}>
-    {children}
-    {label && <span>{label}</span>}
-  </Button>
-)
 
 const defaultSettings: Settings = {
   difficulty: "easy",
@@ -296,10 +260,10 @@ const GamePage = ({ isClient, toggleDarkMode, userIdentifier, isCustomUserIdenti
             <th>
               <div style={{ display: "flex", flexDirection: "column", justifyContent: "center", alignItems: "center" }}>
                 {showTurnInfo && (<>
-                  <span className={styles["badge-player"] + " " + styles[`bg-player-${getPlayerTurnColor()}`]}>
+                  <PlayerBadge playerColor={getPlayerTurnColor() ?? "none"}>
                     {game.playingMode == PlayingMode.Offline && capitalize(t("turnInfoOffline", { player: t(getPlayerTurnColor() ?? "noOne") }))}
                     {game.playingMode == PlayingMode.Online && capitalize(t("turnInfoOnline", { player: t(hasTurn ? "yourTurn" : "opponentsTurn") }))}
-                  </span>
+                  </PlayerBadge>
                   {settings.timeLimit !== false && (<>
                     <Timer className="mt-2" ref={timerRef} running={timerRunning} setRunning={setTimerRunning} initialTime={settings.timeLimit * 1000} onElapsed={() => {
                       apiRequest({
@@ -342,6 +306,10 @@ const GamePage = ({ isClient, toggleDarkMode, userIdentifier, isCustomUserIdenti
       </table>
     </>)}
   </>)
+}
+
+type Props = {
+  // Add custom props here
 }
 
 export const getStaticProps: GetStaticProps<Props> = async ({
