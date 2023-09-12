@@ -363,6 +363,7 @@ function createSession(userIdentifier: string, playingMode: PlayingMode, invitat
   const session = {
     index: sessionIndex++,
     playingMode: playingMode,
+    isPublic: !invitationCode,
     invitationCode: invitationCode,
     currentGame: null,
     previousGames: [],
@@ -378,8 +379,11 @@ function createSession(userIdentifier: string, playingMode: PlayingMode, invitat
 
 }
 
-function joinSession(session: GameSession, userIdentifier: string) {
+function joinSession(session: GameSession, userIdentifier: string, invitationCode: string | undefined = undefined) {
   if (session.users.length >= 2 || session.playingMode == PlayingMode.Offline) {
+    return false
+  }
+  if (!session.isPublic && session.invitationCode != invitationCode) {
     return false
   }
   if (session.currentGame) {
@@ -515,7 +519,7 @@ const gameApi = async (req: Request, res: ServerResponse<Request>) => {
         if (action == RequestAction.InitSessionRandom) {  // init or join. might rename
           // find session with free spots
           // TODO TTG-31 filter for sessions with matching settings (difficulty, language)
-          const availableSessions = sessions.filter(session => session.users.length < 2 && !session.invitationCode)
+          const availableSessions = sessions.filter(session => session.users.length < 2 && session.isPublic)
           if (availableSessions.length) {
             session = availableSessions[0]
             if (!joinSession(session, userIdentifier)) {
@@ -534,12 +538,12 @@ const gameApi = async (req: Request, res: ServerResponse<Request>) => {
           if (!invitationCode) {
             return respondWithError(res, "Invitation code not specified.")
           }
-          const availableSessions = sessions.filter(session => session.users.length < 2 && session.invitationCode && session.invitationCode == invitationCode)
+          const availableSessions = sessions.filter(session => session.users.length < 2 && !session.isPublic && session.invitationCode == invitationCode)
           if (availableSessions.length != 1) {
             return respondWithError(res, "Invalid invitation code - try again!")
           }
           session = availableSessions[0]
-          if (!joinSession(session, userIdentifier)) {
+          if (!joinSession(session, userIdentifier, invitationCode)) {
             return respondWithError(res, "Session could not be joined.")
           }
           return await executeAndRespond(res, req.query, session, session.currentGame, { addCountryData: !!session.currentGame })

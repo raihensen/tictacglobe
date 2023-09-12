@@ -42,6 +42,7 @@ export type FrontendQuery = Omit<Query, "userIdentifier" | "playingMode">
 
 export type GameSession = {
   index: number;
+  isPublic: boolean;
   invitationCode?: string;
   playingMode: PlayingMode;
   currentGame: Game | null;
