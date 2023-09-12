@@ -1,6 +1,6 @@
 
 import { IncomingMessage, ServerResponse } from 'http';
-import { Game, GameSetup, Country, RequestAction, Query, PlayingMode, GameState, Language, parseCountry, defaultLanguage, PlayerIndex, GameSession } from "@/src/game.types"
+import { Game, GameSetup, Country, RequestAction, Query, PlayingMode, GameState, Language, parseCountry, defaultLanguage, PlayerIndex, GameSession, DifficultyLevel } from "@/src/game.types"
 import { randomChoice } from "@/src/util";
 import { Lexend_Tera } from 'next/font/google';
 var _ = require('lodash');
@@ -179,6 +179,40 @@ async function chooseGameSetup(
   }
 }
 
+async function createGame(
+  session: GameSession,
+  difficulty: DifficultyLevel,
+  language: Language
+): Promise<Game | null> {
+
+  // Archive the current game to then create a new one
+  if (session.currentGame) {
+    session.previousGames.push(session.currentGame)
+    session.currentGame = null
+  }
+  
+  // Create new game
+  const gameSetup: GameSetup | null = await chooseGameSetup(
+    language,
+    gameSetup => {
+      return gameSetup.data.difficultyLevel == difficulty
+    }
+  )
+  if (!gameSetup) {
+    return null
+  }
+  const game = new Game(
+    gameSetup,
+    [...session.users],
+    session.playingMode,
+    (Math.random() < .5 ? 0 : 1)  // who starts?
+    // TODO logic within session to determine who starts (loser? alternating?)
+  )
+  session.currentGame = game
+  return game
+
+}
+
 async function getCountryData(language: Language): Promise<Country[] | null> {
 
   if (language.toString() in countryData) {
@@ -197,13 +231,13 @@ async function getCountryData(language: Language): Promise<Country[] | null> {
 }
 
 function isIngameAction(action: RequestAction) {
-  return action == RequestAction.MakeGuess || action == RequestAction.EndTurn || action == RequestAction.TimeElapsed
+  return action == RequestAction.MakeGuess || action == RequestAction.EndTurn || action == RequestAction.TimeElapsed || action == RequestAction.RefreshGame
 }
 function isGameInitAction(action: RequestAction) {
   return action == RequestAction.NewGame || action == RequestAction.ExistingOrNewGame
 }
 function isSessionInitAction(action: RequestAction) {
-  return action == RequestAction.JoinSession || action == RequestAction.InitSessionFriend || action == RequestAction.InitSessionRandom || action == RequestAction.RefreshSession
+  return action == RequestAction.JoinSession || action == RequestAction.InitSessionFriend || action == RequestAction.InitSessionRandom || action == RequestAction.RefreshSession || action == RequestAction.InitSessionOffline
 }
 
 type Request = IncomingMessage & { query: Query }
@@ -298,6 +332,7 @@ async function executeAndRespond(
 }
 
 function respondWithError(res: ServerResponse<Request>, err: string = "API Error") {
+  console.log(`Error: ${err}`)
   res.end(JSON.stringify({ error: err }))
 }
 
@@ -338,7 +373,7 @@ function createSession(userIdentifier: string, playingMode: PlayingMode, invitat
   sessions.push(session)
   userSessionMap[userIdentifier] = session
 
-  console.log(`Created a new session: ${JSON.stringify(session)}`)
+  console.log(`Created a new session: ${sessionInfo(session)}`)
   return session
 
 }
@@ -347,8 +382,6 @@ function joinSession(session: GameSession, userIdentifier: string) {
   if (session.users.length >= 2 || session.playingMode == PlayingMode.Offline) {
     return false
   }
-  session.users.push(userIdentifier)
-  userSessionMap[userIdentifier] = session
   if (session.currentGame) {
     // joined a session with a running game
     if (session.currentGame.users.length >= 2) {
@@ -356,6 +389,9 @@ function joinSession(session: GameSession, userIdentifier: string) {
     }
     session.currentGame.users.push(userIdentifier)
   }
+  session.users.push(userIdentifier)
+  userSessionMap[userIdentifier] = session
+  console.log(`Joined session ${sessionInfo(session)}`)
   return true
 }
 
@@ -391,29 +427,45 @@ const gameApi = async (req: Request, res: ServerResponse<Request>) => {
 
     if (!isSessionInitAction(action)) {
       // need a game (find or create)
-      // Check if playing modes are matching
-      if (session && (session.playingMode != playingMode || (game && game.playingMode != playingMode))) {
-        console.log(`Warning: Found session/game with different playing mode than requested. Ignoring`)
+      // Check if playing modes are matching - playingMode is only specified in query for initSession actions!
+      if (session && game && game.playingMode != session.playingMode) {
+        console.log(`Warning: Found session/game with different playing modes. Ignoring`)
+        session = null
+        game = null
+      }
+      if (session && game && JSON.stringify(session.users) != JSON.stringify(game.users)) {
+        console.log(`Warning: Found session/game with different user list (session: ${session.users.join(", ")}, game: ${game.users.join(", ")}). Ignoring`)
         session = null
         game = null
       }
 
       console.log(`userIdentifier ${userIdentifier}: ` + (session ? `Found existing session (#${session.index}).` : "No existing session."))
 
-      const newSession = !session
-      const newGame = newSession || !game || action == RequestAction.NewGame
+      if (!session) {
+        return respondWithError(res, "Game session not found.")
+      }
+      if (session.users.length != 2 && session.playingMode != PlayingMode.Offline) {
+        return respondWithError(res, "Your opponent has left the game.")
+      }
 
-      if (session && game && !newGame) {
+      if (session && game && action != RequestAction.NewGame && (isIngameAction(action) || action == RequestAction.ExistingOrNewGame)) {
         // Return existing game
-        if (playingMode == PlayingMode.Online && game.users.length != 2) {
-          return respondWithError(res, "Your opponent has left the game.")
-        }
         // It might still be a new game to the user (when the other one started a new game)
         const gameHasChanged = false  // TODO detect if the user had a different game before (add some ID to the query?)
         const addCountryData = gameHasChanged || isGameInitAction(action)
         console.log(`Returning existing game (${addCountryData ? "do not " : ""}add country data)`)
         return await executeAndRespond(res, req.query, session, session.currentGame, { addCountryData: addCountryData })
       }
+
+      if (!isGameInitAction(action) || language === undefined || difficulty === undefined) {
+        return respondWithError(res, "Missing parameters for game selection")
+      }
+  
+      game = await createGame(session, difficulty, language)
+      if (!game) {
+        return respondWithError(res, "Game could not be created.")
+      }
+      return await executeAndRespond(res, req.query, session, game, { addCountryData: true })
 
     }
 
@@ -436,13 +488,15 @@ const gameApi = async (req: Request, res: ServerResponse<Request>) => {
       
       // Find/create a new session for the user
       
-      if (playingMode == PlayingMode.Offline) {  // TODO ExistingOrNewGame -> !isSessionInitAction
+      if (playingMode == PlayingMode.Offline && action == RequestAction.InitSessionOffline) {
         // console.log("playingMode Offline");
         
         // TODO TTG-35 re-integrate offline mode
-        // create new offline session
-        // in frontend, then forward to game page
-        return respondWithError(res, "Offline mode not implemented yet.")
+        session = createSession(userIdentifier, PlayingMode.Offline)
+        if (!session) {
+          return respondWithError(res, "Session could not be created.")
+        }
+        return await executeAndRespond(res, req.query, session, null, {})
 
       }
       
@@ -467,7 +521,6 @@ const gameApi = async (req: Request, res: ServerResponse<Request>) => {
             if (!joinSession(session, userIdentifier)) {
               return respondWithError(res, "Session could not be joined.")
             }
-            console.log(`Joined online session ${sessionInfo(session)}.`)
             return await executeAndRespond(res, req.query, session, session.currentGame, { addCountryData: !!session.currentGame })
           }
 
@@ -489,7 +542,6 @@ const gameApi = async (req: Request, res: ServerResponse<Request>) => {
           if (!joinSession(session, userIdentifier)) {
             return respondWithError(res, "Session could not be joined.")
           }
-          console.log(`Joined session #${sessionInfo(session)} via invitation code.`)
           return await executeAndRespond(res, req.query, session, session.currentGame, { addCountryData: !!session.currentGame })
           
         }
@@ -498,42 +550,7 @@ const gameApi = async (req: Request, res: ServerResponse<Request>) => {
       }
     }
 
-    if (!session || game) {
-      return respondWithError(res, "Game session not found.")
-    }
-    if (!isGameInitAction(action) || !language || !difficulty) {
-      return respondWithError(res, "Missing parameters for game selection")
-    }
-    if (session.users.length != 2) {
-      return respondWithError(res, "Your opponent has left the game.")
-    }
-
-    // Archive the current game to then create a new one
-    if (session.currentGame) {
-      session.previousGames.push(session.currentGame)
-      session.currentGame = null
-    }
     
-    // Create new game
-    const gameSetup: GameSetup | null = await chooseGameSetup(
-      language,
-      gameSetup => {
-        return gameSetup.data.difficultyLevel == difficulty
-      }
-    )
-    if (!gameSetup) {
-      return respondWithError(res, "Game could not be initialized")
-    }
-    game = new Game(
-      gameSetup,
-      [...session.users],
-      playingMode
-      // TODO specify which player starts
-    )
-    session.currentGame = game
-    // userGameMap[userIdentifier] = game
-
-    return await executeAndRespond(res, req.query, session, game, { addCountryData: true })
 
   })
 

@@ -198,7 +198,9 @@ const StartPage = ({ darkMode, userIdentifier, isCustomUserIdentifier, errorMess
           setState(PageState.EnterCode)
         }}>Enter code</Button>
         {/* <Button size="lg" className="mb-2">Online opponent</Button> */}
-        <Button size="lg" className="mb-2" variant="secondary">Same screen</Button>
+        <Button size="lg" className="mb-2" variant="secondary" onClick={() => {
+          apiRequest(PlayingMode.Offline, { action: RequestAction.InitSessionOffline })
+        }}>Same screen</Button>
       </div>
     </>)}
 

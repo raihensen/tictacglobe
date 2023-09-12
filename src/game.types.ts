@@ -24,17 +24,18 @@ export enum RequestAction {
   InitSessionRandom = 7,
   RefreshSession = 8,
   JoinSession = 9,
+  InitSessionOffline = 10,
 }
 
 export type Query = {
   userIdentifier: string;
-  playingMode: PlayingMode;
+  playingMode?: PlayingMode;
   invitationCode?: string;
   action: RequestAction;
   player?: number;
   countryId?: string;
   pos?: string;  // coords like "0,2"
-  difficulty?: "easy" | "medium" | "hard";
+  difficulty?: DifficultyLevel;
   language?: Language;
 }
 export type FrontendQuery = Omit<Query, "userIdentifier" | "playingMode">
@@ -73,12 +74,8 @@ export type CategoryValue = {
   value: any;
 }
 
-// TODO convert to this enum
-export enum DifficultyLevel {
-  Easy = 0,
-  Medium = 1,
-  Hard = 2
-}
+
+export type DifficultyLevel = "easy" | "medium" | "hard"
 
 export interface GameSetup {
   size: number;
@@ -88,7 +85,7 @@ export interface GameSetup {
   rows: CategoryValue[];
   cols: CategoryValue[];
   data: {
-    difficultyLevel: string;
+    difficultyLevel: DifficultyLevel;
     avgCellDifficulty: number;
     maxCellDifficulty: number;
     [x: string]: any;
@@ -131,13 +128,13 @@ export class Game {
   winner: (PlayerIndex | NoPlayer) | null;
   turnCounter: number;
 
-  constructor(setup: GameSetup, users: string[], playingMode: PlayingMode) {
+  constructor(setup: GameSetup, users: string[], playingMode: PlayingMode, turn: PlayerIndex) {
     this.setup = setup
     this.users = users
     this.playingMode = playingMode
     this.marking = [...Array(setup.size)].map(x => [...Array(setup.size)].map(y => -1))
     this.guesses = [...Array(setup.size)].map(x => [...Array(setup.size)].map(y => null))
-    this.turn = 0
+    this.turn = turn
     this.state = GameState.Running
     this.winner = null
     this.winCoords = null
@@ -146,7 +143,7 @@ export class Game {
 
   static fromApi(data: GameProperties): Game {
     // need to call constructor to provide class methods
-    const game = new Game(data.setup, data.users, data.playingMode)
+    const game = new Game(data.setup, data.users, data.playingMode, data.turn)
     Object.entries(data).forEach(([k, v]) => {
       (game as any)[k as keyof GameProperties] = v
     })

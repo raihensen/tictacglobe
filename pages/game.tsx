@@ -87,13 +87,11 @@ const GamePage = ({ darkMode, toggleDarkMode, userIdentifier, isCustomUserIdenti
   const router = useRouter()
   const { t, i18n } = useTranslation('common')
 
-  // TODO
-  const playingMode: PlayingMode = PlayingMode.Online as PlayingMode
-
   const [settings, setSettings] = useSettings(defaultSettings)
   const [showSettings, setShowSettings] = useState(false)
 
   const [game, setGame] = useState<Game | null>(null)
+  const [session, setSession] = useState<SessionWithoutGames | null>(null)
   const [notifyDecided, setNotifyDecided] = useState<boolean>(false)
   
   const [userIndex, setUserIndex] = useState<PlayerIndex>(0)  // who am i? 0/1
@@ -124,12 +122,11 @@ const GamePage = ({ darkMode, toggleDarkMode, userIdentifier, isCustomUserIdenti
     // Fetch the game data from the server
     const query = {
       userIdentifier: userIdentifier,
-      playingMode: playingMode,
       ...params
     }
     if (params.action == RequestAction.NewGame || params.action == RequestAction.ExistingOrNewGame) {
-      query.difficulty = settings.difficulty,
-      query.language = (router.locale ?? defaultLanguage) as Language
+      query.difficulty = query.difficulty ?? settings.difficulty
+      query.language = query.language ?? (router.locale ?? defaultLanguage) as Language
     }
 
     const search = Object.entries(query).filter(([key, val]) => val != undefined).map(([key, val]) => `${key}=${encodeURIComponent(val)}`).join("&")
@@ -140,28 +137,23 @@ const GamePage = ({ darkMode, toggleDarkMode, userIdentifier, isCustomUserIdenti
       .then(response => response.json())
       .then(data => {
         const newGame = data.game ? Game.fromApi(data.game) : null
-        const session = data.session ? data.session as SessionWithoutGames : null
+        const newSession = data.session ? data.session as SessionWithoutGames : null
         const error = data.error ? data.error as string : null
 
-        if (error) {
-          setErrorMessage(error)
+        if (error || !newGame || !newSession) {
+          setErrorMessage(error ?? "Error loading the game.")
+          setGame(null)
+          setSession(null)
           return false
         } else {
           setErrorMessage(false)
         }
 
-        if (!newGame || !session) {
-          setErrorMessage("Error loading the game.")
-          return false
-        }
-
-        console.log("Session: " + JSON.stringify(session))
-
         if (newGame.playingMode == PlayingMode.Offline) {
           setHasTurn(true)
 
         } else if (newGame.playingMode == PlayingMode.Online) {
-          // TODO Online mode
+          
           const newUserIndex = newGame.users.indexOf(userIdentifier) as PlayerIndex | -1
           if (newUserIndex == -1) {
             setErrorMessage("userIdentifier is not part of the game!")
@@ -170,6 +162,12 @@ const GamePage = ({ darkMode, toggleDarkMode, userIdentifier, isCustomUserIdenti
           setUserIndex(newUserIndex)
           const willHaveTurn = newUserIndex == newGame.turn
           setHasTurn(willHaveTurn)
+
+          // synchronize language (TODO TTG-43 synchronize all settings)
+          if (router.locale != newGame.setup.language.toString()) {
+            // console.log(`Game language: ${newGame.setup.language}, Frontend language: ${router.locale} - changing frontend to ${newGame.setup.language}`)
+            changeLanguage(router, i18n, newGame.setup.language)
+          }
 
           if (!willHaveTurn) {
             scheduleAutoRefresh()
@@ -187,6 +185,7 @@ const GamePage = ({ darkMode, toggleDarkMode, userIdentifier, isCustomUserIdenti
         }
 
         setGame(newGame)
+        setSession(newSession)
         setNotifyDecided(showNotifyDecided)
         if (data.countries) {
           setCountries(data.countries)
@@ -263,13 +262,13 @@ const GamePage = ({ darkMode, toggleDarkMode, userIdentifier, isCustomUserIdenti
         </div>
         <div className="right">
           <IconButton variant="secondary" onClick={toggleDarkMode} className="me-2"><FaMoon /></IconButton>
-          <LanguageSelector onChange={async (oldLanguage, newLanguage) => {
+          <LanguageSelector value={router.locale ?? defaultLanguage} disabled={!hasTurn} onChange={async (oldLanguage, newLanguage) => {
             if (await confirm(t("changeLanguage.confirm.question"), {
               title: t("changeLanguage.confirm.title"),
               okText: t("newGame"),
               cancelText: t("cancel")
             })) {
-              apiRequest({ action: RequestAction.NewGame })  // TODO if language change does not work, have to pass newLanguage here
+              apiRequest({ action: RequestAction.NewGame, language: newLanguage as Language })  // TODO if language change does not work, have to pass newLanguage here
               return true
             } else {
               // undo change
@@ -277,7 +276,7 @@ const GamePage = ({ darkMode, toggleDarkMode, userIdentifier, isCustomUserIdenti
               return false
             }
           }} />
-          <IconButton variant="secondary" onClick={() => setShowSettings(true)}><FaGear /></IconButton>
+          <IconButton variant="secondary" disabled={!hasTurn} onClick={() => setShowSettings(true)}><FaGear /></IconButton>
         </div>
       </SplitButtonToolbar>
 
@@ -286,8 +285,8 @@ const GamePage = ({ darkMode, toggleDarkMode, userIdentifier, isCustomUserIdenti
       <p>
         {/* State: <b>{GameState[game.state]}</b> */}
         {(game.winner === 0 || game.winner === 1) && (<>
-          {playingMode == PlayingMode.Offline && (<>{capitalize(t("winner"))}: <b>{capitalize(t(getPlayerColor(game.winner) ?? "noOne"))}</b></>)}
-          {playingMode == PlayingMode.Online && (<>{capitalize(t("winNotificationOnline", { player: t(game.winner == userIndex ? "youWin" : "youLose") }))}</>)}
+          {game.playingMode == PlayingMode.Offline && (<>{capitalize(t("winner"))}: <b>{capitalize(t(getPlayerColor(game.winner) ?? "noOne"))}</b></>)}
+          {game.playingMode == PlayingMode.Online && (<>{capitalize(t("winNotificationOnline", { player: t(game.winner == userIndex ? "youWin" : "youLose") }))}</>)}
         </>)}
         {(game.winner === -1) && (<b>{t("tieNotification")}</b>)}
       </p>
@@ -300,8 +299,8 @@ const GamePage = ({ darkMode, toggleDarkMode, userIdentifier, isCustomUserIdenti
               <div style={{ display: "flex", flexDirection: "column", justifyContent: "center", alignItems: "center" }}>
                 {showTurnInfo && (<>
                   <span className={styles["badge-player"] + " " + styles[`bg-player-${getPlayerTurnColor()}`]}>
-                    {playingMode == PlayingMode.Offline && capitalize(t("turnInfoOffline", { player: t(getPlayerTurnColor() ?? "noOne") }))}
-                    {playingMode == PlayingMode.Online && capitalize(t("turnInfoOnline", { player: t(hasTurn ? "yourTurn" : "opponentsTurn") }))}
+                    {game.playingMode == PlayingMode.Offline && capitalize(t("turnInfoOffline", { player: t(getPlayerTurnColor() ?? "noOne") }))}
+                    {game.playingMode == PlayingMode.Online && capitalize(t("turnInfoOnline", { player: t(hasTurn ? "yourTurn" : "opponentsTurn") }))}
                   </span>
                   {settings.timeLimit !== false && (<>
                     <Timer className="mt-2" ref={timerRef} running={timerRunning} setRunning={setTimerRunning} initialTime={settings.timeLimit * 1000} onElapsed={() => {

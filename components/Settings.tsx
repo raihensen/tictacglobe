@@ -9,7 +9,7 @@ import 'rc-slider/assets/index.css';
 import { useTranslation } from 'next-i18next';
 
 import { NextRouter, useRouter } from "next/router";
-import { Language, defaultLanguage } from "@/src/game.types";
+import { Language, defaultLanguage, DifficultyLevel } from "@/src/game.types";
 import { Dropdown } from "react-bootstrap";
 import { CircleFlag } from "react-circle-flags";
 import styles from '@/pages/Game.module.css'
@@ -18,7 +18,7 @@ var _ = require('lodash');
 
 
 export type Settings = {
-  difficulty: "easy" | "medium" | "hard";
+  difficulty: DifficultyLevel;
   showIso: boolean;
   showNumSolutions: boolean;
   showNumSolutionsHint: boolean;
@@ -152,17 +152,20 @@ function assignSettings(settings: Settings, e: React.ChangeEvent<HTMLInputElemen
 
 // --- Language Selector -----------------------------------------------
 
-export function changeLanguage(router: NextRouter, i18n: any, language: string | null) {
+export function changeLanguage(router: NextRouter, i18n: any, language: Language | string | null) {
   language = language?.toString() || defaultLanguage
+  console.log(`change language from ${router.locale} to ${language}`)
   i18n.changeLanguage(language)
   router.push(router.asPath, undefined, { locale: language })
 }
 
 type LanguageSelectorProps = {
   onChange: (oldLanguage: string | Language, language: string | Language) => Promise<boolean>;
+  value?: Language | string;
+  disabled?: boolean;
 }
 
-export const LanguageSelector = ({ onChange }: LanguageSelectorProps) => {
+export const LanguageSelector = ({ onChange, value, disabled }: LanguageSelectorProps) => {
   const { t, i18n } = useTranslation()
   const router = useRouter()
 
@@ -171,6 +174,7 @@ export const LanguageSelector = ({ onChange }: LanguageSelectorProps) => {
       "en": "gb"
     }, languageCode, languageCode) as string
   }
+  value = value ?? (router.locale ?? defaultLanguage)
 
   return (
     <Dropdown onSelect={async (language) => {
@@ -181,8 +185,8 @@ export const LanguageSelector = ({ onChange }: LanguageSelectorProps) => {
       changeLanguage(router, i18n, language)
       onChange(oldLanguage, language)
     }}>
-      <Dropdown.Toggle variant="secondary" className={styles.languageSelector}>
-        <CircleFlag countryCode={languageToCountry(router.locale ?? defaultLanguage)} height={18} />
+      <Dropdown.Toggle variant="secondary" className={styles.languageSelector} disabled={disabled}>
+        <CircleFlag countryCode={languageToCountry(value)} height={18} />
       </Dropdown.Toggle>
       <Dropdown.Menu>
         {Object.values(Language).map((language, i) => (
