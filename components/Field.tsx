@@ -30,7 +30,7 @@ type FieldState = {
   mode: FieldMode;
 }
 
-const Field = ({ pos, game, row, col, userIdentifier, apiRequest, hasTurn, notifyDecided, countries, settings }: FieldProps) => {
+const Field = ({ pos, setActive, game, row, col, apiRequest, hasTurn, notifyDecided, countries, settings }: FieldProps) => {
   const { t, i18n } = useTranslation('common')
   const [i, j] = pos
   const solutions = countries.filter(c => game.setup.solutions[i][j].includes(c.iso))
@@ -133,7 +133,7 @@ const Field = ({ pos, game, row, col, userIdentifier, apiRequest, hasTurn, notif
   // TODO extra mode: other player's turn
 
   return (
-    <TableCellInner>
+    <TableCellInner onMouseOver={() => setActive(true)}>
       {/* <span>{mode}</span> */}
       {fieldState.mode == FieldMode.INITIAL && <>
         {/* Field is still free */}
@@ -355,6 +355,8 @@ const CountryAutoComplete = ({ countries, makeGuess, onBlur }: CountryAutoComple
 
 export type FieldProps = {
   pos: number[];
+  active: boolean;
+  setActive: (active: boolean) => void;
   game: Game;
   row: CategoryValue;
   col: CategoryValue;

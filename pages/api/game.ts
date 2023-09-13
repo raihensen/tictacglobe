@@ -9,10 +9,21 @@ var fs = require('fs').promises;
 import path from 'path';
 import { Mutex } from 'async-mutex';
 
+// debug game sessions
+var sessions: GameSession[] = [{
+  currentGame: null,
+  index: 0,
+  isPublic: false,
+  playingMode: PlayingMode.Offline,
+  previousGames: [],
+  score: [0, 0],
+  users: ["debug"]
+}]
+var userSessionMap: { [x: string]: GameSession } = { "debug": sessions[0] }
+// var userSessionMap: { [x: string]: GameSession } = {}
+// var sessions: GameSession[] = []
 
-var userSessionMap: { [x: string]: GameSession } = {}
-var sessionIndex = 0
-var sessions: GameSession[] = []
+var sessionIndex = 1
 var sessionsMutex = new Mutex()
 var countryData: { [x: string]: Country[] } = {}
 

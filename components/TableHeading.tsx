@@ -28,7 +28,7 @@ const colorMap = {
   "Black": styles.flagColorBlack
 }
 
-export const TableHeading = ({ category, value }: CategoryValue) => {
+const TableHeadingInner = ({ category, value }: CategoryValue) => {
   const { t, i18n } = useTranslation('common')
 
   const tooltipId = useId()
@@ -111,28 +111,12 @@ export const TableHeading = ({ category, value }: CategoryValue) => {
   return false
 }
 
-export const RowHeading = styled.td`
-  & > div {
-    width: 150px;
-    height: 150px;
-    display: flex;
-    align-items: center;
-    justify-content: flex-end;
-    padding: 10px;
-  }
-`
-
-export const ColHeading = styled.th`
-  font-weight: normal;
-  & > div {
-    width: 150px;
-    height: 100px;
-    display: flex;
-    align-items: flex-end;
-    justify-content: center;
-    padding: 10px;
-  }
-`
+export const TableHeading = ({ category, value, orient, active }: CategoryValue & {
+  orient: "row" | "col",
+  active: boolean
+}) => (
+  <div className={`${orient}Heading${active ? " active" : ""}`}><div><TableHeadingInner category={category} value={value} /></div></div>
+)
 
 const TableHeadingLetter = styled.span<{ $i: number, $mode: "first" | "last" }>`
   font-weight: bold;
@@ -143,7 +127,7 @@ const TableHeadingLetter = styled.span<{ $i: number, $mode: "first" | "last" }>`
   margin-bottom: -.25em;
   margin-${props.$mode == "first" ? "right" : "left"}: 1px;` : ""}
   ${props => props.$i != 0 ? `
-  text-shadow: 0 0 2px white;
+  text-shadow: 0 0 .25rem white;
   opacity: .75;
   color: transparent;
   font-size: ${(1 - .5 * (props.$i - 1) / 3) * 100}%;

@@ -14,7 +14,7 @@ import _ from "lodash";
 
 import Timer from "@/components/Timer";
 import Field from "@/components/Field";
-import { TableHeading, RowHeading, ColHeading } from '@/components/TableHeading';
+import { TableHeading } from '@/components/TableHeading';
 import { FaArrowsRotate, FaEllipsis, FaGear, FaMoon, FaPause, FaPersonCircleXmark, FaPlay } from "react-icons/fa6";
 import { useRouter } from "next/router";
 import type { GetStaticProps } from 'next'
@@ -22,7 +22,7 @@ import { PageProps } from "./_app";
 import { Settings, SettingsModal, useSettings, LanguageSelector, changeLanguage } from "@/components/Settings";
 import { SplitButtonToolbar } from "@/components/Layout";
 // import styles from '@/pages/Game.module.css'
-import { IconButton, PlayerBadge, TableCell } from "@/components/styles";
+import { IconButton, PlayerBadge, GameTable } from "@/components/styles";
 
 
 const defaultSettings: Settings = {
@@ -58,6 +58,8 @@ const GamePage = ({ isClient, toggleDarkMode, userIdentifier, isCustomUserIdenti
   const [hasTurn, setHasTurn] = useState<boolean>(true)
 
   const [countries, setCountries] = useState<Country[]>([])
+
+  const [activeField, setActiveField] = useState<number[] | null>(null)
 
   const getIndexUrl = (absolute: boolean = false) => {
     let url = ""
@@ -257,11 +259,11 @@ const GamePage = ({ isClient, toggleDarkMode, userIdentifier, isCustomUserIdenti
         {(game.winner === -1) && (<b>{t("tieNotification")}</b>)}
       </p>
       {/* {(notifyDecided && (game.winner === 0 || game.winner === 1)) && <Alert variant="success"><b>{capitalize(getPlayerColor(game.winner) ?? "No one")} wins!</b></Alert>} */}
-
-      <table style={{ margin: "0 auto" }}>
-        <thead>
-          <tr>
-            <th>
+      
+      <div style={{ display: "flex" }}>
+        <GameTable style={{ margin: "0 auto" }}>
+          <div className="tableRow header">
+            <div className="topLeft">
               <div style={{ display: "flex", flexDirection: "column", justifyContent: "center", alignItems: "center" }}>
                 {showTurnInfo && (<>
                   <PlayerBadge $playerColor={getPlayerTurnColor() ?? "none"}>
@@ -278,20 +280,26 @@ const GamePage = ({ isClient, toggleDarkMode, userIdentifier, isCustomUserIdenti
                   </>)}
                 </>)}
               </div>
-            </th>
+            </div>
             {game.setup.cols.map((col, j) => (
-              <ColHeading key={j}><div><TableHeading {...col} /></div></ColHeading>
+              <TableHeading key={j} orient="col" active={activeField !== null && activeField[1] == j} {...col} />
             ))}
-          </tr>
-        </thead>
-        <tbody>
+          </div>
           {game.setup.solutions.map((row: string[][], i: number) => (
-            <tr key={i}>
-              <RowHeading><div><TableHeading {...game.setup.rows[i]} /></div></RowHeading>
+            <div className="tableRow" key={i}>
+              <TableHeading key={i} orient="row" active={activeField !== null && activeField[0] == i} {...game.setup.rows[i]} />
               {row.map((countryCodes: string[], j: number) => {
-                return (<TableCell key={j}>
+                return (<div className="tableCell" key={j}>
                   <Field
                     pos={[i, j]}
+                    active={activeField !== null && activeField[0] == i && activeField[1] == j}
+                    setActive={(active: boolean) => {
+                      if (active) {
+                        setActiveField([i, j])
+                      } else {
+                        setActiveField(null)
+                      }
+                    }}
                     game={game}
                     row={game.setup.rows[i]}
                     col={game.setup.cols[j]}
@@ -302,12 +310,12 @@ const GamePage = ({ isClient, toggleDarkMode, userIdentifier, isCustomUserIdenti
                     countries={countries}
                     settings={settings}
                   />
-                </TableCell>)
+                </div>)
               })}
-            </tr>
+            </div>
           ))}
-        </tbody>
-      </table>
+        </GameTable>
+      </div>
     </>)}
   </>)
 }

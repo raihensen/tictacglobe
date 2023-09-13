@@ -4,6 +4,36 @@ import Dropdown from "react-bootstrap/Dropdown";
 import Tooltip from "react-bootstrap/Tooltip";
 import styled from "styled-components";
 
+const breakpointsMin = {
+  xs: 0,
+  sm: 576,
+  md: 768,
+  lg: 992,
+  xl: 1200,
+  xxl: 1400
+}
+const breakpointsMax = {
+  xs: 576,
+  sm: 768,
+  md: 992,
+  lg: 1200,
+  xl: 1400,
+  xxl: null
+}
+
+type Breakpoint = "xs" | "sm" | "md" | "lg" | "xl" | "xxl"
+
+const breakMinWidth = (bp: Breakpoint) => {
+  return breakpointsMin[bp] ? `(min-width: ${breakpointsMin[bp]}px)` : ""
+}
+const breakMaxWidth = (bp: Breakpoint) => {
+  return breakpointsMax[bp] ? `(max-width: ${breakpointsMax[bp]}px)` : ""
+}
+const breakWidth = (bpMin: Breakpoint, bpMax: Breakpoint) => {
+  return [breakMinWidth(bpMin), breakMaxWidth(bpMax)].filter(x => x.length).join(" and ")
+}
+
+
 // .badge-player
 export const PlayerBadge = styled.span<{ $playerColor: string }>`
   padding: .25rem;
@@ -13,16 +43,78 @@ export const PlayerBadge = styled.span<{ $playerColor: string }>`
   opacity: .75;
 `
 
-export const TableCell = styled.td`
-  border: 1px solid rgba(0,0,0,.25);
-  padding: 0;
+export const GameTable = styled.div`
+
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: flex-end;
+
+  max-width: 100%;
+
+  .tableRow {
+
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    width: 100%;
+
+    &.header .topLeft, &.header .colHeading, .rowHeading, .tableCell {
+      padding: 0;
+      width: 120px;
+      max-width: 25%;
+
+      @media only screen and (min-width: 768px) {
+        width: 150px;
+      }
+    }
+
+    .colHeading, .rowHeading {
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+
+      &.colHeading {
+        font-weight: normal;
+        height: 80px;
+        flex-direction: column;
+        padding-bottom: 10px;
+      }
+      &.rowHeading {
+          padding-right: 10px;
+          display: flex;
+      }
+      & > div > span {
+        position: relative;
+      }
+      &.active > div > span {
+        z-index: 10;
+        box-shadow: .25rem .25rem .5rem var(--bs-border-color-translucent);
+      }
+      &:not(.active) > div > span {
+        opacity: .75;
+      }
+    }
+    .tableCell {
+      border: 1px solid var(--bs-border-color-translucent);
+      &:not(:last-child) {
+        border-right-width: 0;
+      }
+    }
+    &:not(:last-child) .tableCell {
+      border-bottom-width: 0;
+    }
+
+
+  }
 `
+
 export const TableCellInner = styled.div`
+  padding-bottom: 100%;  /* aspect-ratio: 1 / 1; */
   position: relative;
   top: 0;
   left: 0;
-  width: 150px;
-  height: 150px;
+
   .field-flex {
     padding: 5px;
     display: flex;
