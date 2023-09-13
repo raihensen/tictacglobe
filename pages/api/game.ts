@@ -156,7 +156,7 @@ async function chooseGameSetup(
     if (!files.length) {
       return null
     }
-    const file = path.join(dir, _.max(files))
+    const file = path.join(dir, _.max(files) ?? "")
     console.log(`Read games from file ${file}`);
     const data = await fs.readFile(file)
     let gameSetups = JSON.parse(data).map((props: Omit<GameSetup, "props">) => ({

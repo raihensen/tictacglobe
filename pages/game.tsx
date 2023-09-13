@@ -89,6 +89,10 @@ const GamePage = ({ isClient, toggleDarkMode, userIdentifier, isCustomUserIdenti
       query.language = query.language ?? (router.locale ?? defaultLanguage) as Language
     }
 
+    if (params.action != RequestAction.RefreshGame) {
+      setLoadingText(params.action == RequestAction.MakeGuess ? "Submitting guess" : "Loading")
+    }
+
     const search = Object.entries(query).filter(([key, val]) => val != undefined).map(([key, val]) => `${key}=${encodeURIComponent(val)}`).join("&")
     const url = "/api/game?" + search
     console.log(`API request: ${url}`);
@@ -260,7 +264,7 @@ const GamePage = ({ isClient, toggleDarkMode, userIdentifier, isCustomUserIdenti
             <th>
               <div style={{ display: "flex", flexDirection: "column", justifyContent: "center", alignItems: "center" }}>
                 {showTurnInfo && (<>
-                  <PlayerBadge playerColor={getPlayerTurnColor() ?? "none"}>
+                  <PlayerBadge $playerColor={getPlayerTurnColor() ?? "none"}>
                     {game.playingMode == PlayingMode.Offline && capitalize(t("turnInfoOffline", { player: t(getPlayerTurnColor() ?? "noOne") }))}
                     {game.playingMode == PlayingMode.Online && capitalize(t("turnInfoOnline", { player: t(hasTurn ? "yourTurn" : "opponentsTurn") }))}
                   </PlayerBadge>

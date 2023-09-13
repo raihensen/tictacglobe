@@ -319,7 +319,7 @@ const CountryAutoComplete = ({ countries, makeGuess, onBlur }: CountryAutoComple
       items={items}
       getItemValue={(item: AutoCompleteItem) => item.country.iso}
       renderItem={(item: AutoCompleteItem, isHighlighted: boolean) =>
-        <AutoCompleteItem key={`${item.country.iso}-${item.nameIndex}`} highlighted={isHighlighted}>
+        <AutoCompleteItem key={`${item.country.iso}-${item.nameIndex}`} $highlighted={isHighlighted}>
           {item.nameIndex == 0 && item.country.name}
           {item.nameIndex != 0 && (<>
             {item.name} <small className="text-muted">({item.country.name})</small>

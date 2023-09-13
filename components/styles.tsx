@@ -5,11 +5,11 @@ import Tooltip from "react-bootstrap/Tooltip";
 import styled from "styled-components";
 
 // .badge-player
-export const PlayerBadge = styled.span<{ playerColor: string }>`
+export const PlayerBadge = styled.span<{ $playerColor: string }>`
   padding: .25rem;
   border-radius: 5px;
   color: white;
-  background-color: ${({ playerColor }) => `var(--bs-${playerColor})`};
+  background-color: ${({ $playerColor }) => `var(--bs-${$playerColor})`};
   opacity: .75;
 `
 
@@ -81,9 +81,9 @@ export const MarkingBackground = styled.div<{ $player: number, $isWinning: boole
   z-index: -10;
 `
 
-export const AutoCompleteItem = styled.div<{ highlighted: boolean }>`
+export const AutoCompleteItem = styled.div<{ $highlighted: boolean }>`
   cursor: pointer;
-  background: ${({ highlighted }) => highlighted ? 'lightgray' : 'white' };
+  background: ${({ $highlighted }) => $highlighted ? 'lightgray' : 'white' };
 `
 
 const IconButtonStyle = styled(Button)`
