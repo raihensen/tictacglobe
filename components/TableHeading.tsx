@@ -28,7 +28,7 @@ const colorMap = {
   "Black": styles.flagColorBlack
 }
 
-const TableHeadingInner = ({ category, value }: CategoryValue) => {
+const TableHeadingInner = ({ category, value, onMouseEnter }: CategoryValue & { onMouseEnter: () => void }) => {
   const { t, i18n } = useTranslation('common')
 
   const tooltipId = useId()
@@ -37,7 +37,7 @@ const TableHeadingInner = ({ category, value }: CategoryValue) => {
     const tooltipCategoryInfo = (<Tooltip id={`tooltipCategoryInfo-${tooltipId}`}>{t("category.landlocked.tooltip")}</Tooltip>)
     return (
       <OverlayTrigger placement="top" overlay={tooltipCategoryInfo}>
-        <CategoryBadge>
+        <CategoryBadge onMouseEnter={onMouseEnter}>
           <IconStack>
             <FaWater color="white" />
             <FaSlash color="white" />
@@ -111,11 +111,16 @@ const TableHeadingInner = ({ category, value }: CategoryValue) => {
   return false
 }
 
-export const TableHeading = ({ category, value, orient, active }: CategoryValue & {
+export const TableHeading = ({ category, value, orient, active, setActive }: CategoryValue & {
   orient: "row" | "col",
-  active: boolean
+  active: boolean,
+  setActive: () => void
 }) => (
-  <div className={`${orient}Heading${active ? " active" : ""}`}><div><TableHeadingInner category={category} value={value} /></div></div>
+  <div className={`${orient}Heading${active ? " active" : ""}`}>
+    <div className="tableHeadingBackground">
+      <TableHeadingInner category={category} value={value} onMouseEnter={() => { setActive(); console.log("hover heading") }} />
+    </div>
+  </div>
 )
 
 const TableHeadingLetter = styled.span<{ $i: number, $mode: "first" | "last" }>`
@@ -143,7 +148,7 @@ const CategoryBadge = styled.span`
   background: var(--bs-secondary);
   color: white;
   padding: .5rem;
-  border-radius: 5px;
+  border-radius: var(--bs-border-radius);
 
   -webkit-user-select: none; /* Safari */
   -ms-user-select: none; /* IE 10 and IE 11 */

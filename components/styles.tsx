@@ -89,10 +89,15 @@ export const GameTable = styled.div`
       }
       &.active > div > span {
         z-index: 10;
-        box-shadow: .25rem .25rem .5rem var(--bs-border-color-translucent);
+        box-shadow: .25rem .25rem .5rem rgba(0, 0, 0, .5);
       }
       &:not(.active) > div > span {
         opacity: .75;
+      }
+      & > .tableHeadingBackground {
+        background: var(--bs-body-bg);
+        border-radius: var(--bs-border-radius);
+        position: relative;
       }
     }
     .tableCell {
@@ -117,9 +122,11 @@ export const TableCellInner = styled.div`
 
   .field-flex {
     padding: 5px;
+    width: 100%;
+    position: absolute;
     display: flex;
     flex-direction: column;
-    justify-content: center;
+    justify-content: flex-start;
     align-items: center;
     > span {
       display: block;
@@ -171,11 +178,6 @@ export const MarkingBackground = styled.div<{ $player: number, $isWinning: boole
   right: 0;
   bottom: 0;
   z-index: -10;
-`
-
-export const AutoCompleteItem = styled.div<{ $highlighted: boolean }>`
-  cursor: pointer;
-  background: ${({ $highlighted }) => $highlighted ? 'lightgray' : 'white' };
 `
 
 const IconButtonStyle = styled(Button)`

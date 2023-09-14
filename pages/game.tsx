@@ -59,7 +59,6 @@ const GamePage = ({ isClient, toggleDarkMode, userIdentifier, isCustomUserIdenti
 
   const [countries, setCountries] = useState<Country[]>([])
 
-  const [activeField, setActiveField] = useState<number[] | null>(null)
 
   const getIndexUrl = (absolute: boolean = false) => {
     let url = ""
@@ -194,6 +193,21 @@ const GamePage = ({ isClient, toggleDarkMode, userIdentifier, isCustomUserIdenti
   const [timerRunning, setTimerRunning] = useState(false)
   const timerRef = useRef()
 
+  // const [activeRow, setActiveRow] = useState<number | null>(null)
+  // const [activeCol, setActiveCol] = useState<number | null>(null)
+  // const eachCoord = _.range(game?.setup.size ?? 0)
+  // const fieldActiveUseState = eachCoord.map(i => eachCoord.map(j => useState<boolean>(false)))
+  
+  const activeField = [0, 1]
+  // const [activeField, setActiveField] = useState<number[]>([-1, -1])
+  // const notifyActiveField = (i: number, j: number) => {
+  //   setActiveField([i, j])
+  // }
+  // const isRowActive = (i: number) => activeField[0] == i
+  // const isColActive = (j: number) => activeField[1] == j
+  // const setRowActive = (i: number) => setActiveField(field => [i, field[1]])
+  // const setColActive = (j: number) => setActiveField(field => [field[0], j])
+
   return (<>
     {(isClient && isCustomUserIdentifier) && (<h3>User: {userIdentifier}</h3>)}
     {(!hasError && !game) && <Alert variant="warning">Loading game...</Alert>}
@@ -282,24 +296,19 @@ const GamePage = ({ isClient, toggleDarkMode, userIdentifier, isCustomUserIdenti
               </div>
             </div>
             {game.setup.cols.map((col, j) => (
-              <TableHeading key={j} orient="col" active={activeField !== null && activeField[1] == j} {...col} />
+              <TableHeading key={j} orient="col" active={false} setActive={() => console.log(`Set active col ${j}`)} {...col} />
             ))}
           </div>
           {game.setup.solutions.map((row: string[][], i: number) => (
             <div className="tableRow" key={i}>
-              <TableHeading key={i} orient="row" active={activeField !== null && activeField[0] == i} {...game.setup.rows[i]} />
+              <TableHeading key={i} orient="row" active={false} setActive={() => console.log(`Set active row ${i}`)} {...game.setup.rows[i]} />
               {row.map((countryCodes: string[], j: number) => {
                 return (<div className="tableCell" key={j}>
                   <Field
                     pos={[i, j]}
-                    active={activeField !== null && activeField[0] == i && activeField[1] == j}
-                    setActive={(active: boolean) => {
-                      if (active) {
-                        setActiveField([i, j])
-                      } else {
-                        setActiveField(null)
-                      }
-                    }}
+                    notifyActiveField={(i, j) => console.log(`notifyActiveField ${i},${j}`) }
+                    active={activeField[0] == i && activeField[1] == j}
+                    setActive={() => { console.log("set active field") }}
                     game={game}
                     row={game.setup.rows[i]}
                     col={game.setup.cols[j]}

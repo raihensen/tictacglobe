@@ -1,8 +1,8 @@
 
 import styled from "styled-components";
-import { forwardRef, useEffect, useId, useMemo, useState } from 'react';
+import { forwardRef, useEffect, useId, useMemo, useRef, useState } from 'react';
 import { Game, Country, CategoryValue, RequestAction, FrontendQuery, GameData, PlayingMode, GameState } from "@/src/game.types"
-import Autocomplete from 'react-autocomplete'
+import Select from "react-select";
 import { PlusCircleFill } from 'react-bootstrap-icons';
 import Badge from 'react-bootstrap/Badge';
 import { OverlayTrigger, Tooltip } from "react-bootstrap";
@@ -11,7 +11,7 @@ import styles from '@/pages/Game.module.css'
 import { useTranslation } from "next-i18next";
 const NodeCache = require("node-cache");
 import _ from "lodash";
-import { AutoCompleteItem, TableCellInner, MarkingBackground } from "@/components/styles";
+import { TableCellInner, MarkingBackground } from "@/components/styles";
 
 
 const CountryFlag = ({ country, size, onClick }: { country: Country | null, size: number, onClick?: any }) => (
@@ -30,7 +30,7 @@ type FieldState = {
   mode: FieldMode;
 }
 
-const Field = ({ pos, setActive, game, row, col, apiRequest, hasTurn, notifyDecided, countries, settings }: FieldProps) => {
+const Field = ({ pos, setActive, notifyActiveField, game, row, col, apiRequest, hasTurn, notifyDecided, countries, settings }: FieldProps) => {
   const { t, i18n } = useTranslation('common')
   const [i, j] = pos
   const solutions = countries.filter(c => game.setup.solutions[i][j].includes(c.iso))
@@ -133,7 +133,7 @@ const Field = ({ pos, setActive, game, row, col, apiRequest, hasTurn, notifyDeci
   // TODO extra mode: other player's turn
 
   return (
-    <TableCellInner onMouseOver={() => setActive(true)}>
+    <TableCellInner onClick={() => { console.log("Click") }} onMouseEnter={() => { console.log("mouseEnter") }}>
       {/* <span>{mode}</span> */}
       {fieldState.mode == FieldMode.INITIAL && <>
         {/* Field is still free */}
@@ -156,11 +156,14 @@ const Field = ({ pos, setActive, game, row, col, apiRequest, hasTurn, notifyDeci
       {(fieldState.mode == FieldMode.SEARCH && hasTurn) && (
         <>
           <div className="field-flex">
-            <CountryAutoComplete
-              countries={countries}
-              makeGuess={makeGuess}
-              onBlur={() => setMode(FieldMode.INITIAL)}
-            />
+            <div style={{ width: "100%" }}>
+              autocomplete
+              {/* <CountryAutoComplete
+                countries={countries}
+                makeGuess={makeGuess}
+                onBlur={() => setMode(FieldMode.INITIAL)}
+              /> */}
+            </div>
           </div>
           {settings.showNumSolutionsHint && <NumSolutions />}
         </>
@@ -210,6 +213,11 @@ type AutoCompleteItem = {
   nameIndex: number;
   key: string;
 }
+
+// export const AutoCompleteItem = styled.div<{ $highlighted: boolean }>`
+//   cursor: pointer;
+//   background: ${({ $highlighted }) => $highlighted ? 'lightgray' : 'white' };
+// `
 
 const CountryAutoComplete = ({ countries, makeGuess, onBlur }: CountryAutoCompleteProps) => {
   const { t, i18n } = useTranslation('common')
@@ -313,42 +321,63 @@ const CountryAutoComplete = ({ countries, makeGuess, onBlur }: CountryAutoComple
     searchCache.set(q, results)
     return results
   }
+
+  const [isDisabled, setIsDisabled] = useState(false)
+  const [isLoading, setIsLoading] = useState(false)
   
-  return (
-    <Autocomplete
-      items={items}
-      getItemValue={(item: AutoCompleteItem) => item.country.iso}
-      renderItem={(item: AutoCompleteItem, isHighlighted: boolean) =>
-        <AutoCompleteItem key={`${item.country.iso}-${item.nameIndex}`} $highlighted={isHighlighted}>
-          {item.nameIndex == 0 && item.country.name}
-          {item.nameIndex != 0 && (<>
-            {item.name} <small className="text-muted">({item.country.name})</small>
-          </>)}
-        </AutoCompleteItem>
+  type Option = { label: string, value: string, data: AutoCompleteItem }
+
+  return (<Select
+    inputValue={searchValue}
+    className="basic-single"
+    classNamePrefix="select"
+    defaultValue={undefined}
+    autoFocus
+    isDisabled={isDisabled}
+    isLoading={isLoading}
+    isClearable={false}
+    isSearchable={true}
+    menuPlacement="auto"
+    menuPosition="absolute"
+    options={items}
+    placeholder="Country"
+
+    filterOption={(option: Option, inputValue: string) => {
+      return getSearchResults(inputValue).some(resultItem => resultItem.key == option.data.key)
+    }}
+    formatOptionLabel={(item: AutoCompleteItem, formatOptionLabelMeta: { context: "menu" | "value", inputValue: string }) => (<>
+      {item.nameIndex == 0 && item.country.name}
+      {item.nameIndex != 0 && (<>
+        {item.name} <small className="text-muted">({item.country.name})</small>
+      </>)}
+    </>)}
+    getOptionValue={item => item.key}
+
+    onBlur={() => { onBlur() }}
+    onInputChange={(newValue: string) => {
+      setSearchValue(newValue)
+      // pre-compute results for cache
+      const results = getSearchResults(newValue)
+    }}
+    onChange={item => {
+      if (item) {
+        const correct = makeGuess(item.country)
+        setSearchValue("")
+        // if (selectRef.current) {
+        //   selectRef.current.select.clearValue()
+        // }
       }
-      value={searchValue}
-      onChange={(e: any, q: string) => {
-        setSearchValue(q)
-        const results = getSearchResults(q)
-      }}
-      onSelect={(val: string) => {
-        const country = countries.find(c => c.iso == val)
-        if (country) {
-          const correct = makeGuess(country)
-          setSearchValue("")
-        }
-      }}
-      shouldItemRender={(item: AutoCompleteItem, q: string) => {
-        return getSearchResults(q).some(resultItem => resultItem.key == item.key)
-      }}
-      wrapperStyle={{ width: "100%", padding: "5px" }}
-      inputProps={{
-        style: { width: "100%" },
-        onBlur: () => { onBlur() },
-        autoFocus: true
-      }}
-    />
-  )
+    }}
+
+    components={{
+      DropdownIndicator: () => null,
+      IndicatorSeparator: () => null
+    }}
+    styles={{
+      input: base => ({ ...base, cursor: "text" })
+    }}
+  />)
+
 }
 
 
@@ -356,7 +385,8 @@ const CountryAutoComplete = ({ countries, makeGuess, onBlur }: CountryAutoComple
 export type FieldProps = {
   pos: number[];
   active: boolean;
-  setActive: (active: boolean) => void;
+  setActive: () => void;
+  notifyActiveField: (i: number, j: number) => void;
   game: Game;
   row: CategoryValue;
   col: CategoryValue;
