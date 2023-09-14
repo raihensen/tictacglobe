@@ -27,7 +27,7 @@ type FieldState = {
 }
 
 const CountryFlag = ({ country, size, onClick }: { country: Country | null, size: number, onClick?: any }) => (
-  <CircleFlag countryCode={country?.iso?.toLowerCase() ?? "xx"} height={size} onClick={onClick} />
+  <CircleFlag countryCode={country?.iso?.toLowerCase() ?? "xx"} height={size} onClick={onClick} title="" />
 );
 
 type CountryInfoTooltipContentProps = {
@@ -71,6 +71,7 @@ const TooltipTriggerSpan = forwardRef<HTMLSpanElement, React.HTMLProps<HTMLSpanE
   </span>
 ))
 const ResponsiveBadge = styled(Badge)`
+  cursor: default;
   font-size: .6em;
   @media only screen and (min-width: 768px) {
     font-size: .75em;

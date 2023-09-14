@@ -82,7 +82,8 @@
         "showIso": "Länder-Codes anzeigen",
         "showNumSolutions": "Anzahl der Lösungen anzeigen",
         "showNumSolutionsHint": "Anzahl der Lösungen vor Tipp anzeigen",
-        "timeLimit": "Zeitlimit: {{timeLimit}}",
+        "enableTimeLimit": "Zeitlimit aktivieren",
+        "timeLimitValue": "Zeitlimit: {{timeLimit}}",
         "noLimit": "kein Limit"
     },
     "countrySearch": {

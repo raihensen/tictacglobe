@@ -1,16 +1,15 @@
 
 import { FaBuildingColumns, FaFlag, FaEarthAmericas, FaEarthAfrica, FaEarthAsia, FaEarthEurope, FaEarthOceania, FaWater, FaSlash, FaCircle } from "react-icons/fa6";
-import styles from './TableHeading.module.css'
 import { OverlayTrigger, Tooltip } from "react-bootstrap";
 import Badge from 'react-bootstrap/Badge';
 import styled from "styled-components";
-import { useId } from "react";
+import { forwardRef, useId } from "react";
 import { CategoryValue } from "@/src/game.types";
 import { useTranslation } from "next-i18next";
 // import CountryAutoComplete from "@/components/Autocomplete";
 import _ from "lodash";
 
-const continentIconMap = {
+const continentIcons = {
   AS: FaEarthAsia,
   NA: FaEarthAmericas,
   SA: FaEarthAmericas,
@@ -18,135 +17,31 @@ const continentIconMap = {
   AF: FaEarthAfrica,
   OC: FaEarthOceania
 }
-
-const colorMap = {
-  "Red": styles.flagColorRed,
-  "Yellow/Gold": styles.flagColorYellow,
-  "Orange": styles.flagColorOrange,
-  "Green": styles.flagColorGreen,
-  "Blue": styles.flagColorBlue,
-  "White": styles.flagColorWhite,
-  "Black": styles.flagColorBlack
+const flagColorStyles = {
+  "White": { background: "#eeeeee", color: "var(--bs-dark)"},
+  "Black": { background: "#333333", color: "var(--bs-light)"},
+  "Red": { background: "#d80027", color: "var(--bs-light)"},
+  "Orange": { background: "#ff9811", color: "var(--bs-dark)"},
+  "Yellow/Gold": { background: "#ffda44", color: "var(--bs-dark)"},
+  "Green": { background: "#6da544", color: "var(--bs-light)"},
+  "Blue": { background: "#0052b4", color: "var(--bs-light)"}
 }
 
-// TODO useTranslation only in components eslint "react-hooks/rules-of-hooks"
-
-const getTableHeadingContents = ({ category, value, badgeProps }: CategoryValue & { badgeProps: any }): {
-  description?: string,
-  badge?: JSX.Element
-} => {
-  const { t, i18n } = useTranslation('common')
-  
-  if (category == "landlocked") {
-    return {
-      description: t("category.landlocked.tooltip"),
-      badge: (
-        <CategoryBadge {...badgeProps}>
-          <IconStack>
-            <FaWater color="white" />
-            <FaSlash color="white" />
-          </IconStack>
-          <span className="icon-label">{t("category.landlocked.label")}</span>
-        </CategoryBadge>
-      )
-    }
-  }
-  if (category == "island") {
-    return {
-      description: t("category.island.tooltip"),
-      badge: (
-        <CategoryBadge {...badgeProps}>
-          <FaCircle />
-          <span>{t("category.island.label")}</span>
-        </CategoryBadge>
-      )
-    }
-    
-  }
-
-  const isStartsWith = category == "starting_letter" || category == "capital_starting_letter"
-  const isEndsWith = category == "ending_letter" || category == "capital_ending_letter"
-  if (isStartsWith || isEndsWith) {
-    const isCapital = category.startsWith("capital")
-    const letter = (value as string).toUpperCase()
-    
-    return {
-      description: t(`category.${_.camelCase(category)}.tooltip`, { letter }),
-      badge: (
-        <CategoryBadge {...badgeProps}>
-          {isCapital && <FaBuildingColumns className={styles.categoryIcon} />}
-          {isStartsWith ? [letter, "a", "b", "c"].map((c, i) => (
-            <TableHeadingLetter key={i} $i={i} $mode="first">{i == 3 ? `${c}...` : c}</TableHeadingLetter>
-          )) : ["a", "b", "c", letter].map((c, i) => (
-            <TableHeadingLetter key={i} $i={3 - i} $mode="last">{i == 0 ? `...${c}` : c}</TableHeadingLetter>
-          ))}
-        </CategoryBadge>
-      )
-    }
-  }
-
-  if (category == "flag_colors") {
-    const color = value as string
-    const colorClass = _.get(colorMap, color, styles.flagColorBlack)
-    const i18Key = "category.flagColor.values." + _.get({ "Yellow/Gold": "YellowOrGold" }, color, color)
-    
-    return {
-      description: t("category.flagColor.tooltip", { color: t(i18Key) }),
-      badge: (
-        <CategoryBadge className={`flagColorBadge ${colorClass}`} {...badgeProps}>
-          <FaFlag className={styles.categoryIcon} />
-          <span className="icon-label">{t(i18Key).toUpperCase()}</span>
-        </CategoryBadge>
-      )
-    }
-  }
-
-  if (category == "continent") {
-    const continent = value as string
-    const ContinentIcon = _.get(continentIconMap, continent, FaEarthAfrica)
-    return {
-      description: t("category.continent.tooltip", { continent: t(`category.continent.values.${continent}`) }),
-      badge: (
-        <CategoryBadge {...badgeProps}>
-          <ContinentIcon className={styles.categoryIcon} />
-          <span className="icon-label">{t(`category.continent.values.${continent}`)}</span>
-        </CategoryBadge>
-      )
-    }
-  }
-  
-  return {}
-}
-
-export const TableHeading = ({ category, value, orient, active, setActive }: CategoryValue & {
-  orient: "row" | "col",
-  active: boolean,
-  setActive: (active: boolean) => void
+const CategoryBadgeSimple = ({ label, labelFormatter, icon, ...props }: React.ComponentProps<typeof CategoryBadge> & {
+  label: string,
+  labelFormatter?: (s: string) => string,
+  icon: JSX.Element
 }) => {
-
-  const { description, badge } = getTableHeadingContents({ category: category, value: value, badgeProps: {
-    onMouseEnter: () => { setActive(true) },
-    onMouseLeave: () => { setActive(false) }
-  }})
-
-  const tooltipId = useId()
-  const tooltip = description ? (<Tooltip id={`categoryTooltip-${tooltipId}`}>{description}</Tooltip>) : undefined
-
+  const { t } = useTranslation('common')
   return (
-    <div className={`${orient}Heading${active ? " active" : ""}`}>
-      {badge && (<div className="tableHeadingBackground">
-        {tooltip && (
-          <OverlayTrigger placement="top" overlay={tooltip}>
-            {badge}
-          </OverlayTrigger>
-        )}
-        {!tooltip && badge}
-      </div>)}
-    </div>
+    <CategoryBadge {...props}>
+      {icon}
+      <span className="icon-label">{labelFormatter ? labelFormatter(t(label)) : t(label)}</span>
+    </CategoryBadge>
   )
 }
 
-const TableHeadingLetter = styled.span<{ $i: number, $mode: "first" | "last" }>`
+const CategoryLetter = styled.span<{ $i: number, $mode: "first" | "last" }>`
   font-weight: bold;
   align-self: ${props => props.$mode} baseline;
   ${props => props.$i == 0 ? `
@@ -161,11 +56,130 @@ const TableHeadingLetter = styled.span<{ $i: number, $mode: "first" | "last" }>`
   font-size: ${(1 - .5 * (props.$i - 1) / 3) * 100}%;
   ` : ""}
 `
+const CategoryBadgeLetters = ({ letter, isCapital, isStartsWith, isEndsWith, ...props }: React.ComponentProps<typeof CategoryBadge> & {
+  letter: string,
+  isCapital: boolean,
+  isStartsWith: boolean,
+  isEndsWith: boolean
+}) => {
+  const { t } = useTranslation('common')
+  return (
+    <CategoryBadge {...props}>
+      {isCapital && <FaBuildingColumns />}
+      {isStartsWith ? [letter, "a", "b", "c"].map((c, i) => (
+        <CategoryLetter key={i} $i={i} $mode="first">{i == 3 ? `${c}...` : c}</CategoryLetter>
+      )) : ["a", "b", "c", letter].map((c, i) => (
+        <CategoryLetter key={i} $i={3 - i} $mode="last">{i == 0 ? `...${c}` : c}</CategoryLetter>
+      ))}
+    </CategoryBadge>
+  )
+}
+
+type TranslationArgsType = [string, { [x: string]: string }]
+
+const getCategoryInfo = ({ category, value, ...props }: CategoryValue & React.ComponentProps<typeof CategoryBadge>): {
+  description?: string | TranslationArgsType,
+  badge?: JSX.Element
+} => {
+  
+  if (category == "landlocked") {
+    return {
+      description: "category.landlocked.tooltip",
+      badge: (<CategoryBadgeSimple icon={(<IconStack><FaWater color="white" /><FaSlash color="white" /></IconStack>)} label="category.landlocked.label" {...props} />)
+    }
+  }
+  if (category == "island") {
+    return {
+      description: "category.island.tooltip",
+      badge: (<CategoryBadgeSimple icon={<FaCircle />} label="category.island.label" {...props} />)
+    }
+  }
+
+  const isStartsWith = category == "starting_letter" || category == "capital_starting_letter"
+  const isEndsWith = category == "ending_letter" || category == "capital_ending_letter"
+  if (isStartsWith || isEndsWith) {
+    const isCapital = category.startsWith("capital")
+    const letter = (value as string).toUpperCase()
+    return {
+      description: [`category.${_.camelCase(category)}.tooltip`, { letter }],
+      badge: (<CategoryBadgeLetters letter={letter} isCapital={isCapital} isStartsWith={isStartsWith} isEndsWith={isEndsWith} {...props} />)
+    }
+  }
+
+  if (category == "flag_colors") {
+    const colorName = value as string
+    const style = _.get(flagColorStyles, colorName, flagColorStyles.White)
+    const i18Key = "category.flagColor.values." + _.get({ "Yellow/Gold": "YellowOrGold" }, colorName, colorName)
+    return {
+      description: ["category.flagColor.tooltip", { color: i18Key }],
+      badge: (<CategoryBadgeSimple className="flagColorBadge" style={style} icon={<FaFlag />} label={i18Key} {...props} labelFormatter={s => s.toUpperCase()} />)
+    }
+  }
+
+  if (category == "continent") {
+    const continent = value as string
+    const ContinentIcon = _.get(continentIcons, continent, FaEarthAfrica)
+    return {
+      description: ["category.continent.tooltip", { continent: `category.continent.values.${continent}` }],
+      badge: (<CategoryBadgeSimple icon={<ContinentIcon />} label={`category.continent.values.${continent}`} {...props} />)
+    }
+  }
+  
+  return {}
+}
+
+export const TableHeading = ({ category, value, orient, active, setActive }: CategoryValue & {
+  orient: "row" | "col",
+  active: boolean,
+  setActive: (active: boolean) => void
+}) => {
+
+  const { t } = useTranslation('common')
+  let { description, badge } = getCategoryInfo({
+    category: category,
+    value: value,
+    onMouseEnter: () => { setActive(true) },
+    onMouseLeave: () => { setActive(false) }
+  })
+  if (description) {
+    // translate translation parameters [ t("colorInfo", { color: "colorRed" }) ]
+    if (_.isArray(description)) {
+      description = description as TranslationArgsType
+      if (description.length == 2) {
+        description[1] = Object.fromEntries(Object.entries(description[1]).map(([k, v]: [string, string]) => [k, t(v)]))
+      } else {
+        console.log(`Warning: TableHeading expected translation parameters to have length 2.`)
+      }
+    } else {
+      description = [description, {}]
+    }
+  }
+  description = description as TranslationArgsType
+
+  const tooltipId = useId()
+  const tooltip = description ? (<Tooltip id={`categoryTooltip-${tooltipId}`}>{t(...description)}</Tooltip>) : undefined
+
+  return (
+    <div className={`${orient}Heading${active ? " active" : ""}`}>
+      {badge && (<div className="tableHeadingBackground">
+        {tooltip && (
+          <OverlayTrigger placement="top" overlay={tooltip}>
+            <div>
+              {badge}
+            </div>
+          </OverlayTrigger>
+        )}
+        {!tooltip && badge}
+      </div>)}
+    </div>
+  )
+}
+
 // 
 // i=0:
 // transform: scale(1.2);
 
-const CategoryBadge = styled.span`
+const CategoryBadgeInner = styled.span`
   display: flex;
   align-items: center;
   background: var(--bs-secondary);
@@ -178,6 +192,7 @@ const CategoryBadge = styled.span`
   user-select: none; /* Standard syntax */
 
   svg, .icon-stack {
+    vertical-align: inherit;
     margin-right: 6px;
     font-size: 24px;
   }
@@ -185,6 +200,9 @@ const CategoryBadge = styled.span`
     font-size: 80%;
   }
 `
+const CategoryBadge = forwardRef<HTMLSpanElement, React.HTMLProps<HTMLSpanElement>>(({ className, ...props }, ref) => (
+  <CategoryBadgeInner ref={ref} className={["categoryBadge", className].join(" ")} {...props} />
+))
 
 const IconStack = styled.span`
   display: grid;

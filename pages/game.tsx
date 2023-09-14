@@ -21,6 +21,8 @@ import type { GetStaticProps } from 'next'
 import { PageProps } from "./_app";
 import { Settings, SettingsModal, useSettings, LanguageSelector, changeLanguage } from "@/components/Settings";
 import { SplitButtonToolbar, IconButton, PlayerBadge, GameTable } from "@/components/styles";
+import CountryAutoComplete from "@/components/Autocomplete";
+import Form from "react-bootstrap/esm/Form";
 
 
 const defaultSettings: Settings = {
@@ -262,6 +264,22 @@ const GamePage = ({ isClient, toggleDarkMode, userIdentifier, isCustomUserIdenti
       </SplitButtonToolbar>
 
       <SettingsModal settings={settings} setSettings={setSettings} showSettings={showSettings} setShowSettings={setShowSettings} />
+
+      {/* https://github.com/JedWatson/react-select/issues/2345 */}
+      {/* <p>
+        <CountryAutoComplete countries={countries} onBlur={() => {}} makeGuess={(c: Country) => false} />
+      </p>
+      <p>
+        <Form.Select aria-label="Default select example">
+          <option>Open this select menu</option>
+          <option value="1">One</option>
+          <option value="2">Two</option>
+          <option value="3">Three</option>
+        </Form.Select>
+      </p>
+      <p>
+        <Form.Control type="text" />
+      </p> */}
 
       <p>
         {/* State: <b>{GameState[game.state]}</b> */}

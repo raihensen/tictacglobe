@@ -82,7 +82,8 @@
         "showIso": "Show country ISO codes",
         "showNumSolutions": "Show number of solutions",
         "showNumSolutionsHint": "Show number of solutions before guess",
-        "timeLimit": "Time limit: {{timeLimit}}",
+        "enableTimeLimit": "Enable time limit",
+        "timeLimitValue": "Time limit: {{timeLimit}}",
         "noLimit": "No limit"
     },
     "countrySearch": {

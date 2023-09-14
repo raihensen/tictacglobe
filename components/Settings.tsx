@@ -49,19 +49,20 @@ export type SettingsModalProps = {
   setShowSettings: (value: boolean) => void;
 }
 
+
 export const SettingsModal = ({ settings, setSettings, showSettings, setShowSettings }: SettingsModalProps) => {
   const { t, i18n } = useTranslation()
 
   // const showSettings = () => setShowSettings(true)
 
   const updateSettings = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement> | { target: SettingsValues}) => {
-    
     const newSettings = assignSettings(settings, e)
     console.log(`New settings: ${JSON.stringify(newSettings)}`)
     setSettings(newSettings)
   }
 
-  const [timeLimitSliderValue, setTimeLimitSliderValue] = useState(settings.timeLimit !== false ? settings.timeLimit : timeLimitDummyValue)
+  const [timeLimitSliderValue, setTimeLimitSliderValue] = useState(settings.timeLimit !== false ? settings.timeLimit : defaultTimeLimitSliderValue)
+  const [showTimeLimitSlider, setShowTimeLimitSlider] = useState<boolean>(settings.timeLimit !== false)
 
   return (
     <Modal show={showSettings} onHide={() => setShowSettings(false)}>
@@ -77,27 +78,35 @@ export const SettingsModal = ({ settings, setSettings, showSettings, setShowSett
         <Form.Check type="switch" onChange={updateSettings} checked={settings.showIso} id="settingsShowIso" label={t("settings.showIso")} />
         <Form.Check type="switch" onChange={updateSettings} checked={settings.showNumSolutions} id="settingsShowNumSolutions" label={t("settings.showNumSolutions")} />
         <Form.Check type="switch" onChange={updateSettings} checked={settings.showNumSolutionsHint} disabled={!settings.showNumSolutions} id="settingsShowNumSolutionsHint" label={t("settings.showNumSolutionsHint")} />
-        <Form.Label className="mt-3">{t("settings.timeLimit", { timeLimit: settings.timeLimit !== false ? formatTimeLimit(settings.timeLimit) : t("settings.noLimit") })}</Form.Label>
-        <div className="px-3">
-          <Slider
-            marks={Object.fromEntries([...timeLimitValues.map(t => [t, formatTimeLimit(t)]), [timeLimitDummyValue, t("settings.noLimit")]])}
-            step={null}
-            onChange={(v: number | number[]) => {
-              const t = v as number
-              setTimeLimitSliderValue(t)
-              updateSettings({ target: { id: "settingsTimeLimit", value: t < timeLimitDummyValue ? t : false }})
-            }}
-            min={Math.min(...timeLimitValues)}
-            max={timeLimitDummyValue}
-            value={timeLimitSliderValue}
-            railStyle={{ backgroundColor: 'var(--bs-gray-100)' }} // Customize the rail color
-            trackStyle={{ backgroundColor: 'var(--bs-primary)' }} // Customize the track color
-            handleStyle={{ backgroundColor: 'var(--bs-primary)', border: "none", opacity: 1 }} // Customize the handle color
-            dotStyle={{ backgroundColor: 'var(--bs-gray-100)', border: "none", width: "12px", height: "12px", bottom: "-4px" }} // Customize the handle color
-            activeDotStyle={{ border: "2px solid var(--bs-primary)" }} // Customize the handle color
-            className="mb-5"
-          />
-        </div>
+        
+        <Form.Check type="switch" onChange={(e) => {
+          updateSettings({ target: { id: "settingsTimeLimit", value: e.target.checked ? timeLimitSliderValue : false }})
+          setShowTimeLimitSlider(e.target.checked)
+        }} checked={settings.timeLimit !== false} id="settingsEnableTimeLimit" label={t("settings.enableTimeLimit")} />
+
+        {settings.timeLimit !== false && (<>
+          <Form.Label className="mt-3">{t("settings.timeLimitValue", { timeLimit: formatTimeLimit(settings.timeLimit) })}</Form.Label>
+          <div className="px-3">
+            <Slider
+              marks={Object.fromEntries(timeLimitValues.map(limit => [limit, formatTimeLimit(limit)]))}
+              step={null}
+              onChange={(v: number | number[]) => {
+                const t = v as number
+                setTimeLimitSliderValue(t)
+                updateSettings({ target: { id: "settingsTimeLimit", value: t }})
+              }}
+              min={Math.min(...timeLimitValues)}
+              max={Math.max(...timeLimitValues)}
+              value={timeLimitSliderValue}
+              railStyle={{ backgroundColor: 'var(--bs-gray-100)' }} // Customize the rail color
+              trackStyle={{ backgroundColor: 'var(--bs-primary)' }} // Customize the track color
+              handleStyle={{ backgroundColor: 'var(--bs-primary)', border: "none", opacity: 1 }} // Customize the handle color
+              dotStyle={{ backgroundColor: 'var(--bs-gray-100)', border: "none", width: "12px", height: "12px", bottom: "-4px" }} // Customize the handle color
+              activeDotStyle={{ border: "2px solid var(--bs-primary)" }} // Customize the handle color
+              className="mb-5"
+            />
+          </div>
+        </>)}
       </Modal.Body>
       <Modal.Footer>
         <Button variant="secondary" onClick={() => setShowSettings(false)}>{t("settings.close")}</Button>
@@ -108,7 +117,7 @@ export const SettingsModal = ({ settings, setSettings, showSettings, setShowSett
 
 
 const timeLimitValues = [10, 20, 30, 45, 60, 90, 120]
-const timeLimitDummyValue = 150
+const defaultTimeLimitSliderValue = 60
 
 const formatTimeLimit = (t: number): string => {
   
@@ -187,12 +196,12 @@ export const LanguageSelector = ({ onChange, value, disabled }: LanguageSelector
       onChange(oldLanguage, language)
     }}>
       <LanguageSelectorToggle variant="secondary" disabled={disabled}>
-        <CircleFlag countryCode={languageToCountry(value)} height={18} />
+        <CircleFlag countryCode={languageToCountry(value)} height={18} title="" />
       </LanguageSelectorToggle>
       <Dropdown.Menu>
         {Object.values(Language).map((language, i) => (
           <LanguageSelectorItem key={i} eventKey={language}>
-            <CircleFlag countryCode={languageToCountry(language)} height={18} />
+            <CircleFlag countryCode={languageToCountry(language)} height={18} title="" />
             <span>{language.toString().toUpperCase()}</span>
           </LanguageSelectorItem>
         ))}

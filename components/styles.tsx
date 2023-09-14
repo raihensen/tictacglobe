@@ -99,17 +99,17 @@ export const GameTable = styled.div`
           padding-right: 10px;
           display: flex;
       }
-      & > div > span {
+      .categoryBadge {
         position: relative;
       }
-      &.active > div > span {
+      &.active .categoryBadge {
         z-index: 10;
         box-shadow: .25rem .25rem .5rem rgba(0, 0, 0, .5);
       }
-      &:not(.active) > div > span {
-        opacity: .5;
+      &:not(.active) .categoryBadge {
+        opacity: .6;
       }
-      & > .tableHeadingBackground {
+      .tableHeadingBackground {
         background: var(--bs-body-bg);
         border-radius: var(--bs-border-radius);
         position: relative;

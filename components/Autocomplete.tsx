@@ -183,10 +183,132 @@ const CountryAutoComplete = ({ countries, makeGuess, onBlur }: CountryAutoComple
       IndicatorSeparator: () => null
     }}
     styles={{
-      input: base => ({ ...base, cursor: "text" })
+      control: (provided, { isDisabled, isFocused }) => ({
+        ...provided,
+        backgroundColor: `var(--bs-body-bg)`,
+        color: "var(--bs-body-color)",
+        border: "var(--bs-border-width) solid var(--bs-border-color)",
+        borderRadius: "var(--bs-border-radius)",
+        lineHeight: 1.5,
+        padding: ".375rem .75rem",
+        fontSize: "1rem",
+        fontWeight: 400,
+        appearance: "none",
+        backgroundClip: "padding-box",
+        borderColor: isFocused ? "#86b7fe" : undefined,
+        boxShadow: isFocused ? "boxShadow: 0 0 0 .25rem rgba(13,110,253,.25)" : undefined,
+        outline: isFocused ? "0" : undefined
+      }),
+      input: ({margin, paddingTop, paddingBottom, ...base}, state) => ({
+        ...base,
+        cursor: "text",
+        color: "var(--bs-body-color)"
+      }),
+      menu: (provided, state) => ({
+        ...provided,
+        backgroundColor: `var(--bs-body-bg)`,
+        color: "var(--bs-body-color)"
+      }),
+      option: (provided, { isFocused }) => ({
+        ...provided,
+        backgroundColor: isFocused ? "var(--bs-secondary)" : `var(--bs-body-bg)`,
+        color: "var(--bs-body-color)"
+      }),
     }}
   />)
 
 }
 
 export default CountryAutoComplete;
+
+// https://github.com/JedWatson/react-select/issues/2345#issuecomment-843674624
+// function getSelectStyles(multi, size='') {
+// 	const suffix = size ? `-${size}` : '';
+// 	const multiplicator = multi ? 2 : 1;
+// 	return {
+// 		control: (provided, { isDisabled, isFocused }) => ({
+// 			...provided,
+// 			backgroundColor: `var(--bs-select${isDisabled ? '-disabled' : ''}-bg)`,
+// 			borderColor: `var(--bs-select${isDisabled ? '-disabled' : (isFocused ? '-focus' : '')}-border-color)`,
+// 			borderWidth: "var(--bs-select-border-width)",
+// 			lineHeight: "var(--bs-select-line-height)",
+// 			fontSize: `var(--bs-select-font-size${suffix})`,
+// 			fontWeight: "var(--bs-select-font-weight)",
+// 			minHeight: `calc((var(--bs-select-line-height)*var(--bs-select-font-size${suffix})) + (var(--bs-select-padding-y${suffix})*2) + (var(--bs-select-border-width)*2))`,
+// 			':hover': {
+// 				borderColor: "var(--bs-select-focus-border-color)",
+// 			},
+// 		}),
+// 		singleValue: ({marginLeft, marginRight, ...provided}, { isDisabled }) => ({
+// 			...provided,
+// 			color: `var(--bs-select${isDisabled ? '-disabled' : ''}-color)`,
+// 		}),
+// 		valueContainer: (provided, state) => ({
+// 			...provided,
+// 			padding: `calc(var(--bs-select-padding-y${suffix})/${multiplicator}) calc(var(--bs-select-padding-x${suffix})/${multiplicator})`,
+// 		}),
+// 		dropdownIndicator: (provided, state) => ({
+// 			height: "100%",
+// 			width: "var(--bs-select-indicator-padding)",
+// 			backgroundImage: "var(--bs-select-indicator)",
+// 			backgroundRepeat: "no-repeat",
+// 			backgroundPosition: `right var(--bs-select-padding-x) center`,
+// 			backgroundSize: "var(--bs-select-bg-size)",			
+// 		}),
+// 		input: ({margin, paddingTop, paddingBottom, ...provided}, state) => ({
+// 			...provided
+// 		}),
+// 		option: (provided, state) => ({
+// 			...provided,
+// 			margin: `calc(var(--bs-select-padding-y${suffix})/2) calc(var(--bs-select-padding-x${suffix})/2)`,
+// 		}),
+// 		menu: ({marginTop, ...provided}, state) => ({
+// 			...provided
+// 		}),
+// 		multiValue: (provided, state) => ({
+// 			...provided,
+// 			margin: `calc(var(--bs-select-padding-y${suffix})/2) calc(var(--bs-select-padding-x${suffix})/2)`,
+// 		}),
+// 		clearIndicator: ({padding, ...provided}, state) => ({
+// 			...provided,
+// 			alignItems: "center",
+// 			justifyContent: "center",
+// 			height: "100%",
+// 			width: "var(--bs-select-indicator-padding)"
+// 		}),
+// 		multiValueLabel: ({padding, paddingLeft, fontSize, ...provided}, state) => ({
+// 			...provided,
+// 			padding: `0 var(--bs-select-padding-y${suffix})`,
+// 			whiteSpace: "normal"
+// 		})
+// 	}
+// }
+
+// .form-control {
+//   display: block;
+//   width: 100%;
+//   padding: .375rem .75rem;
+//   fontSize: 1rem;
+//   fontWeight: 400;
+//   lineHeight: 1.5;
+//   color: var(--bs-body-color);
+//   -webkit-appearance: none;
+//   -moz-appearance: none;
+//   appearance: none;
+//   backgroundColor: var(--bs-body-bg);
+//   backgroundClip: padding-box;
+//   border: var(--bs-border-width) solid var(--bs-border-color);
+//   borderRadius: var(--bs-border-radius);
+// }
+// .form-select:focus {
+//   borderColor: #86b7fe;
+//   outline: 0;
+//   boxShadow: 0 0 0 .25rem rgba(13,110,253,.25);
+// }
+// .form-control:focus {
+//   color: var(--bs-body-color);
+//   backgroundColor: var(--bs-body-bg);
+//   borderColor: #86b7fe;
+//   outline: 0;
+//   boxShadow: 0 0 0 .25rem rgba(13,110,253,.25);
+// }
