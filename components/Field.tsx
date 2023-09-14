@@ -11,6 +11,7 @@ import styles from '@/pages/Game.module.css'
 import { useTranslation } from "next-i18next";
 import _ from "lodash";
 import { TableCellInner, MarkingBackground } from "@/components/styles";
+import CountryAutoComplete from "./Autocomplete";
 
 
 const CountryFlag = ({ country, size, onClick }: { country: Country | null, size: number, onClick?: any }) => (
@@ -54,6 +55,11 @@ const Field = ({ pos, setActive, game, row, col, apiRequest, hasTurn, notifyDeci
       mode: mode
     })
   }
+  useEffect(() => {
+    if (fieldState.mode == FieldMode.SEARCH) {
+      setActive(true)
+    }
+  }, [fieldState])
 
   const NumSolutions = () => {
     const tooltipSolutions = (
@@ -132,7 +138,7 @@ const Field = ({ pos, setActive, game, row, col, apiRequest, hasTurn, notifyDeci
   // TODO extra mode: other player's turn
 
   return (
-    <TableCellInner>
+    <TableCellInner onMouseEnter={() => { setActive(true) }} onMouseLeave={() => { setActive(false) }}>
       {/* <span>{mode}</span> */}
       {fieldState.mode == FieldMode.INITIAL && <>
         {/* Field is still free */}
@@ -156,12 +162,11 @@ const Field = ({ pos, setActive, game, row, col, apiRequest, hasTurn, notifyDeci
         <>
           <div className="field-flex">
             <div style={{ width: "100%" }}>
-              autocomplete
-              {/* <CountryAutoComplete
+              <CountryAutoComplete
                 countries={countries}
                 makeGuess={makeGuess}
                 onBlur={() => setMode(FieldMode.INITIAL)}
-              /> */}
+              />
             </div>
           </div>
           {settings.showNumSolutionsHint && <NumSolutions />}
@@ -203,7 +208,7 @@ const Field = ({ pos, setActive, game, row, col, apiRequest, hasTurn, notifyDeci
 export type FieldProps = {
   pos: number[];
   active: boolean;
-  setActive?: () => void;
+  setActive: (active: boolean) => void;
   game: Game;
   row: CategoryValue;
   col: CategoryValue;

@@ -296,17 +296,18 @@ const GamePage = ({ isClient, toggleDarkMode, userIdentifier, isCustomUserIdenti
               </div>
             </div>
             {game.setup.cols.map((col, j) => (
-              <TableHeading key={j} orient="col" active={activeField[1] == j} setActive={() => setActiveField(field => ([field[0], j]))} {...col} />
+              <TableHeading key={j} orient="col" active={activeField[1] == j} setActive={(active: boolean) => setActiveField(field => active ? [field[0], j] : [-1, -1])} {...col} />
             ))}
           </div>
           {game.setup.solutions.map((row: string[][], i: number) => (
             <div className="tableRow" key={i}>
-              <TableHeading key={i} orient="row" active={activeField[0] == i} setActive={() => setActiveField(field => ([i, field[1]]))} {...game.setup.rows[i]} />
+              <TableHeading key={i} orient="row" active={activeField[0] == i} setActive={(active: boolean) => setActiveField(field => active ? [i, field[1]] : [-1, -1])} {...game.setup.rows[i]} />
               {row.map((countryCodes: string[], j: number) => {
                 return (<div className="tableCell" key={j}>
                   <Field
                     pos={[i, j]}
                     active={activeField[0] == i && activeField[1] == j}
+                    setActive={(active: boolean) => setActiveField(field => active ? [i, j] : [-1, -1])}
                     game={game}
                     row={game.setup.rows[i]}
                     col={game.setup.cols[j]}

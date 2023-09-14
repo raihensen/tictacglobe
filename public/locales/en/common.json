@@ -84,6 +84,9 @@
         "showNumSolutionsHint": "Show number of solutions before guess",
         "timeLimit": "Time limit: {{timeLimit}}",
         "noLimit": "No limit"
+    },
+    "countrySearch": {
+        "noResults": "No results"
     }
 
 }

@@ -29,36 +29,36 @@ const colorMap = {
   "Black": styles.flagColorBlack
 }
 
-const TableHeadingInner = ({ category, value }: CategoryValue) => {
+const getTableHeadingContents = ({ category, value, badgeProps }: CategoryValue & { badgeProps: any }): {
+  description?: string,
+  badge?: JSX.Element
+} => {
   const { t, i18n } = useTranslation('common')
-
-  const tooltipId = useId()
   
   if (category == "landlocked") {
-    const tooltipCategoryInfo = (<Tooltip id={`tooltipCategoryInfo-${tooltipId}`}>{t("category.landlocked.tooltip")}</Tooltip>)
-    return (
-      <OverlayTrigger placement="top" overlay={tooltipCategoryInfo}>
-        <CategoryBadge>
+    return {
+      description: t("category.landlocked.tooltip"),
+      badge: (
+        <CategoryBadge {...badgeProps}>
           <IconStack>
             <FaWater color="white" />
             <FaSlash color="white" />
           </IconStack>
           <span className="icon-label">{t("category.landlocked.label")}</span>
         </CategoryBadge>
-      </OverlayTrigger>
-    )
-    
+      )
+    }
   }
   if (category == "island") {
-    const tooltipCategoryInfo = (<Tooltip id={`tooltipCategoryInfo-${tooltipId}`}>{t("category.island.tooltip")}</Tooltip>)
-    return (
-      <OverlayTrigger placement="top" overlay={tooltipCategoryInfo}>
-        <CategoryBadge>
+    return {
+      description: t("category.island.tooltip"),
+      badge: (
+        <CategoryBadge {...badgeProps}>
           <FaCircle />
           <span>{t("category.island.label")}</span>
         </CategoryBadge>
-      </OverlayTrigger>
-    )
+      )
+    }
     
   }
 
@@ -67,10 +67,11 @@ const TableHeadingInner = ({ category, value }: CategoryValue) => {
   if (isStartsWith || isEndsWith) {
     const isCapital = category.startsWith("capital")
     const letter = (value as string).toUpperCase()
-    const tooltipCategoryInfo = (<Tooltip id={`tooltipCategoryInfo-${tooltipId}`}>{t(`category.${_.camelCase(category)}.tooltip`, { letter })}</Tooltip>)
-    return (
-      <OverlayTrigger placement="top" overlay={tooltipCategoryInfo}>
-        <CategoryBadge>
+    
+    return {
+      description: t(`category.${_.camelCase(category)}.tooltip`, { letter }),
+      badge: (
+        <CategoryBadge {...badgeProps}>
           {isCapital && <FaBuildingColumns className={styles.categoryIcon} />}
           {isStartsWith ? [letter, "a", "b", "c"].map((c, i) => (
             <TableHeadingLetter key={i} $i={i} $mode="first">{i == 3 ? `${c}...` : c}</TableHeadingLetter>
@@ -78,51 +79,70 @@ const TableHeadingInner = ({ category, value }: CategoryValue) => {
             <TableHeadingLetter key={i} $i={3 - i} $mode="last">{i == 0 ? `...${c}` : c}</TableHeadingLetter>
           ))}
         </CategoryBadge>
-      </OverlayTrigger>
-    )
+      )
+    }
   }
 
   if (category == "flag_colors") {
     const color = value as string
     const colorClass = _.get(colorMap, color, styles.flagColorBlack)
     const i18Key = "category.flagColor.values." + _.get({ "Yellow/Gold": "YellowOrGold" }, color, color)
-    const tooltipCategoryInfo = (<Tooltip id={`tooltipCategoryInfo-${tooltipId}`}>{t("category.flagColor.tooltip", { color: t(i18Key) })}</Tooltip>)
-    return (
-      <OverlayTrigger placement="top" overlay={tooltipCategoryInfo}>
-        <CategoryBadge className={`flagColorBadge ${colorClass}`}>
+    
+    return {
+      description: t("category.flagColor.tooltip", { color: t(i18Key) }),
+      badge: (
+        <CategoryBadge className={`flagColorBadge ${colorClass}`} {...badgeProps}>
           <FaFlag className={styles.categoryIcon} />
           <span className="icon-label">{t(i18Key).toUpperCase()}</span>
         </CategoryBadge>
-      </OverlayTrigger>
-    )
+      )
+    }
   }
 
   if (category == "continent") {
     const continent = value as string
     const ContinentIcon = _.get(continentIconMap, continent, FaEarthAfrica)
-    const tooltipCategoryInfo = (<Tooltip id={`tooltipCategoryInfo-${tooltipId}`}>{t("category.continent.tooltip", { continent: t(`category.continent.values.${continent}`) })}</Tooltip>)
-    return (<OverlayTrigger placement="top" overlay={tooltipCategoryInfo}>
-      <CategoryBadge>
-        <ContinentIcon className={styles.categoryIcon} />
-        <span className="icon-label">{t(`category.continent.values.${continent}`)}</span>
-      </CategoryBadge>
-    </OverlayTrigger>)
+    return {
+      description: t("category.continent.tooltip", { continent: t(`category.continent.values.${continent}`) }),
+      badge: (
+        <CategoryBadge {...badgeProps}>
+          <ContinentIcon className={styles.categoryIcon} />
+          <span className="icon-label">{t(`category.continent.values.${continent}`)}</span>
+        </CategoryBadge>
+      )
+    }
   }
   
-  return false
+  return {}
 }
 
 export const TableHeading = ({ category, value, orient, active, setActive }: CategoryValue & {
   orient: "row" | "col",
   active: boolean,
-  setActive: () => void
-}) => (
-  <div className={`${orient}Heading${active ? " active" : ""}`}>
-    <div className="tableHeadingBackground">
-      <TableHeadingInner category={category} value={value} setActive={setActive} />
+  setActive: (active: boolean) => void
+}) => {
+
+  const { description, badge } = getTableHeadingContents({ category: category, value: value, badgeProps: {
+    onMouseEnter: () => { setActive(true) },
+    onMouseLeave: () => { setActive(false) }
+  }})
+
+  const tooltipId = useId()
+  const tooltip = description ? (<Tooltip id={`categoryTooltip-${tooltipId}`}>{description}</Tooltip>) : undefined
+
+  return (
+    <div className={`${orient}Heading${active ? " active" : ""}`}>
+      {badge && (<div className="tableHeadingBackground">
+        {tooltip && (
+          <OverlayTrigger placement="top" overlay={tooltip}>
+            {badge}
+          </OverlayTrigger>
+        )}
+        {!tooltip && badge}
+      </div>)}
     </div>
-  </div>
-)
+  )
+}
 
 const TableHeadingLetter = styled.span<{ $i: number, $mode: "first" | "last" }>`
   font-weight: bold;

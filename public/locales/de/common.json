@@ -84,6 +84,9 @@
         "showNumSolutionsHint": "Anzahl der Lösungen vor Tipp anzeigen",
         "timeLimit": "Zeitlimit: {{timeLimit}}",
         "noLimit": "kein Limit"
+    },
+    "countrySearch": {
+        "noResults": "Kein Treffer"
     }
 
 }

@@ -23,15 +23,12 @@ type AutoCompleteItem = {
   key: string;
 }
 
-// export const AutoCompleteItem = styled.div<{ $highlighted: boolean }>`
-//   cursor: pointer;
-//   background: ${({ $highlighted }) => $highlighted ? 'lightgray' : 'white' };
-// `
-
 const CountryAutoComplete = ({ countries, makeGuess, onBlur }: CountryAutoCompleteProps) => {
   const { t, i18n } = useTranslation('common')
 
   const [searchValue, setSearchValue] = useState("")
+
+  const [searchCache, setSearchCache] = useState(new NodeCache())
 
   // Init regexes to replace equivalent words
   const equivalentWordCategories = ["saint", "and"]
@@ -64,47 +61,42 @@ const CountryAutoComplete = ({ countries, makeGuess, onBlur }: CountryAutoComple
       }
     })
     // replace diacritics
+    // https://stackoverflow.com/questions/990904/remove-accents-diacritics-in-a-string-in-javascript
     str1 = str1.normalize("NFD").replace(/[\u0300-\u036f]/g, "")
     // console.log(`Normalize: "${str}" -> "${str1}"`)
     return str1
   }
 
-  const items = countries.map(c => [c.name, ...(c.alternativeValues?.name ?? [])].map((name, i) => ({
-    country: c,
-    name: name,
-    nameNormalized: normalize(name),
-    nameIndex: i,
-    key: `${c.iso}-${i}`
-  }))).flat(1) as AutoCompleteItem[]
-
-  const noSpoilerSearch = (q: string) => {
-    q = normalize(q)
-    if (q.length < 3) {
+  const comapreResults = (a: AutoCompleteItem, b: AutoCompleteItem) => {
+    if (a.country === b.country) {
+      return a.nameIndex - b.nameIndex
+    }
+    if (a.name > b.name) {
+      return 1
+    }
+    return -1
+  }
+  
+  const noSpoilerSearch = (queries: string[]) => {
+    
+    queries = [...new Set(queries.filter(q => q.length >= 3))]
+    if (!queries.length) {
       return []
     }
-    // https://stackoverflow.com/questions/990904/remove-accents-diacritics-in-a-string-in-javascript
-    let results = items.filter(item => item.nameNormalized.includes(q))
+
+    let results = items.filter(item => queries.some(q => [item.name, item.nameNormalized].some(name => name.includes(q))))
     // retain only one result per country
     const countryCodes = [...new Set(results.map(item => item.country.iso))]
-    results.sort((a, b) => {
-      if (a.country === b.country) {
-        return a.nameIndex - b.nameIndex
-      }
-      if (a.name > b.name) {
-        return 1
-      }
-      return -1
-    })
+    results.sort((a, b) => comapreResults(a, b))
     if (countryCodes.length < results.length) {
       results = countryCodes.map(iso => results.find(item => item.country.iso == iso) as AutoCompleteItem)
     }
-
     if (countryCodes.length <= 1) {
       // unique result
       return results
     }
-    const exactResults = results.filter(item => item.nameNormalized == q)
-    const prefixResults = results.filter(item => item.nameNormalized.startsWith(q))
+    const exactResults = results.filter(item => queries.some(q => [item.name, item.nameNormalized].some(name => name == q)))
+    const prefixResults = results.filter(item => queries.some(q => [item.name, item.nameNormalized].some(name => name.startsWith(q))))
     if (exactResults.length) {
       // if there's an exact hit "A", also return others named "ABC"
       return prefixResults
@@ -113,9 +105,17 @@ const CountryAutoComplete = ({ countries, makeGuess, onBlur }: CountryAutoComple
     // there might have been a previous exact hit (query "AB"). In this case, the results should be retained.
     // multiple results, do not show any
     return []
-  }
 
-  const [searchCache, setSearchCache] = useState(new NodeCache())
+  
+  }
+  
+  const items = countries.map(c => [c.name, ...(c.alternativeValues?.name ?? [])].map((name, i) => ({
+    country: c,
+    name: name,
+    nameNormalized: normalize(name),
+    nameIndex: i,
+    key: `${c.iso}-${i}`
+  }))).flat(1) as AutoCompleteItem[]
 
   useEffect(() => {
     setSearchCache(new NodeCache())
@@ -126,7 +126,7 @@ const CountryAutoComplete = ({ countries, makeGuess, onBlur }: CountryAutoComple
     if (cached !== undefined) {
       return cached as AutoCompleteItem[]
     }
-    const results = noSpoilerSearch(q)
+    const results = noSpoilerSearch([q, normalize(q)])
     searchCache.set(q, results)
     return results
   }
@@ -150,6 +150,7 @@ const CountryAutoComplete = ({ countries, makeGuess, onBlur }: CountryAutoComple
     menuPosition="absolute"
     options={items}
     placeholder="Country"
+    noOptionsMessage={() => t("countrySearch.noResults")}
 
     filterOption={(option: Option, inputValue: string) => {
       return getSearchResults(inputValue).some(resultItem => resultItem.key == option.data.key)
@@ -177,7 +178,6 @@ const CountryAutoComplete = ({ countries, makeGuess, onBlur }: CountryAutoComple
         // }
       }
     }}
-
     components={{
       DropdownIndicator: () => null,
       IndicatorSeparator: () => null
