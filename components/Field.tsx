@@ -4,7 +4,7 @@ import { forwardRef, useEffect, useId, useMemo, useRef, useState } from 'react';
 import { Game, Country, CategoryValue, RequestAction, FrontendQuery, GameData, PlayingMode, GameState } from "@/src/game.types"
 
 import { PlusCircleFill } from 'react-bootstrap-icons';
-import Badge from 'react-bootstrap/Badge';
+import Badge, { BadgeProps } from 'react-bootstrap/Badge';
 import { OverlayTrigger, Tooltip } from "react-bootstrap";
 import { CircleFlag } from 'react-circle-flags'
 import styles from '@/pages/Game.module.css'
@@ -13,10 +13,6 @@ import _ from "lodash";
 import { TableCellInner, MarkingBackground } from "@/components/styles";
 import CountryAutoComplete from "./Autocomplete";
 
-
-const CountryFlag = ({ country, size, onClick }: { country: Country | null, size: number, onClick?: any }) => (
-  <CircleFlag countryCode={country?.iso?.toLowerCase() ?? "xx"} height={size} onClick={onClick} />
-);
 
 enum FieldMode {
   INITIAL = 0,
@@ -29,6 +25,60 @@ type FieldState = {
   isWinning: boolean;
   mode: FieldMode;
 }
+
+const CountryFlag = ({ country, size, onClick }: { country: Country | null, size: number, onClick?: any }) => (
+  <CircleFlag countryCode={country?.iso?.toLowerCase() ?? "xx"} height={size} onClick={onClick} />
+);
+
+type CountryInfoTooltipContentProps = {
+  context: "flag" | "name",
+  game: Game,
+  fieldState: FieldState,
+  isNameRelevant: boolean,
+  isCapitalRelevant: boolean
+}
+const CountryInfoTooltipContents = ({ context, game, fieldState, isNameRelevant, isCapitalRelevant }: CountryInfoTooltipContentProps) => {
+  const texts = fieldState.guess ? [
+    ...(context == "flag" ? [`Name: ${fieldState.guess.name}`] : []),
+    ...(context == "name" ? [`Name: ${fieldState.guess.name}`] : []),  // TODO remove this, prevent empty tooltips
+    ...((isNameRelevant || game.state == GameState.Finished) && fieldState.guess.alternativeValues.name !== undefined ? [`Alternative name${fieldState.guess.alternativeValues.name.length > 1 ? "s" : ""}: ${fieldState.guess.alternativeValues.name.join(", ")}`] : []),
+    ...(isCapitalRelevant || game.state == GameState.Finished ? [`Capital: ${fieldState.guess.capital}`] : []),
+    ...((isCapitalRelevant || game.state == GameState.Finished) && fieldState.guess.alternativeValues.capital !== undefined ? [`Alternative capital${fieldState.guess.alternativeValues.capital.length > 1 ? "s" : ""}: ${fieldState.guess.alternativeValues.capital.join(", ")}`] : [])
+  ] : []
+  return (<>
+    {fieldState.guess && (
+      <>
+        {texts.map((text, i) => (<p key={i}>{text}</p>))}
+      </>
+    )}
+  </>)
+}
+
+const TextTooltip = styled(Tooltip)`
+  p:last-child {
+    margin-bottom: 0;
+  }
+`
+
+const TooltipTriggerDiv = forwardRef<HTMLDivElement, React.HTMLProps<HTMLDivElement>>(({ children, ...props }, ref: any) => (
+  <div ref={ref} {...props}>
+    {children}
+  </div>
+))
+const TooltipTriggerSpan = forwardRef<HTMLSpanElement, React.HTMLProps<HTMLSpanElement>>(({ children, ...props }, ref: any) => (
+  <span ref={ref} {...props}>
+    {children}
+  </span>
+))
+const ResponsiveBadge = styled(Badge)`
+  font-size: .6em;
+  @media only screen and (min-width: 768px) {
+    font-size: .75em;
+  }
+`
+const NumSolutionsBadge = forwardRef<typeof Badge, BadgeProps & { children?: any }>(({children, ...props}, ref: any) => (
+  <ResponsiveBadge ref={ref} {...props}>{children}</ResponsiveBadge>
+))
 
 const Field = ({ pos, setActive, setIsSearching, game, row, col, apiRequest, hasTurn, notifyDecided, countries, settings }: FieldProps) => {
   const { t, i18n } = useTranslation('common')
@@ -58,7 +108,6 @@ const Field = ({ pos, setActive, setIsSearching, game, row, col, apiRequest, has
   useEffect(() => {
     if (fieldState.mode == FieldMode.SEARCH) {
       setActive(true)
-      console.log(`set searching ${i},${j}`)
       setIsSearching(true)
     }
     
@@ -66,29 +115,32 @@ const Field = ({ pos, setActive, setIsSearching, game, row, col, apiRequest, has
 
   const NumSolutions = () => {
     const tooltipSolutions = (
-      <Tooltip id={`tooltipNumSolutions-${useId()}`}>
+      <TextTooltip id={`tooltipNumSolutions-${useId()}`}>
         <p>Solutions: {solutions.map(c => c.name).join(", ")}</p>
         {alternativeSolutions.length != 0 && (<>
           <p>Also accepted: {alternativeSolutions.map(c => c.name).join(", ")}</p>
         </>)}
-      </Tooltip>
+      </TextTooltip>
     );
     const tooltipInfo = (
-      <Tooltip id={`tooltipNumSolutions-${useId()}`}>
+      <TextTooltip id={`tooltipNumSolutions-${useId()}`}>
         {alternativeSolutions.length != 0 && (<>
           There {solutions.length > 1 ? `are ${solutions.length} regular solutions` : `is 1 regular solution`},
           and {alternativeSolutions.length} more when using alternative values or spellings.
         </>)}
-      </Tooltip>
+      </TextTooltip>
     );
-    const NumBadge = forwardRef((props, ref: any) => (
-      <Badge bg={solutions.length == 1 ? "danger" : "secondary"} ref={ref} {...props}>{solutions.length}{(alternativeSolutions.length ? "*" : "")}</Badge>
-    ))
+    const badgeContent = `${solutions.length}${alternativeSolutions.length ? "*" : ""}`
+
     return (
       <div className="field-abs-top-left">
-        {fieldState.mode == FieldMode.FILLED && <OverlayTrigger placement="right" overlay={tooltipSolutions}><NumBadge /></OverlayTrigger>}
-        {(fieldState.mode != FieldMode.FILLED && alternativeSolutions.length != 0) && <OverlayTrigger placement="right" overlay={tooltipInfo}><NumBadge /></OverlayTrigger>}
-        {(fieldState.mode != FieldMode.FILLED && alternativeSolutions.length == 0) && <NumBadge />}
+        {fieldState.mode == FieldMode.FILLED && <OverlayTrigger placement="right" overlay={tooltipSolutions}>
+          <NumSolutionsBadge bg={solutions.length == 1 ? "danger" : "secondary"} >{badgeContent}</NumSolutionsBadge>
+        </OverlayTrigger>}
+        {(fieldState.mode != FieldMode.FILLED && alternativeSolutions.length != 0) && <OverlayTrigger placement="right" overlay={tooltipInfo}>
+          <NumSolutionsBadge bg="secondary">{badgeContent}</NumSolutionsBadge>
+        </OverlayTrigger>}
+        {(fieldState.mode != FieldMode.FILLED && alternativeSolutions.length == 0) && <NumSolutionsBadge>{badgeContent}</NumSolutionsBadge>}
       </div>
     )
   }
@@ -104,14 +156,6 @@ const Field = ({ pos, setActive, setIsSearching, game, row, col, apiRequest, has
     return correct
   }
 
-  let tooltipCountryInfo = null
-  const tooltipCountryInfoId = useId()
-  if (fieldState.mode == FieldMode.FILLED && fieldState.guess) {
-    // tooltipCountryInfo = (
-      
-    // )
-  }
-
   const isNameRelevant = () => {
     return [row, col].some(({ category, value }) => category == "starting_letter" || category == "ending_letter")
   }
@@ -119,26 +163,7 @@ const Field = ({ pos, setActive, setIsSearching, game, row, col, apiRequest, has
     return [row, col].some(({ category, value }) => category.startsWith("capital"))
   }
 
-  const CountryInfoTooltip = () => {
-    if (!fieldState.guess) {
-      return false
-    }
-    const texts = [
-      ...(fieldState.guess.alternativeValues.name !== undefined && (isNameRelevant() || game.state == GameState.Finished) ? [`Alternative name${fieldState.guess.alternativeValues.name.length > 1 ? "s" : ""}: ${fieldState.guess.alternativeValues.name.join(", ")}`] : []),
-      ...(isCapitalRelevant() || game.state == GameState.Finished ? [`Capital: ${fieldState.guess.capital}`] : []),
-      ...((isCapitalRelevant() || game.state == GameState.Finished) && fieldState.guess.alternativeValues.capital !== undefined ? [`Alternative capital${fieldState.guess.alternativeValues.capital.length > 1 ? "s" : ""}: ${fieldState.guess.alternativeValues.capital.join(", ")}`] : [])
-    ]
-    if (!texts.length) {
-      return false
-    }
-    return (
-      <Tooltip id={`tooltipCountryInfo-${tooltipCountryInfoId}`}>
-        {texts.map((text, i) => (<p key={i}>{text}</p>))}
-      </Tooltip>
-    )
-  }
-
-  // TODO extra mode: other player's turn
+  const tooltipCountryInfoIds = [useId(), useId()]
 
   return (
     <TableCellInner onMouseEnter={() => { setActive(true) }} onMouseLeave={() => { setActive(false) }}>
@@ -169,7 +194,6 @@ const Field = ({ pos, setActive, setIsSearching, game, row, col, apiRequest, has
                 countries={countries}
                 makeGuess={makeGuess}
                 onBlur={() => {
-                  console.log(`Blur ${i},${j}`)
                   setIsSearching(false)
                   setMode(FieldMode.INITIAL)
                 }}
@@ -182,25 +206,41 @@ const Field = ({ pos, setActive, setIsSearching, game, row, col, apiRequest, has
       {(fieldState.mode == FieldMode.FILLED && fieldState.guess) && (
         <>
           <MarkingBackground $player={fieldState.markedBy} $isWinning={fieldState.isWinning} />
-          {/* <span>{markedBy == 0 ? "O" : (markedBy == 1 ? "X" : "???")}</span> */}
           <div className="field-center-50">
-            <CountryFlag country={fieldState.guess} size={50} />
+            <OverlayTrigger placement="bottom" overlay={(
+              <TextTooltip id={tooltipCountryInfoIds[0]} className="d-md-none">
+                <CountryInfoTooltipContents
+                  context="flag"
+                  game={game}
+                  fieldState={fieldState}
+                  isNameRelevant={isNameRelevant()}
+                  isCapitalRelevant={isCapitalRelevant()}
+                />
+              </TextTooltip>
+            )}>
+              <TooltipTriggerDiv className="flag-wrapper">
+                <CountryFlag country={fieldState.guess} size={50} />
+              </TooltipTriggerDiv>
+            </OverlayTrigger>
           </div>
           <div className="field-bottom">
             <div className="field-flex">
-            {/* <OverlayTrigger placement="right" overlay={<CountryInfoTooltip />}> */}
-            <OverlayTrigger placement="right" overlay={(
-                <Tooltip id={`tooltipCountryInfo-${tooltipCountryInfoId}`} className={styles.tooltip}>
-                  {(fieldState.guess.alternativeValues.name !== undefined && (isNameRelevant() || game.state == GameState.Finished)) && (<p>Alternative name{fieldState.guess.alternativeValues.name.length > 1 ? "s" : ""}: {fieldState.guess.alternativeValues.name.join(", ")}</p>)}
-                  {(isCapitalRelevant() || game.state == GameState.Finished) && (<p>Capital: {fieldState.guess.capital}</p>)}
-                  {((isCapitalRelevant() || game.state == GameState.Finished) && fieldState.guess.alternativeValues.capital !== undefined) && (<p>Alternative capital{fieldState.guess.alternativeValues.capital.length > 1 ? "s" : ""}: {fieldState.guess.alternativeValues.capital.join(", ")}</p>)}
-                </Tooltip>
-            )}>
-              <span className="label">
-                {fieldState.guess.name + (settings.showIso ? " " : "")}
-                {settings.showIso && <span className="iso">({fieldState.guess.iso})</span>}
-              </span>
-            </OverlayTrigger>
+              <OverlayTrigger placement="right" overlay={(
+                <TextTooltip id={tooltipCountryInfoIds[1]} className="d-none d-md-block">
+                  <CountryInfoTooltipContents
+                    context="name"
+                    game={game}
+                    fieldState={fieldState}
+                    isNameRelevant={isNameRelevant()}
+                    isCapitalRelevant={isCapitalRelevant()}
+                  />
+                </TextTooltip>
+              )}>
+                <TooltipTriggerSpan className="label">
+                  {fieldState.guess.name + (settings.showIso ? " " : "")}
+                  {settings.showIso && <span className="iso">({fieldState.guess.iso})</span>}
+                </TooltipTriggerSpan>
+              </OverlayTrigger>
             </div>
           </div>
           {settings.showNumSolutions && <NumSolutions />}

@@ -3,7 +3,7 @@
     "cancel": "Cancel",
     "newGame": "New game",
     "endTurn": "End turn",
-    "turnInfoOffline": "{{player}}'s turn'",
+    "turnInfoOffline": "{{player}}'s turn",
     "turnInfoOnline": "{{player}}",
     "yourTurn": "your turn",
     "opponentsTurn": "your opponent's turn",

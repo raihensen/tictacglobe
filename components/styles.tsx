@@ -161,10 +161,34 @@ export const TableCellInner = styled.div`
     margin-top: -25px;
     margin-left: -25px;
   }
+  .field-center {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    display: flex;
+    
+
+    .flag-wrapper {
+      width: 40%;
+      min-width: 25px;
+      padding-bottom: 100%;
+      
+      @media only screen and (min-width: 768px) {
+        width: 50px;
+      }
+    }
+  }
   .field-bottom {
     position: absolute;
     left: 0; bottom: 0;
     width: 100%; height: 50px;
+
+    display: none;
+    @media only screen and (min-width: 768px) {
+      display: block;
+    }
   }
 `
 
