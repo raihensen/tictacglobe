@@ -29,6 +29,8 @@ const colorMap = {
   "Black": styles.flagColorBlack
 }
 
+// TODO useTranslation only in components eslint "react-hooks/rules-of-hooks"
+
 const getTableHeadingContents = ({ category, value, badgeProps }: CategoryValue & { badgeProps: any }): {
   description?: string,
   badge?: JSX.Element
