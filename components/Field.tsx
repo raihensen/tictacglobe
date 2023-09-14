@@ -30,7 +30,7 @@ type FieldState = {
   mode: FieldMode;
 }
 
-const Field = ({ pos, setActive, game, row, col, apiRequest, hasTurn, notifyDecided, countries, settings }: FieldProps) => {
+const Field = ({ pos, setActive, setIsSearching, game, row, col, apiRequest, hasTurn, notifyDecided, countries, settings }: FieldProps) => {
   const { t, i18n } = useTranslation('common')
   const [i, j] = pos
   const solutions = countries.filter(c => game.setup.solutions[i][j].includes(c.iso))
@@ -58,7 +58,10 @@ const Field = ({ pos, setActive, game, row, col, apiRequest, hasTurn, notifyDeci
   useEffect(() => {
     if (fieldState.mode == FieldMode.SEARCH) {
       setActive(true)
+      console.log(`set searching ${i},${j}`)
+      setIsSearching(true)
     }
+    
   }, [fieldState])
 
   const NumSolutions = () => {
@@ -165,7 +168,11 @@ const Field = ({ pos, setActive, game, row, col, apiRequest, hasTurn, notifyDeci
               <CountryAutoComplete
                 countries={countries}
                 makeGuess={makeGuess}
-                onBlur={() => setMode(FieldMode.INITIAL)}
+                onBlur={() => {
+                  console.log(`Blur ${i},${j}`)
+                  setIsSearching(false)
+                  setMode(FieldMode.INITIAL)
+                }}
               />
             </div>
           </div>
@@ -209,6 +216,7 @@ export type FieldProps = {
   pos: number[];
   active: boolean;
   setActive: (active: boolean) => void;
+  setIsSearching: (searching: boolean) => void;
   game: Game;
   row: CategoryValue;
   col: CategoryValue;

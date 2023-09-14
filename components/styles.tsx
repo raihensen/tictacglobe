@@ -92,7 +92,7 @@ export const GameTable = styled.div`
         box-shadow: .25rem .25rem .5rem rgba(0, 0, 0, .5);
       }
       &:not(.active) > div > span {
-        opacity: .75;
+        opacity: .5;
       }
       & > .tableHeadingBackground {
         background: var(--bs-body-bg);

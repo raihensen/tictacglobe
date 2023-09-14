@@ -200,6 +200,7 @@ const GamePage = ({ isClient, toggleDarkMode, userIdentifier, isCustomUserIdenti
   
   // const activeField = [0, 1]
   const [activeField, setActiveField] = useState<number[]>([-1, -1])
+  const [isSearching, setIsSearching] = useState<boolean>(false)
   // const notifyActiveField = (i: number, j: number) => {
   //   setActiveField([i, j])
   // }
@@ -296,18 +297,31 @@ const GamePage = ({ isClient, toggleDarkMode, userIdentifier, isCustomUserIdenti
               </div>
             </div>
             {game.setup.cols.map((col, j) => (
-              <TableHeading key={j} orient="col" active={activeField[1] == j} setActive={(active: boolean) => setActiveField(field => active ? [field[0], j] : [-1, -1])} {...col} />
+              <TableHeading key={j} orient="col" active={activeField[1] == j} setActive={(active: boolean) => {
+                if (!isSearching) {
+                  setActiveField(field => active ? [field[0], j] : [-1, -1])
+                }
+              }} {...col} />
             ))}
           </div>
           {game.setup.solutions.map((row: string[][], i: number) => (
             <div className="tableRow" key={i}>
-              <TableHeading key={i} orient="row" active={activeField[0] == i} setActive={(active: boolean) => setActiveField(field => active ? [i, field[1]] : [-1, -1])} {...game.setup.rows[i]} />
+              <TableHeading key={i} orient="row" active={activeField[0] == i} setActive={(active: boolean) => {
+                if (!isSearching) {
+                  setActiveField(field => active ? [i, field[1]] : [-1, -1])
+                }
+              }} {...game.setup.rows[i]} />
               {row.map((countryCodes: string[], j: number) => {
                 return (<div className="tableCell" key={j}>
                   <Field
                     pos={[i, j]}
                     active={activeField[0] == i && activeField[1] == j}
-                    setActive={(active: boolean) => setActiveField(field => active ? [i, j] : [-1, -1])}
+                    setActive={(active: boolean) => {
+                      if (!isSearching) {
+                        setActiveField(field => active ? [i, j] : [-1, -1])
+                      }
+                    }}
+                    setIsSearching={setIsSearching}
                     game={game}
                     row={game.setup.rows[i]}
                     col={game.setup.cols[j]}
