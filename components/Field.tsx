@@ -134,10 +134,10 @@ const Field = ({ pos, setActive, setIsSearching, game, row, col, apiRequest, has
 
     return (
       <div className="field-abs-top-left">
-        {fieldState.mode == FieldMode.FILLED && <OverlayTrigger placement="right" overlay={tooltipSolutions}>
+        {fieldState.mode == FieldMode.FILLED && <OverlayTrigger placement="top" overlay={tooltipSolutions}>
           <NumSolutionsBadge bg={solutions.length == 1 ? "danger" : "secondary"} >{badgeContent}</NumSolutionsBadge>
         </OverlayTrigger>}
-        {(fieldState.mode != FieldMode.FILLED && alternativeSolutions.length != 0) && <OverlayTrigger placement="right" overlay={tooltipInfo}>
+        {(fieldState.mode != FieldMode.FILLED && alternativeSolutions.length != 0) && <OverlayTrigger placement="top" overlay={tooltipInfo}>
           <NumSolutionsBadge bg="secondary">{badgeContent}</NumSolutionsBadge>
         </OverlayTrigger>}
         {(fieldState.mode != FieldMode.FILLED && alternativeSolutions.length == 0) && <NumSolutionsBadge>{badgeContent}</NumSolutionsBadge>}
@@ -153,6 +153,7 @@ const Field = ({ pos, setActive, setIsSearching, game, row, col, apiRequest, has
       countryId: country.iso,
       pos: pos.join(",")
     })
+    setIsSearching(false)
     return correct
   }
 
@@ -174,7 +175,7 @@ const Field = ({ pos, setActive, setIsSearching, game, row, col, apiRequest, has
           {hasTurn && <><div className="field-center-50">
             <PlusCircleFill
               size={50}
-              style={{ cursor: "pointer" }}
+              style={{ cursor: "pointer", opacity: .5 }}
               color="var(--bs-secondary)"
               onClick={() => {
                 setMode(FieldMode.SEARCH)
