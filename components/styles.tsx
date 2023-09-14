@@ -2,6 +2,7 @@
 import Button from "react-bootstrap/Button";
 import Dropdown from "react-bootstrap/Dropdown";
 import Tooltip from "react-bootstrap/Tooltip";
+import ButtonToolbar from "react-bootstrap/ButtonToolbar";
 import styled from "styled-components";
 
 const breakpointsMin = {
@@ -33,6 +34,20 @@ const breakWidth = (bpMin: Breakpoint, bpMax: Breakpoint) => {
   return [breakMinWidth(bpMin), breakMaxWidth(bpMax)].filter(x => x.length).join(" and ")
 }
 
+export const SplitButtonToolbar = styled(ButtonToolbar)`
+  gap: .5rem;
+  & > .left {
+    margin-right: auto;
+  }
+  & > .left, & > .right {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: flex-start;
+    & > :not(:last-child) {
+      margin-right: .5rem !important;
+    }
+  }
+`
 
 // .badge-player
 export const PlayerBadge = styled.span<{ $playerColor: string }>`
@@ -168,7 +183,7 @@ export const TableCellInner = styled.div`
     right: 0;
     bottom: 0;
     display: flex;
-    
+
 
     .flag-wrapper {
       width: 40%;

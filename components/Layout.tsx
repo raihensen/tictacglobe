@@ -46,17 +46,3 @@ function Layout({ darkMode, hasError, errorMessage, isLoading, loadingText, chil
 }
 
 export default Layout;
-
-export const SplitButtonToolbar = styled(ButtonToolbar)`
-  & > .left {
-    margin-right: auto;
-  }
-  & > .left, & > .right {
-    display: flex;
-    flex-wrap: wrap;
-    justify-content: flex-start;
-    & > :not(:last-child) {
-      margin-right: .5rem !important;
-    }
-  }
-`

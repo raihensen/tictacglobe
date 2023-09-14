@@ -20,9 +20,7 @@ import { useRouter } from "next/router";
 import type { GetStaticProps } from 'next'
 import { PageProps } from "./_app";
 import { Settings, SettingsModal, useSettings, LanguageSelector, changeLanguage } from "@/components/Settings";
-import { SplitButtonToolbar } from "@/components/Layout";
-// import styles from '@/pages/Game.module.css'
-import { IconButton, PlayerBadge, GameTable } from "@/components/styles";
+import { SplitButtonToolbar, IconButton, PlayerBadge, GameTable } from "@/components/styles";
 
 
 const defaultSettings: Settings = {
