@@ -198,8 +198,8 @@ const GamePage = ({ isClient, toggleDarkMode, userIdentifier, isCustomUserIdenti
   // const eachCoord = _.range(game?.setup.size ?? 0)
   // const fieldActiveUseState = eachCoord.map(i => eachCoord.map(j => useState<boolean>(false)))
   
-  const activeField = [0, 1]
-  // const [activeField, setActiveField] = useState<number[]>([-1, -1])
+  // const activeField = [0, 1]
+  const [activeField, setActiveField] = useState<number[]>([-1, -1])
   // const notifyActiveField = (i: number, j: number) => {
   //   setActiveField([i, j])
   // }
@@ -296,19 +296,17 @@ const GamePage = ({ isClient, toggleDarkMode, userIdentifier, isCustomUserIdenti
               </div>
             </div>
             {game.setup.cols.map((col, j) => (
-              <TableHeading key={j} orient="col" active={false} setActive={() => console.log(`Set active col ${j}`)} {...col} />
+              <TableHeading key={j} orient="col" active={activeField[1] == j} setActive={() => setActiveField(field => ([field[0], j]))} {...col} />
             ))}
           </div>
           {game.setup.solutions.map((row: string[][], i: number) => (
             <div className="tableRow" key={i}>
-              <TableHeading key={i} orient="row" active={false} setActive={() => console.log(`Set active row ${i}`)} {...game.setup.rows[i]} />
+              <TableHeading key={i} orient="row" active={activeField[0] == i} setActive={() => setActiveField(field => ([i, field[1]]))} {...game.setup.rows[i]} />
               {row.map((countryCodes: string[], j: number) => {
                 return (<div className="tableCell" key={j}>
                   <Field
                     pos={[i, j]}
-                    notifyActiveField={(i, j) => console.log(`notifyActiveField ${i},${j}`) }
                     active={activeField[0] == i && activeField[1] == j}
-                    setActive={() => { console.log("set active field") }}
                     game={game}
                     row={game.setup.rows[i]}
                     col={game.setup.cols[j]}

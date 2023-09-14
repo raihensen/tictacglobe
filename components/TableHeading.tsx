@@ -7,6 +7,7 @@ import styled from "styled-components";
 import { useId } from "react";
 import { CategoryValue } from "@/src/game.types";
 import { useTranslation } from "next-i18next";
+// import CountryAutoComplete from "@/components/Autocomplete";
 import _ from "lodash";
 
 const continentIconMap = {
@@ -28,7 +29,7 @@ const colorMap = {
   "Black": styles.flagColorBlack
 }
 
-const TableHeadingInner = ({ category, value, onMouseEnter }: CategoryValue & { onMouseEnter: () => void }) => {
+const TableHeadingInner = ({ category, value }: CategoryValue) => {
   const { t, i18n } = useTranslation('common')
 
   const tooltipId = useId()
@@ -37,7 +38,7 @@ const TableHeadingInner = ({ category, value, onMouseEnter }: CategoryValue & { 
     const tooltipCategoryInfo = (<Tooltip id={`tooltipCategoryInfo-${tooltipId}`}>{t("category.landlocked.tooltip")}</Tooltip>)
     return (
       <OverlayTrigger placement="top" overlay={tooltipCategoryInfo}>
-        <CategoryBadge onMouseEnter={onMouseEnter}>
+        <CategoryBadge>
           <IconStack>
             <FaWater color="white" />
             <FaSlash color="white" />
@@ -118,7 +119,7 @@ export const TableHeading = ({ category, value, orient, active, setActive }: Cat
 }) => (
   <div className={`${orient}Heading${active ? " active" : ""}`}>
     <div className="tableHeadingBackground">
-      <TableHeadingInner category={category} value={value} onMouseEnter={() => { setActive(); console.log("hover heading") }} />
+      <TableHeadingInner category={category} value={value} setActive={setActive} />
     </div>
   </div>
 )
