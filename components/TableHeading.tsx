@@ -1,12 +1,11 @@
 
 import { FaBuildingColumns, FaFlag, FaEarthAmericas, FaEarthAfrica, FaEarthAsia, FaEarthEurope, FaEarthOceania, FaWater, FaSlash, FaCircle } from "react-icons/fa6";
 import { OverlayTrigger, Tooltip } from "react-bootstrap";
-import Badge from 'react-bootstrap/Badge';
 import styled from "styled-components";
 import { forwardRef, useId } from "react";
 import { CategoryValue } from "@/src/game.types";
 import { useTranslation } from "next-i18next";
-// import CountryAutoComplete from "@/components/Autocomplete";
+
 import _ from "lodash";
 
 const continentIcons = {

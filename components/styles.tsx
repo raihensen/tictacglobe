@@ -107,7 +107,7 @@ export const GameTable = styled.div`
         box-shadow: .25rem .25rem .5rem rgba(0, 0, 0, .5);
       }
       &:not(.active) .categoryBadge {
-        opacity: .6;
+        opacity: .75;
       }
       .tableHeadingBackground {
         background: var(--bs-body-bg);

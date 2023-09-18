@@ -48,6 +48,7 @@ const GamePage = ({ isClient, toggleDarkMode, userIdentifier, isCustomUserIdenti
   
   const [userIndex, setUserIndex] = useState<PlayerIndex>(0)  // who am i? 0/1
   const [hasTurn, setHasTurn] = useState<boolean>(true)
+  const [turnStartTimestamp, setTurnStartTimestamp] = useState<number>(Date.now() - 60000)
 
   const [countries, setCountries] = useState<Country[]>([])
 
@@ -114,6 +115,14 @@ const GamePage = ({ isClient, toggleDarkMode, userIdentifier, isCustomUserIdenti
           setErrorMessage(false)
         }
 
+        setGame(newGame)
+        setTurnStartTimestamp(oldValue => {
+          const newValue = newGame.turnStartTimestamp ?? Date.now() - 60000
+          console.log(`turnStartTimestamp changed by a difference of ${newValue - oldValue}`)
+          return newValue
+        })
+        setSession(newSession)
+
         if (newGame.playingMode == PlayingMode.Offline) {
           setHasTurn(true)
 
@@ -149,28 +158,26 @@ const GamePage = ({ isClient, toggleDarkMode, userIdentifier, isCustomUserIdenti
           }
         }
 
-        setGame(newGame)
-        setSession(newSession)
         setNotifyDecided(showNotifyDecided)
         if (data.countries) {
           setCountries(data.countries)
         }
         setSettings(settings => {
           if (settingsChanged(settings, newSession.settings)) {
-            console.log(`Session settings changed`)
-            console.log(`Old settings: ${JSON.stringify(settings)}`)
-            console.log(`New settings: ${JSON.stringify(newSession.settings)}`)
+            console.log(`Session settings changed. New settings: ${JSON.stringify(newSession.settings)}`)
             return newSession.settings
           } else {
             // No changes, prevent re-render by passing the old object
-            console.log(`No changes, prevent re-render`)
             return settings
           }
         })
 
-        if (timerRef.current) {
-          (timerRef.current as any).reset()
-        }
+        // init timer
+
+        // if (timerRef.current) {
+        //   (timerRef.current as any).reset()  // running = false
+        //   // (timerRef.current as any).start()
+        // }
         setTimerRunning(true)
 
         setLoadingText(false)
@@ -314,11 +321,23 @@ const GamePage = ({ isClient, toggleDarkMode, userIdentifier, isCustomUserIdenti
                     {game.playingMode == PlayingMode.Online && capitalize(t("turnInfoOnline", { player: t(hasTurn ? "yourTurn" : "opponentsTurn") }))}
                   </PlayerBadge>
                   {settings.timeLimit !== false && (<>
-                    <Timer className="mt-2" ref={timerRef} running={timerRunning} setRunning={setTimerRunning} initialTime={settings.timeLimit * 1000} onElapsed={() => {
-                      apiRequest({
-                        action: RequestAction.TimeElapsed,
-                        player: game.turn
-                      })
+                    <Timer
+                    className="mt-2"
+                    ref={timerRef}
+                    running={timerRunning}
+                    setRunning={setTimerRunning}
+                    initialTimestamp={turnStartTimestamp}
+                    initialTime={settings.timeLimit * 1000}
+                    onElapsed={() => {
+                      console.log(`Timer elapsed --- ${hasTurn ? "hasTurn = true" : "hasTurn = false"}`)
+                      if (hasTurn) {
+                        apiRequest({
+                          action: RequestAction.TimeElapsed,
+                          player: game.turn
+                        })
+                      } else {
+                        apiRequest({ action: RequestAction.RefreshGame })
+                      }
                     }} />
                   </>)}
                 </>)}

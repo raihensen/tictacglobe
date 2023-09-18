@@ -34,7 +34,7 @@ export const defaultSettings: Settings = {
   showIso: false,
   showNumSolutions: true,
   showNumSolutionsHint: false,
-  timeLimit: false,
+  timeLimit: 30,
 }
 export const settingsChanged = (oldSettings: Settings, newSettings: Settings): boolean => {
   return (Object.keys(oldSettings) as (keyof Settings)[]).some(k => oldSettings[k] != newSettings[k])

@@ -87,7 +87,7 @@ async function makeGuess(game: Game, playerIndex: PlayerIndex, { userIdentifier,
 
   // check correct solution
   if (!game.isValidGuess(i, j, country)) {
-    console.log(`Error: Wrong guess ((${i},${j}), ${country.name})`)
+    console.log(`Wrong guess ((${i},${j}), ${country.name})`)
     switchTurns(game)
     return true  // might return false?
   }
@@ -112,6 +112,7 @@ function endTurn(game: Game, playerIndex: number, query: Query) {
 }
 
 function switchTurns(game: Game) {
+  console.log(`switchTurns`)
   game.turn = 1 - game.turn as PlayerIndex
   game.turnCounter += 1
   game.turnStartTimestamp = Date.now()
