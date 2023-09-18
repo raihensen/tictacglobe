@@ -1,6 +1,6 @@
 
 import { IncomingMessage, ServerResponse } from 'http';
-import { Game, GameSetup, Country, RequestAction, Query, PlayingMode, GameState, Language, parseCountry, defaultLanguage, PlayerIndex, GameSession, DifficultyLevel } from "@/src/game.types"
+import { Game, GameSetup, Country, RequestAction, Query, PlayingMode, GameState, Language, parseCountry, defaultLanguage, PlayerIndex, GameSession, DifficultyLevel, Settings, settingsFromQuery, defaultSettings } from "@/src/game.types"
 import { randomChoice } from "@/src/util";
 import { Lexend_Tera } from 'next/font/google';
 import _ from "lodash";
@@ -8,20 +8,21 @@ import _ from "lodash";
 var fs = require('fs').promises;
 import path from 'path';
 import { Mutex } from 'async-mutex';
+import { SettingsModal } from '@/components/Settings';
 
 // debug game sessions
-var sessions: GameSession[] = [{
-  currentGame: null,
-  index: 0,
-  isPublic: false,
-  playingMode: PlayingMode.Offline,
-  previousGames: [],
-  score: [0, 0],
-  users: ["debug"]
-}]
-var userSessionMap: { [x: string]: GameSession } = { "debug": sessions[0] }
-// var userSessionMap: { [x: string]: GameSession } = {}
-// var sessions: GameSession[] = []
+// var sessions: GameSession[] = [{
+//   currentGame: null,
+//   index: 0,
+//   isPublic: false,
+//   playingMode: PlayingMode.Offline,
+//   previousGames: [],
+//   score: [0, 0],
+//   users: ["debug"]
+// }]
+// var userSessionMap: { [x: string]: GameSession } = { "debug": sessions[0] }
+var userSessionMap: { [x: string]: GameSession } = {}
+var sessions: GameSession[] = []
 
 var sessionIndex = 1
 var sessionsMutex = new Mutex()
@@ -112,6 +113,8 @@ function endTurn(game: Game, playerIndex: number, query: Query) {
 
 function switchTurns(game: Game) {
   game.turn = 1 - game.turn as PlayerIndex
+  game.turnCounter += 1
+  game.turnStartTimestamp = Date.now()
 }
 
 /**
@@ -219,6 +222,7 @@ async function createGame(
     (Math.random() < .5 ? 0 : 1)  // who starts?
     // TODO logic within session to determine who starts (loser? alternating?)
   )
+  game.turnStartTimestamp = Date.now()
   session.currentGame = game
   return game
 
@@ -264,7 +268,16 @@ async function executeAndRespond(
 ) {
 
   const { action, player, countryId, pos, language } = query
+  const newSettings = settingsFromQuery(query)
+
   const addCountryData = settings.addCountryData ?? false
+
+  // --- Apply new settings -----------------------------------------------
+  if (isIngameAction(action) && !_.isEmpty(newSettings)) {
+    session.settings = {...session.settings, ...newSettings}
+    console.log(`Update settings: ${JSON.stringify(newSettings)}`)
+    console.log(`-> New settings: ${JSON.stringify(session.settings)}`)
+  }
 
   // --- Action / Response ------------------------------------------------
   // actions
@@ -274,6 +287,7 @@ async function executeAndRespond(
     invitationCode?: string
   } = {}
 
+  // TODO determine playerIndex by userIdentifier in online mode
   let playerIndex = player !== undefined ? Number(player) : undefined
   if (playerIndex !== 0 && playerIndex !== 1) {
     playerIndex = undefined
@@ -329,6 +343,12 @@ async function executeAndRespond(
 
   }
 
+  if (game && isGameInitAction(action)) {
+    if (!game.turnStartTimestamp) {
+      game.turnStartTimestamp = Date.now()
+    }
+  }
+
   console.log(`${RequestAction[action]}: ${result ? "successful" : "not successful"}`)
 
   const { currentGame, previousGames, ...sessionWithoutGames } = session  // type SessionWithoutGames
@@ -368,7 +388,12 @@ function sessionInfo(session: GameSession) {
   return `#${session.index} [${session.users.join(", ")}]`
 }
 
-function createSession(userIdentifier: string, playingMode: PlayingMode, invitationCode: string | undefined = undefined) {
+function createSession(
+  userIdentifier: string,
+  playingMode: PlayingMode,
+  settings: Settings,
+  invitationCode: string | undefined = undefined
+) {
 
   // Create new session
   const session = {
@@ -379,7 +404,8 @@ function createSession(userIdentifier: string, playingMode: PlayingMode, invitat
     currentGame: null,
     previousGames: [],
     users: [userIdentifier],
-    score: [0, 0]
+    score: [0, 0],
+    settings: settings
   } as GameSession
 
   sessions.push(session)
@@ -412,7 +438,7 @@ function joinSession(session: GameSession, userIdentifier: string, invitationCod
 
 const gameApi = async (req: Request, res: ServerResponse<Request>) => {
 
-  const { userIdentifier, playingMode, invitationCode, action, player, difficulty, language }: Query = req.query
+  const { userIdentifier, playingMode, invitationCode, action, player, difficulty, language }: Query = req.query as Query
 
   await sessionsMutex.runExclusive(async () => {
 
@@ -507,7 +533,7 @@ const gameApi = async (req: Request, res: ServerResponse<Request>) => {
         // console.log("playingMode Offline");
         
         // TODO TTG-35 re-integrate offline mode
-        session = createSession(userIdentifier, PlayingMode.Offline)
+        session = createSession(userIdentifier, PlayingMode.Offline, defaultSettings)
         if (!session) {
           return respondWithError(res, "Session could not be created.")
         }
@@ -522,7 +548,7 @@ const gameApi = async (req: Request, res: ServerResponse<Request>) => {
           // create invitation code
           const characters = 'ABCDEFGHJKLPQRSTUVWXYZ456789'
           const invitationCode = _.range(4).map(() => characters.charAt(Math.floor(Math.random() * characters.length))).join("")
-          session = createSession(userIdentifier, playingMode, invitationCode)
+          session = createSession(userIdentifier, playingMode, defaultSettings, invitationCode)
           return await executeAndRespond(res, req.query, session, null, {})
 
         }
@@ -540,7 +566,7 @@ const gameApi = async (req: Request, res: ServerResponse<Request>) => {
           }
 
           // No free session found. Create a new session
-          session = createSession(userIdentifier, playingMode)
+          session = createSession(userIdentifier, playingMode, defaultSettings)
           return await executeAndRespond(res, req.query, session, null, {})
           
         }

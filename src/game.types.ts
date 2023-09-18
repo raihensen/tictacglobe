@@ -5,6 +5,69 @@ import _ from "lodash";
 
 export const autoRefreshInterval = 2000  // interval [ms] for auto refresh
 
+export type Settings = {
+  difficulty: DifficultyLevel;
+  showIso: boolean;
+  showNumSolutions: boolean;
+  showNumSolutionsHint: boolean;
+  timeLimit: number | false;
+}
+const parseSetting = (k: keyof Settings, v: string): Settings[keyof Settings] | string => {
+  if (k == "showIso" || k == "showNumSolutions" || k == "showNumSolutionsHint") {
+    return v == "true"
+  }
+  if (k == "difficulty") {
+    return v as DifficultyLevel
+  }
+  if (k == "timeLimit") {
+    if (v == "false") {
+      return false
+    }
+    return parseInt(v)
+  }
+  console.log(`Warning: No settings parse function defined for ${k}: "${v}"`)
+  return v
+}
+
+export const defaultSettings: Settings = {
+  difficulty: "easy",
+  showIso: false,
+  showNumSolutions: true,
+  showNumSolutionsHint: false,
+  timeLimit: false,
+}
+export const settingsChanged = (oldSettings: Settings, newSettings: Settings): boolean => {
+  return (Object.keys(oldSettings) as (keyof Settings)[]).some(k => oldSettings[k] != newSettings[k])
+}
+
+type BooleanSettingsKeys = {
+  [K in keyof Settings]: Settings[K] extends boolean ? K : never;
+}[keyof Settings];
+type CamelCaseWithPrefix<T, Prefix extends string> = {
+  [Key in keyof T as `${Prefix}${Capitalize<string & Key>}`]: T[Key];
+};
+type FilteredObject<T, U> = {
+  [K in keyof T as K extends keyof U ? K : never]: T[K];
+};
+type RemoveSettingsPrefix<T> = {
+  [K in keyof T as K extends `settings${infer U}` ? Uncapitalize<U> : K]: T[K];
+};
+
+export type PrefixedSettings = CamelCaseWithPrefix<Settings, "settings">
+
+export const settingsToQuery = (settings: Partial<Settings>): Partial<PrefixedSettings> => {
+  // return settings as PrefixedSettings
+  return Object.fromEntries(Object.entries(settings).map(([k, v]) => [_.camelCase("settings" + k), v])) as Partial<PrefixedSettings>
+}
+export const settingsFromQuery = (query: Query): Partial<Settings> => {
+  // return query as RemoveSettingsPrefix<FilteredObject<Query, PrefixedSettings>>
+  return Object.fromEntries((Object.entries(query).filter(([k, v]) => k.startsWith("settings")) as [keyof Settings, any][]).map(([k, v]) => [
+    k.charAt("settings".length).toLowerCase() + k.substring("settings".length + 1), v
+  ]).map(([k, v]) => [k, parseSetting(k, v)])) as Partial<Settings>
+  
+}
+
+
 
 export enum Language {
   German = "de",
@@ -27,7 +90,7 @@ export enum RequestAction {
   InitSessionOffline = 10,
 }
 
-export type Query = {
+type ScalarQuery = {
   userIdentifier: string;
   playingMode?: PlayingMode;
   invitationCode?: string;
@@ -37,8 +100,10 @@ export type Query = {
   pos?: string;  // coords like "0,2"
   difficulty?: DifficultyLevel;
   language?: Language;
-}
-export type FrontendQuery = Omit<Query, "userIdentifier" | "playingMode">
+};
+export type Query = ScalarQuery & Partial<PrefixedSettings>;
+export type FrontendQuery = Omit<ScalarQuery, "userIdentifier" | "playingMode"> & { settings?: Settings }
+
 
 export type GameSession = {
   index: number;
@@ -49,6 +114,7 @@ export type GameSession = {
   previousGames: Game[];
   users: string[];
   score: number[];
+  settings: Settings;
 }
 export type SessionWithoutGames = Omit<GameSession, "currentGame" | "previousGames">
 
@@ -128,6 +194,7 @@ export class Game {
   winCoords: number[][] | null;  // coords of the winning formation
   winner: (PlayerIndex | NoPlayer) | null;
   turnCounter: number;
+  turnStartTimestamp?: number;
 
   constructor(setup: GameSetup, users: string[], playingMode: PlayingMode, turn: PlayerIndex) {
     this.setup = setup

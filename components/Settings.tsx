@@ -9,25 +9,13 @@ import 'rc-slider/assets/index.css';
 import { useTranslation } from 'next-i18next';
 
 import { NextRouter, useRouter } from "next/router";
-import { Language, defaultLanguage, DifficultyLevel } from "@/src/game.types";
+import { Settings, Language, defaultLanguage, DifficultyLevel, FrontendQuery, RequestAction, settingsToQuery } from "@/src/game.types";
 import { Dropdown } from "react-bootstrap";
 import { CircleFlag } from "react-circle-flags";
 import styles from '@/pages/Game.module.css'
 import styled from "styled-components";
 import { LanguageSelectorToggle, LanguageSelectorItem } from "@/components/styles"
 import _ from "lodash";
-
-
-export type Settings = {
-  difficulty: DifficultyLevel;
-  showIso: boolean;
-  showNumSolutions: boolean;
-  showNumSolutionsHint: boolean;
-  timeLimit: number | false;
-}
-type BooleanSettingsKeys = {
-  [K in keyof Settings]: Settings[K] extends boolean ? K : never;
-}[keyof Settings];
 
 
 export function useSettings(defaultSettings: Settings): [Settings, (value: Settings) => void] {
@@ -47,10 +35,11 @@ export type SettingsModalProps = {
   setSettings: (value: Settings) => void;
   showSettings: boolean;
   setShowSettings: (value: boolean) => void;
+  apiRequest: (query: FrontendQuery) => any;
 }
 
 
-export const SettingsModal = ({ settings, setSettings, showSettings, setShowSettings }: SettingsModalProps) => {
+export const SettingsModal = ({ settings, setSettings, showSettings, setShowSettings, apiRequest }: SettingsModalProps) => {
   const { t, i18n } = useTranslation()
 
   // const showSettings = () => setShowSettings(true)
@@ -58,6 +47,12 @@ export const SettingsModal = ({ settings, setSettings, showSettings, setShowSett
   const updateSettings = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement> | { target: SettingsValues}) => {
     const newSettings = assignSettings(settings, e)
     console.log(`New settings: ${JSON.stringify(newSettings)}`)
+
+    apiRequest({
+      action: RequestAction.RefreshGame,
+      ...settingsToQuery(newSettings)
+    })
+
     setSettings(newSettings)
   }
 
@@ -84,7 +79,7 @@ export const SettingsModal = ({ settings, setSettings, showSettings, setShowSett
           setShowTimeLimitSlider(e.target.checked)
         }} checked={settings.timeLimit !== false} id="settingsEnableTimeLimit" label={t("settings.enableTimeLimit")} />
 
-        {settings.timeLimit !== false && (<>
+        {(showTimeLimitSlider && settings.timeLimit !== false) && (<>
           <Form.Label className="mt-3">{t("settings.timeLimitValue", { timeLimit: formatTimeLimit(settings.timeLimit) })}</Form.Label>
           <div className="px-3">
             <Slider

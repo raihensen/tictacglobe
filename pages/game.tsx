@@ -8,7 +8,7 @@ import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'next-i18next'
 import { serverSideTranslations } from 'next-i18next/serverSideTranslations'
 
-import { Game, Country, RequestAction, FrontendQuery, PlayingMode, GameState, Language, SessionWithoutGames, defaultLanguage, PlayerIndex, autoRefreshInterval } from "../src/game.types"
+import { Settings, defaultSettings, Game, Country, RequestAction, FrontendQuery, PlayingMode, GameState, Language, SessionWithoutGames, defaultLanguage, PlayerIndex, autoRefreshInterval, Query, settingsToQuery, settingsChanged } from "@/src/game.types"
 import { capitalize, useAutoRefresh } from "@/src/util"
 import _ from "lodash";
 
@@ -19,19 +19,10 @@ import { FaArrowsRotate, FaEllipsis, FaGear, FaMoon, FaPause, FaPersonCircleXmar
 import { useRouter } from "next/router";
 import type { GetStaticProps } from 'next'
 import { PageProps } from "./_app";
-import { Settings, SettingsModal, useSettings, LanguageSelector, changeLanguage } from "@/components/Settings";
+import { SettingsModal, useSettings, LanguageSelector, changeLanguage } from "@/components/Settings";
 import { SplitButtonToolbar, IconButton, PlayerBadge, GameTable } from "@/components/styles";
 import CountryAutoComplete from "@/components/Autocomplete";
 import Form from "react-bootstrap/esm/Form";
-
-
-const defaultSettings: Settings = {
-  difficulty: "easy",
-  showIso: false,
-  showNumSolutions: true,
-  showNumSolutionsHint: false,
-  timeLimit: false,
-}
 
 
 const GamePage = ({ isClient, toggleDarkMode, userIdentifier, isCustomUserIdentifier, hasError, setErrorMessage, isLoading, setLoadingText }: PageProps) => {
@@ -47,7 +38,8 @@ const GamePage = ({ isClient, toggleDarkMode, userIdentifier, isCustomUserIdenti
   const router = useRouter()
   const { t, i18n } = useTranslation('common')
 
-  const [settings, setSettings] = useSettings(defaultSettings)
+  // const [settings, setSettings] = useSettings(defaultSettings)
+  const [settings, setSettings] = useState<Settings>(defaultSettings)
   const [showSettings, setShowSettings] = useState(false)
 
   const [game, setGame] = useState<Game | null>(null)
@@ -72,6 +64,14 @@ const GamePage = ({ isClient, toggleDarkMode, userIdentifier, isCustomUserIdenti
     apiRequest({ action: RequestAction.RefreshGame })
   }, autoRefreshInterval)
 
+  useEffect(() => {
+    console.log(`settings after update: ${JSON.stringify(settings)}`)
+  }, [settings])
+
+  const gameSettingsChanged = (newSettings: Settings): boolean => {
+    return settingsChanged(settings, newSettings)
+  }
+
   // TODO consider using SWR https://nextjs.org/docs/pages/building-your-application/data-fetching/client-side#client-side-data-fetching-with-swr
   function apiRequest(params: FrontendQuery) {
     if (!userIdentifier) {
@@ -81,12 +81,12 @@ const GamePage = ({ isClient, toggleDarkMode, userIdentifier, isCustomUserIdenti
     clearAutoRefresh()
 
     // Fetch the game data from the server
-    const query = {
+    const query: Query = {
       userIdentifier: userIdentifier,
       ...params
     }
     if (params.action == RequestAction.NewGame || params.action == RequestAction.ExistingOrNewGame) {
-      query.difficulty = query.difficulty ?? settings.difficulty
+      query.difficulty = settings.difficulty
       query.language = query.language ?? (router.locale ?? defaultLanguage) as Language
     }
 
@@ -130,7 +130,7 @@ const GamePage = ({ isClient, toggleDarkMode, userIdentifier, isCustomUserIdenti
 
           // synchronize language (TODO TTG-43 synchronize all settings)
           if (router.locale != newGame.setup.language.toString()) {
-            // console.log(`Game language: ${newGame.setup.language}, Frontend language: ${router.locale} - changing frontend to ${newGame.setup.language}`)
+            console.log(`Game language: ${newGame.setup.language}, Frontend language: ${router.locale} - changing frontend to ${newGame.setup.language}`)
             changeLanguage(router, i18n, newGame.setup.language)
           }
 
@@ -155,6 +155,18 @@ const GamePage = ({ isClient, toggleDarkMode, userIdentifier, isCustomUserIdenti
         if (data.countries) {
           setCountries(data.countries)
         }
+        setSettings(settings => {
+          if (settingsChanged(settings, newSession.settings)) {
+            console.log(`Session settings changed`)
+            console.log(`Old settings: ${JSON.stringify(settings)}`)
+            console.log(`New settings: ${JSON.stringify(newSession.settings)}`)
+            return newSession.settings
+          } else {
+            // No changes, prevent re-render by passing the old object
+            console.log(`No changes, prevent re-render`)
+            return settings
+          }
+        })
 
         if (timerRef.current) {
           (timerRef.current as any).reset()
@@ -263,7 +275,7 @@ const GamePage = ({ isClient, toggleDarkMode, userIdentifier, isCustomUserIdenti
         </div>
       </SplitButtonToolbar>
 
-      <SettingsModal settings={settings} setSettings={setSettings} showSettings={showSettings} setShowSettings={setShowSettings} />
+      <SettingsModal settings={settings} setSettings={setSettings} showSettings={showSettings} setShowSettings={setShowSettings} apiRequest={apiRequest} />
 
       {/* https://github.com/JedWatson/react-select/issues/2345 */}
       {/* <p>

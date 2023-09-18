@@ -124,6 +124,11 @@ export function useAutoRefresh(action: () => void, interval: number) {
   const autoRefreshIntervalMutex = new Mutex()
   const [autoRefreshIntervalHandle, setAutoRefreshIntervalHandle] = useState<NodeJS.Timeout>()
 
+  useEffect(() => {
+    // clear the autoRefresh interval when the component unmounts
+    return () => clearAutoRefresh()
+  }, [])
+
   const clearAutoRefresh = () => {
     autoRefreshIntervalMutex.runExclusive(() => {
       if (typeof autoRefreshIntervalHandle !== 'undefined') {
