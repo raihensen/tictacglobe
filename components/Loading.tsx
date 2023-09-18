@@ -1,11 +1,7 @@
 
-
-// import styles from '@/components/Loading.module.css'
-import { capitalize } from '@/src/util';
 import React from 'react';
 import _ from "lodash";
 import styled, { keyframes } from "styled-components";
-import { Exo_2 } from 'next/font/google';
 
 export type SpinnerVariant = "spinner" | "ripple" | "heart";
 
@@ -71,7 +67,7 @@ const convertProps = (props: SpinnerVariantProps): SpinnerComponentProps => ({
   $duration: props.duration ?? defaultDuration
 })
 
-const generateComponent = (numNodes: number, Comp: (props: SpinnerComponentProps) => JSX.Element) => (
+const generateComponent = (numNodes: number, Comp: React.FC<SpinnerComponentProps>): React.FC<SpinnerVariantProps> => (
   (props: SpinnerVariantProps) => (
     <Comp {...convertProps(props)}>{_.range(numNodes).map(i => <div key={i}></div>)}</Comp>
   )

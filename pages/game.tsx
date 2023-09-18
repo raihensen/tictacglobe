@@ -8,7 +8,7 @@ import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'next-i18next'
 import { serverSideTranslations } from 'next-i18next/serverSideTranslations'
 
-import { Settings, defaultSettings, Game, Country, RequestAction, FrontendQuery, PlayingMode, GameState, Language, SessionWithoutGames, defaultLanguage, PlayerIndex, autoRefreshInterval, Query, settingsToQuery, settingsChanged } from "@/src/game.types"
+import { Settings, defaultSettings, Game, Country, RequestAction, FrontendQuery, PlayingMode, GameState, Language, SessionWithoutGames, defaultLanguage, PlayerIndex, autoRefreshInterval, Query, settingsToQuery, settingsChanged, getApiUrl } from "@/src/game.types"
 import { capitalize, useAutoRefresh } from "@/src/util"
 import _ from "lodash";
 
@@ -69,36 +69,25 @@ const GamePage = ({ isClient, toggleDarkMode, userIdentifier, isCustomUserIdenti
     console.log(`settings after update: ${JSON.stringify(settings)}`)
   }, [settings])
 
-  const gameSettingsChanged = (newSettings: Settings): boolean => {
-    return settingsChanged(settings, newSettings)
-  }
-
-  // TODO consider using SWR https://nextjs.org/docs/pages/building-your-application/data-fetching/client-side#client-side-data-fetching-with-swr
   function apiRequest(params: FrontendQuery) {
     if (!userIdentifier) {
       return false
     }
-
     clearAutoRefresh()
-
-    // Fetch the game data from the server
-    const query: Query = {
-      userIdentifier: userIdentifier,
-      ...params
-    }
-    if (params.action == RequestAction.NewGame || params.action == RequestAction.ExistingOrNewGame) {
-      query.difficulty = settings.difficulty
-      query.language = query.language ?? (router.locale ?? defaultLanguage) as Language
-    }
 
     if (params.action != RequestAction.RefreshGame) {
       setLoadingText(params.action == RequestAction.MakeGuess ? "Submitting guess" : "Loading")
     }
 
-    const search = Object.entries(query).filter(([key, val]) => val != undefined).map(([key, val]) => `${key}=${encodeURIComponent(val)}`).join("&")
-    const url = "/api/game?" + search
-    console.log(`API request: ${url}`);
-
+    // Fetch the game data from the server
+    const url = getApiUrl({
+      userIdentifier: userIdentifier,
+      ...params
+    }, {
+      settings: settings,
+      router: router
+    })
+    console.log(`API request: ${url}`)
     fetch(url)
       .then(response => response.json())
       .then(data => {

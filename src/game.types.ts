@@ -1,5 +1,6 @@
 
 import _ from "lodash";
+import { NextRouter } from "next/router";
 // var path = require('path');
 // var fs = require('fs');
 
@@ -67,6 +68,22 @@ export const settingsFromQuery = (query: Query): Partial<Settings> => {
   
 }
 
+export const getApiUrl = (query: ScalarQuery, { settings, router }: {
+  settings?: Settings,
+  router?: NextRouter
+} = {}): string => {
+  if (query.action == RequestAction.NewGame || query.action == RequestAction.ExistingOrNewGame) {
+    if (settings && router) {
+      query.difficulty = settings.difficulty
+      query.language = query.language ?? (router.locale ?? defaultLanguage) as Language
+    }
+  }
+
+  const search = Object.entries(query).filter(([key, val]) => val != undefined).map(([key, val]) => `${key}=${encodeURIComponent(val)}`).join("&")
+  const url = "/api/game?" + search
+  return url
+}
+
 
 
 export enum Language {
@@ -90,7 +107,7 @@ export enum RequestAction {
   InitSessionOffline = 10,
 }
 
-type ScalarQuery = {
+export type ScalarQuery = {
   userIdentifier: string;
   playingMode?: PlayingMode;
   invitationCode?: string;

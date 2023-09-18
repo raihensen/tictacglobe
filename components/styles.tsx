@@ -4,6 +4,7 @@ import Dropdown from "react-bootstrap/Dropdown";
 import Tooltip from "react-bootstrap/Tooltip";
 import ButtonToolbar from "react-bootstrap/ButtonToolbar";
 import styled from "styled-components";
+import { Modal, ModalDialog } from "react-bootstrap";
 
 const breakpointsMin = {
   xs: 0,
@@ -219,20 +220,19 @@ export const MarkingBackground = styled.div<{ $player: number, $isWinning: boole
   z-index: -10;
 `
 
-const IconButtonStyle = styled(Button)`
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  & > :not(:last-child) {
-    margin-right: .25em;
-  }
-`
-export const IconButton = ({ children, label, ...props }: any) => (
-  <IconButtonStyle {...props}>
+export const IconButton = styled(({ children, label, ...props }: any) => (
+  <Button {...props}>
     {children}
     {label && <span>{label}</span>}
-  </IconButtonStyle>
-)
+  </Button>
+))`
+display: flex;
+align-items: center;
+justify-content: center;
+& > :not(:last-child) {
+  margin-right: .5em;
+}
+`
 
 export const MultiLineTooltip = styled(Tooltip)`
   text-align: left;
@@ -254,6 +254,10 @@ export const LanguageSelectorItem = styled(Dropdown.Item)`
   }
 `;
 
-
+export const CustomModal = styled(Modal)`
+  .modal-dialog-large {
+    max-width: 800px;
+  }
+`
 
 

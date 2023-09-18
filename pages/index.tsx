@@ -13,7 +13,7 @@ import { useTranslation, Trans } from 'next-i18next'
 import { serverSideTranslations } from 'next-i18next/serverSideTranslations'
 
 // TODO import translated country data
-import { Game, Country, RequestAction, Query, PlayingMode, GameState, Language, FrontendQuery, SessionWithoutGames, GameSession, autoRefreshInterval } from "../src/game.types"
+import { Game, Country, RequestAction, Query, PlayingMode, GameState, Language, FrontendQuery, SessionWithoutGames, GameSession, autoRefreshInterval, getApiUrl } from "../src/game.types"
 // import { countries } from "../src/game.types"
 import { capitalize, useAutoRefresh, useDarkMode } from "@/src/util"
 import _ from "lodash";
@@ -23,8 +23,15 @@ import Image from "next/image";
 import Link from "next/link";
 import { NextRouter, useRouter } from "next/router";
 import { useSearchParams } from 'next/navigation';
-import type { GetStaticProps, InferGetStaticPropsType } from 'next'
+import type { GetServerSideProps, GetStaticProps, InferGetStaticPropsType } from 'next'
 import { PageProps } from "./_app";
+import Modal from "react-bootstrap/Modal";
+import ReactMarkdown from "react-markdown";
+import path from "path";
+import { SearchHeartFill } from "react-bootstrap-icons";
+import { CustomModal, IconButton } from "@/components/styles";
+import { FaCircleInfo, FaInfo } from "react-icons/fa6";
+var fs = require('fs/promises');
 
 enum PageState {
   Init = 0,
@@ -33,13 +40,31 @@ enum PageState {
   EnterCode = 3,
 }
 
-const StartPage = ({ isClient, userIdentifier, isCustomUserIdentifier, hasError, setErrorMessage, isLoading, setLoadingText }: PageProps) => {
+export type IndexPageProps = {
+  gameInformationMarkdown: string
+}
 
+export const getServerSideProps: GetServerSideProps<IndexPageProps> = (async () => {
+  const markdown = await fs.readFile(path.join(process.cwd(), "README.md"), { encoding: "utf8" })
+  // console.log(JSON.stringify(markdown))
+  // console.log(`Read readme: ${markdown.substring(0, 50)} [...]`)
+
+  return {
+    props: {
+      gameInformationMarkdown: markdown
+    }
+  }
+})
+
+const StartPage = ({ gameInformationMarkdown, isClient, userIdentifier, isCustomUserIdentifier, hasError, setErrorMessage, isLoading, setLoadingText }: PageProps & IndexPageProps) => {
+  const { t } = useTranslation("common")
   const router = useRouter()
   const [state, setState] = useState<PageState>(PageState.Init)
 
   const [session, setSession] = useState<SessionWithoutGames | null>()
   const searchParams = useSearchParams()
+
+  const [showGameInformation, setShowGameInformation] = useState<boolean>(false)
 
   const [isWaiting, setIsWaiting] = useState<boolean>(false)
   useEffect(() => {
@@ -67,6 +92,7 @@ const StartPage = ({ isClient, userIdentifier, isCustomUserIdentifier, hasError,
   )
 
   function apiRequest(playingMode: PlayingMode, params: FrontendQuery) {
+    const action = params.action
     if (!userIdentifier) {
       return false
     }
@@ -76,21 +102,16 @@ const StartPage = ({ isClient, userIdentifier, isCustomUserIdentifier, hasError,
 
     clearAutoRefresh()
 
-    // Fetch the game data from the server
-    const query = {
-      userIdentifier: userIdentifier,
-      playingMode: playingMode,
-      ...params
-    }
-    const action = params.action
-
-    const search = Object.entries(query).filter(([key, val]) => val != undefined).map(([key, val]) => `${key}=${encodeURIComponent(val)}`).join("&")
-    const url = "/api/game?" + search
-    console.log(`API request: ${url}`);
 
     if (action != RequestAction.RefreshSession) {
       setIsWaiting(true)
     }
+    const url = getApiUrl({
+      userIdentifier: userIdentifier,
+      playingMode: playingMode,
+      ...params
+    })
+    console.log(`API request: ${url}`)
 
     fetch(url)
       .then(response => response.json())
@@ -193,17 +214,17 @@ const StartPage = ({ isClient, userIdentifier, isCustomUserIdentifier, hasError,
 
     {state == PageState.Init && (<>
       <div style={{ display: "flex", flexDirection: "column", width: "250px", maxWidth: "90%", alignItems: "stretch" }}>
-        <Button size="lg" className="mb-2" onClick={() => {
+        <Button variant="danger" size="lg" className="mb-2" onClick={() => {
           apiRequest(PlayingMode.Online, { action: RequestAction.InitSessionRandom })
         }}>Search opponent</Button>
-        <Button size="lg" className="mb-2" onClick={() => {
+        <Button variant="warning" size="lg" className="mb-2" onClick={() => {
           apiRequest(PlayingMode.Online, { action: RequestAction.InitSessionFriend })
         }}>Invite a friend</Button>
-        <Button size="lg" className="mb-2" onClick={() => {
+        <Button variant="warning" size="lg" className="mb-2" onClick={() => {
           setState(PageState.EnterCode)
         }}>Enter code</Button>
         {/* <Button size="lg" className="mb-2">Online opponent</Button> */}
-        <Button size="lg" className="mb-2" variant="secondary" onClick={() => {
+        <Button variant="primary" size="lg" className="mb-2" onClick={() => {
           apiRequest(PlayingMode.Offline, { action: RequestAction.InitSessionOffline })
         }}>Same screen</Button>
       </div>
@@ -258,6 +279,31 @@ const StartPage = ({ isClient, userIdentifier, isCustomUserIdentifier, hasError,
         </Form>
       </div>
     </>)}
+
+    <p>
+      <IconButton variant="secondary" onClick={() => setShowGameInformation(true)}>
+        <FaCircleInfo />
+        <span>Game information</span>
+      </IconButton>
+    </p>
+
+    {/* https://stackoverflow.com/questions/66941072/how-to-parse-embeddable-links-from-markdown-and-render-custom-react-components */}
+    <CustomModal dialogClassName="modal-dialog-large" show={showGameInformation} fullscreen="sm-down" onHide={() => setShowGameInformation(false)}>
+      <Modal.Header closeButton>
+        <Modal.Title>{t("info.title")}</Modal.Title>
+      </Modal.Header>
+      <Modal.Body>
+        <ReactMarkdown children={gameInformationMarkdown} remarkPlugins={[]} components={{
+          a: (props) => {
+              return (<a {...props}>{props.children}</a>)
+          }
+        }} />
+      </Modal.Body>
+      <Modal.Footer>
+        <Button variant="secondary" onClick={() => setShowGameInformation(false)}>{t("info.close")}</Button>
+      </Modal.Footer>
+    </CustomModal>
+    
     
   </>)
 

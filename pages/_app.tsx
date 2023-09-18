@@ -10,42 +10,32 @@ import Alert from 'react-bootstrap/Alert'
 
 type InitialPageProps = {
   [x: string]: any;
+
+  // props provided by Page/getServerSideProps()
+  gameInformationMarkdown?: string;
 }
 
 export type PageProps = InitialPageProps & {
+  // props provided by App
   isClient: boolean;
-  darkMode: boolean;
-  toggleDarkMode: () => void;
   userIdentifier: string | undefined;
   isCustomUserIdentifier: boolean;
+  darkMode: boolean;
+  toggleDarkMode: () => void;
   hasError: boolean;
   setErrorMessage: (msg: string | false) => void;
   isLoading: boolean;
   setLoadingText: (text: string | false) => void;
+
 }
 
-// userIdentifier: unique ID that is consistent across the browser (saved in localStorage)
-const initUserIdentifier = () => {
-  let storedUserIdentifier = localStorage.getItem('userIdentifier')
-
-  if (!storedUserIdentifier) {
-    console.log(`userIdentifier not found in localStorage. Generating ...`);
-    // Generate a random user identifier
-    storedUserIdentifier = `${Date.now() % 1000000}-${Math.random().toString(36).substring(10)}`
-    localStorage.setItem('userIdentifier', storedUserIdentifier)
-  }
-  return storedUserIdentifier
-}
-
-
-const MyApp = ({ Component, pageProps }: AppProps<InitialPageProps>) => {
+const MyApp: React.FC<AppProps<InitialPageProps>> = ({ Component, pageProps }) => {
   const [isClient, setIsClient] = useState<boolean>(false)
   useEffect(() => {
     setIsClient(true)
   }, [])
 
   const searchParams = useSearchParams()
-
   const [userIdentifier, setUserIdentifier] = useState<string | undefined>(undefined)
   const [isCustomUserIdentifier, setIsCustomUserIdentifier] = useState<boolean>(false)
 
@@ -57,8 +47,6 @@ const MyApp = ({ Component, pageProps }: AppProps<InitialPageProps>) => {
       setIsCustomUserIdentifier(false)
       setUserIdentifier(initUserIdentifier())
     }
-
-    // console.log(`App: set userIdentifier to "${newUserIdentifier ?? undefined}"`)
   }, [searchParams])
 
   const [darkMode, toggleDarkMode] = useDarkMode()
@@ -97,3 +85,16 @@ const MyApp = ({ Component, pageProps }: AppProps<InitialPageProps>) => {
 }
 
 export default appWithTranslation(MyApp)
+
+// userIdentifier: unique ID that is consistent across the browser (saved in localStorage)
+const initUserIdentifier = () => {
+  let storedUserIdentifier = localStorage.getItem('userIdentifier')
+
+  if (!storedUserIdentifier) {
+    console.log(`userIdentifier not found in localStorage. Generating ...`);
+    // Generate a random user identifier
+    storedUserIdentifier = `${Date.now() % 1000000}-${Math.random().toString(36).substring(10)}`
+    localStorage.setItem('userIdentifier', storedUserIdentifier)
+  }
+  return storedUserIdentifier
+}

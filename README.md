@@ -1,34 +1,31 @@
-This is a [Next.js](https://nextjs.org/) project bootstrapped with [`create-next-app`](https://github.com/vercel/next.js/tree/canary/packages/create-next-app).
 
-## Getting Started
+# TicTacGlobe
 
-First, run the development server:
+## Game information
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-```
+TicTacGlobe is just like Tic Tac Toe -- but made for people who like geography and want to learn the world's countries, capitals, and flags.
+Instead of marking the field with a cross or a circle, the two players competing have to guess a country that matches the corresponding row and column.
+Rows and columns are made up from different categories, like starting letter, flag color, and other facts about countries.
+When you guess wrong, it's your opponent's turn. This means the game is not completely equivalent to Tic Tac Toe - if your opponent knows nothing about geography, you can potentially win with just three fields all marked by you.
+Depending on your settings, you can show the number of solutions after or even before making guesses.
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Categories
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+The game has the following categories:
+Starting letter, Ending letter, Capital starting letter, Capital ending letter,
+Flag color, Island, Landlocked.
 
-This project uses [`next/font`](https://nextjs.org/docs/basic-features/font-optimization) to automatically optimize and load Inter, a custom Google Font.
+Starting/Ending letter categories exist for all letters that are somehow frequent.
+Flag color refers to a color that is contained in the flag, so all countries are contained in at least two of those categories.
+Island and Landlocked are simpler categories just containing those countries that are island nations, or landlocked (i.e., have no direct ocean access), respectively.
 
-## Learn More
+## Disclaimer
 
-To learn more about Next.js, take a look at the following resources:
+Some countries or territories in our world have disputed recognition. As I was used from other quizzes, I adhered to the country list used by <a href="sporcle.com" target="_blank">sporcle.com</a>. It is not my intention to hurt anybody by featuring or not featuring certain countries.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+Some countries have multiple names, multiple capitals, secondary flag colors or other features that are potentially not clearly defined. For these cases, alternative values are sometimes accepted. Click <a href="#">here</a> for a full list of all countries that have alternative values.
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js/) - your feedback and contributions are welcome!
+## Acknowledgements
 
-## Deploy on Vercel
+This game is heavily inspired by <a href="https://playfootball.games/footy-tic-tac-toe" target="_blank">Tiki-Taka-Toe</a>, a similar, football-themed game.
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/deployment) for more details.
