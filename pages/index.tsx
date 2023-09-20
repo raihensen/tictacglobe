@@ -1,37 +1,27 @@
 
-import Button from "react-bootstrap/Button";
-import ButtonToolbar from 'react-bootstrap/ButtonToolbar';
-import Alert from 'react-bootstrap/Alert';
-import Form from 'react-bootstrap/Form';
-import InputGroup from 'react-bootstrap/InputGroup';
-import { confirm } from 'react-bootstrap-confirmation';
+
+import { NextRouter, useRouter } from "next/router";
+import { useSearchParams } from 'next/navigation';
+import { useEffect, useRef, useState } from 'react';
+import { useTranslation } from 'next-i18next'
+import { serverSideTranslations } from "next-i18next/serverSideTranslations";
+
+import { RequestAction, PlayingMode, FrontendQuery, SessionWithoutGames, autoRefreshInterval, getApiUrl, defaultLanguage } from "@/src/game.types"
+import { readReadme, useAutoRefresh } from "@/src/util"
+import type { GetServerSideProps } from 'next'
+import { PageProps } from "./_app";
+import _ from "lodash";
+var fs = require('fs').promises;
 
 import 'bootstrap/dist/css/bootstrap.min.css';
 import styled from "styled-components";
-import { useEffect, useRef, useState } from 'react';
-import { useTranslation, Trans } from 'next-i18next'
-import { serverSideTranslations } from 'next-i18next/serverSideTranslations'
-
-// TODO import translated country data
-import { Game, Country, RequestAction, Query, PlayingMode, GameState, Language, FrontendQuery, SessionWithoutGames, GameSession, autoRefreshInterval, getApiUrl } from "../src/game.types"
-// import { countries } from "../src/game.types"
-import { capitalize, useAutoRefresh, useDarkMode } from "@/src/util"
-import _ from "lodash";
-
-import styles from '@/pages/Game.module.css'
-import Image from "next/image";
-import Link from "next/link";
-import { NextRouter, useRouter } from "next/router";
-import { useSearchParams } from 'next/navigation';
-import type { GetServerSideProps, GetStaticProps, InferGetStaticPropsType } from 'next'
-import { PageProps } from "./_app";
-import Modal from "react-bootstrap/Modal";
-import ReactMarkdown from "react-markdown";
-import path from "path";
-import { SearchHeartFill } from "react-bootstrap-icons";
-import { CustomModal, IconButton } from "@/components/styles";
-import { FaCircleInfo, FaInfo } from "react-icons/fa6";
-var fs = require('fs/promises');
+import { FaCircleInfo } from "react-icons/fa6";
+import { MarkdownModal } from "@/components/MarkdownModal";
+import Button from "react-bootstrap/Button";
+import ButtonToolbar from 'react-bootstrap/ButtonToolbar';
+import Form from 'react-bootstrap/Form';
+import InputGroup from 'react-bootstrap/InputGroup';
+import { IconButton } from "@/components/styles";
 
 enum PageState {
   Init = 0,
@@ -40,23 +30,7 @@ enum PageState {
   EnterCode = 3,
 }
 
-export type IndexPageProps = {
-  gameInformationMarkdown: string
-}
-
-export const getServerSideProps: GetServerSideProps<IndexPageProps> = (async () => {
-  const markdown = await fs.readFile(path.join(process.cwd(), "README.md"), { encoding: "utf8" })
-  // console.log(JSON.stringify(markdown))
-  // console.log(`Read readme: ${markdown.substring(0, 50)} [...]`)
-
-  return {
-    props: {
-      gameInformationMarkdown: markdown
-    }
-  }
-})
-
-const StartPage = ({ gameInformationMarkdown, isClient, userIdentifier, isCustomUserIdentifier, hasError, setErrorMessage, isLoading, setLoadingText }: PageProps & IndexPageProps) => {
+const IndexPage: React.FC<PageProps & IndexPageProps> = ({ gameInformationMarkdown, isClient, userIdentifier, isCustomUserIdentifier, hasError, setErrorMessage, isLoading, setLoadingText }) => {
   const { t } = useTranslation("common")
   const router = useRouter()
   const [state, setState] = useState<PageState>(PageState.Init)
@@ -286,29 +260,25 @@ const StartPage = ({ gameInformationMarkdown, isClient, userIdentifier, isCustom
         <span>Game information</span>
       </IconButton>
     </p>
-
-    {/* https://stackoverflow.com/questions/66941072/how-to-parse-embeddable-links-from-markdown-and-render-custom-react-components */}
-    <CustomModal dialogClassName="modal-dialog-large" show={showGameInformation} fullscreen="sm-down" onHide={() => setShowGameInformation(false)}>
-      <Modal.Header closeButton>
-        <Modal.Title>{t("info.title")}</Modal.Title>
-      </Modal.Header>
-      <Modal.Body>
-        <ReactMarkdown remarkPlugins={[]} components={{
-          a: ({ className, ...props}) => {
-              return (<a className={["markdownCustomLink", className].join(" ")} {...props}>{props.children}</a>)
-          }
-        }}>
-          {gameInformationMarkdown}
-        </ReactMarkdown>
-      </Modal.Body>
-      <Modal.Footer>
-        <Button variant="secondary" onClick={() => setShowGameInformation(false)}>{t("info.close")}</Button>
-      </Modal.Footer>
-    </CustomModal>
-    
+    <MarkdownModal show={showGameInformation} setShow={setShowGameInformation}>
+      {gameInformationMarkdown}
+    </MarkdownModal>
     
   </>)
 
 }
 
-export default StartPage;
+export default IndexPage;
+
+export type IndexPageProps = {
+  gameInformationMarkdown: string
+}
+
+export const getServerSideProps: GetServerSideProps<IndexPageProps> = (async ({ locale }) => {
+  return {
+    props: {
+      gameInformationMarkdown: await readReadme(locale, file => fs.readFile(file, { encoding: "utf8" })),
+      ...(await serverSideTranslations(locale ?? defaultLanguage, ['common']))
+    }
+  }
+})

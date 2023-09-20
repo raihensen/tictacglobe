@@ -29,17 +29,13 @@ export function useSettings(defaultSettings: Settings): [Settings, (value: Setti
 type SettingsValues = { id: "settingsTimeLimit", value: number | false }
 // | { id: "settingsLanguage", value: Language }
 
-
-export type SettingsModalProps = {
+export const SettingsModal: React.FC<{
   settings: Settings;
   setSettings: (value: Settings) => void;
-  showSettings: boolean;
-  setShowSettings: (value: boolean) => void;
+  show: boolean;
+  setShow: (value: boolean) => void;
   apiRequest: (query: FrontendQuery) => any;
-}
-
-
-export const SettingsModal = ({ settings, setSettings, showSettings, setShowSettings, apiRequest }: SettingsModalProps) => {
+}> = ({ settings, setSettings, show, setShow, apiRequest }) => {
   const { t, i18n } = useTranslation()
 
   // const showSettings = () => setShowSettings(true)
@@ -60,7 +56,7 @@ export const SettingsModal = ({ settings, setSettings, showSettings, setShowSett
   const [showTimeLimitSlider, setShowTimeLimitSlider] = useState<boolean>(settings.timeLimit !== false)
 
   return (
-    <Modal show={showSettings} onHide={() => setShowSettings(false)}>
+    <Modal show={show} onHide={() => setShow(false)}>
       <Modal.Header closeButton>
         <Modal.Title>{t("settings.settings")}</Modal.Title>
       </Modal.Header>
@@ -104,7 +100,7 @@ export const SettingsModal = ({ settings, setSettings, showSettings, setShowSett
         </>)}
       </Modal.Body>
       <Modal.Footer>
-        <Button variant="secondary" onClick={() => setShowSettings(false)}>{t("settings.close")}</Button>
+        <Button variant="secondary" onClick={() => setShow(false)}>{t("settings.close")}</Button>
       </Modal.Footer>
     </Modal>
   )

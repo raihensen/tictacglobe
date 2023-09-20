@@ -9,23 +9,23 @@ import { useTranslation } from 'next-i18next'
 import { serverSideTranslations } from 'next-i18next/serverSideTranslations'
 
 import { Settings, defaultSettings, Game, Country, RequestAction, FrontendQuery, PlayingMode, GameState, Language, SessionWithoutGames, defaultLanguage, PlayerIndex, autoRefreshInterval, Query, settingsToQuery, settingsChanged, getApiUrl } from "@/src/game.types"
-import { capitalize, useAutoRefresh } from "@/src/util"
+import { capitalize, readReadme, useAutoRefresh } from "@/src/util"
 import _ from "lodash";
+var fs = require('fs').promises;
 
 import RemoteTimer from "@/components/Timer";
 import Field from "@/components/Field";
 import { TableHeading } from '@/components/TableHeading';
-import { FaArrowsRotate, FaEllipsis, FaGear, FaMoon, FaPause, FaPersonCircleXmark, FaPlay } from "react-icons/fa6";
+import { FaArrowsRotate, FaCircleInfo, FaEllipsis, FaGear, FaMoon, FaPause, FaPersonCircleXmark, FaPlay } from "react-icons/fa6";
 import { useRouter } from "next/router";
-import type { GetStaticProps } from 'next'
+import type { GetServerSideProps } from 'next'
 import { PageProps } from "./_app";
 import { SettingsModal, useSettings, LanguageSelector, changeLanguage } from "@/components/Settings";
 import { SplitButtonToolbar, IconButton, PlayerBadge, GameTable } from "@/components/styles";
-import CountryAutoComplete from "@/components/Autocomplete";
-import Form from "react-bootstrap/esm/Form";
+import { MarkdownModal } from "@/components/MarkdownModal";
 
 
-const GamePage = ({ isClient, toggleDarkMode, userIdentifier, isCustomUserIdentifier, hasError, setErrorMessage, isLoading, setLoadingText }: PageProps) => {
+const GamePage: React.FC<PageProps & GamePageProps> = ({ gameInformationMarkdown, isClient, toggleDarkMode, userIdentifier, isCustomUserIdentifier, hasError, setErrorMessage, isLoading, setLoadingText }) => {
 
   useEffect(() => {
     if (userIdentifier) {
@@ -41,6 +41,7 @@ const GamePage = ({ isClient, toggleDarkMode, userIdentifier, isCustomUserIdenti
   // const [settings, setSettings] = useSettings(defaultSettings)
   const [settings, setSettings] = useState<Settings>(defaultSettings)
   const [showSettings, setShowSettings] = useState(false)
+  const [showGameInformation, setShowGameInformation] = useState<boolean>(false)
 
   const [game, setGame] = useState<Game | null>(null)
   const [session, setSession] = useState<SessionWithoutGames | null>(null)
@@ -252,6 +253,7 @@ const GamePage = ({ isClient, toggleDarkMode, userIdentifier, isCustomUserIdenti
           
         </div>
         <div className="right">
+          <IconButton variant="secondary" onClick={() => setShowGameInformation(true)}><FaCircleInfo /></IconButton>
           <IconButton variant="secondary" onClick={toggleDarkMode} className="me-2"><FaMoon /></IconButton>
           <LanguageSelector value={router.locale ?? defaultLanguage} disabled={!hasTurn} onChange={async (oldLanguage, newLanguage) => {
             if (await confirm(t("changeLanguage.confirm.question"), {
@@ -270,8 +272,9 @@ const GamePage = ({ isClient, toggleDarkMode, userIdentifier, isCustomUserIdenti
           <IconButton variant="secondary" disabled={!hasTurn} onClick={() => setShowSettings(true)}><FaGear /></IconButton>
         </div>
       </SplitButtonToolbar>
-
-      <SettingsModal settings={settings} setSettings={setSettings} showSettings={showSettings} setShowSettings={setShowSettings} apiRequest={apiRequest} />
+      
+      <MarkdownModal show={showGameInformation} setShow={setShowGameInformation}>{gameInformationMarkdown}</MarkdownModal>
+      <SettingsModal settings={settings} setSettings={setSettings} show={showSettings} setShow={setShowSettings} apiRequest={apiRequest} />
 
       {/* https://github.com/JedWatson/react-select/issues/2345 */}
       {/* <p>
@@ -377,18 +380,17 @@ const GamePage = ({ isClient, toggleDarkMode, userIdentifier, isCustomUserIdenti
   </>)
 }
 
-type Props = {
-  // Add custom props here
+export default GamePage;
+
+export type GamePageProps = {
+  gameInformationMarkdown: string
 }
 
-export const getStaticProps: GetStaticProps<Props> = async ({
-  locale,
-}) => ({
-  props: {
-    ...(await serverSideTranslations(locale ?? 'en', [
-      'common',
-    ])),
-  },
-});
-
-export default GamePage;
+export const getServerSideProps: GetServerSideProps<GamePageProps> = (async ({ locale }) => {
+  return {
+    props: {
+      gameInformationMarkdown: await readReadme(locale, file => fs.readFile(file, { encoding: "utf8" })),
+      ...(await serverSideTranslations(locale ?? defaultLanguage, ['common']))
+    }
+  }
+})

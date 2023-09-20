@@ -37,6 +37,7 @@
     "react-icons": "^4.10.1",
     "react-markdown": "^8.0.7",
     "react-select": "^5.7.4",
+    "rehype-raw": "^7.0.0",
     "styled-components": "^6.0.7",
     "tailwindcss": "3.3.3",
     "typescript": "5.1.6"

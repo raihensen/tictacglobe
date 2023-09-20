@@ -3,12 +3,10 @@
 
 ## Game information
 
-TicTacGlobe is just like Tic Tac Toe --
-but made for people who like geography and want to learn the world's countries, capitals, and flags.
+TicTacGlobe ist genauso wie Tic Tac Toe -- für Geographie-Fans, und für Leute die die Länder, Hauptstädte und Flaggen unserer Welt lernen möchten.
 Instead of marking the field with a cross or a circle, the two players competing have to guess a country that matches the corresponding row and column.
 Rows and columns are made up from different categories, like starting letter, flag color, and other facts about countries.
-When you guess wrong, it's your opponent's turn. This means the game is not completely equivalent to Tic Tac Toe --
-if your opponent knows nothing about geography, you can potentially win with just three fields all marked by you.
+When you guess wrong, it's your opponent's turn. This means the game is not completely equivalent to Tic Tac Toe - if your opponent knows nothing about geography, you can potentially win with just three fields all marked by you.
 Depending on your settings, you can show the number of solutions after or even before making guesses.
 
 ## Categories

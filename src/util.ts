@@ -1,5 +1,7 @@
 import { Mutex } from "async-mutex";
 import { useEffect, useRef, useState } from "react";
+import path from "path";
+import { defaultLanguage } from "@/src/game.types";
 
 
 export const capitalize = <T extends string>(s: T) => (s[0].toUpperCase() + s.slice(1)) as Capitalize<typeof s>;
@@ -156,3 +158,11 @@ export function useAutoRefresh(action: () => void, interval: number) {
 }
 
 
+export async function readReadme(locale: string | undefined, readFile: (file: string) => Promise<string>) {
+  const file = path.join(process.cwd(), locale == defaultLanguage || !locale ? "README.md" : `README-${locale.toUpperCase()}.md`)
+  return await readFile(file)
+}
+
+export function addClassName(passedClassName: string | undefined, extraClassName: string) {
+  return [passedClassName, extraClassName].filter(x => x !== undefined).join(" ")
+}
