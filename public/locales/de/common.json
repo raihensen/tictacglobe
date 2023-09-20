@@ -20,6 +20,24 @@
         "saint": "'Sankt': 'St.', 'St', 'Saint'",
         "and": "'und': '&', '+'"
     },
+    "countryInfo": {
+        "name": "Land: {{value}}",
+        "alternativeNames_one": "alternativer Name: {{values}}",
+        "alternativeNames_other": "alternative Namen: {{values}}",
+        "capital": "Hauptstadt: {{value}}",
+        "alternativeCapitals_one": "alternative Hauptstadt: {{values}}",
+        "alternativeCapitals_other": "alternative Hauptstädte: {{values}}"
+    },
+    "solutions": {
+        "solutions_one": "Lösung",
+        "solutions_other": "Lösungen",
+        "alsoAccepted_one": "Auch möglich",
+        "alsoAccepted_other": "Auch möglich",
+        "numSolutionsTooltip_one": "1 Lösung",
+        "numSolutionsTooltip_other": "{{count}} Lösungen",
+        "numAlternativeSolutionsTooltip_one": " (eine weitere durch alternative Eigenschaften/Schreibweisen)",
+        "numAlternativeSolutionsTooltip_other": " ({{count}} weitere durch alternative Eigenschaften/Schreibweisen)"
+    },
     "category": {
         "startingLetter": {
             "tooltip": "Land beginnt mit {{letter}}"

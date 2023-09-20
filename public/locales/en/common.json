@@ -20,6 +20,24 @@
         "saint": "'Saint': 'St.', 'St'",
         "and": "'and': '&', 'n', '+'"
     },
+    "countryInfo": {
+        "name": "Country: {{value}}",
+        "alternativeNames_one": "alternative name: {{values}}",
+        "alternativeNames_other": "alternative names: {{values}}",
+        "capital": "Capital: {{value}}",
+        "alternativeCapitals_one": "alternative capital: {{values}}",
+        "alternativeCapitals_other": "alternative capitals: {{values}}"
+    },
+    "solutions": {
+        "solutions_one": "Solution",
+        "solutions_other": "Solutions",
+        "alsoAccepted_one": "Also accepted",
+        "alsoAccepted_other": "Also accepted",
+        "numSolutionsTooltip_one": "There is one regular solution",
+        "numSolutionsTooltip_other": "There are {{count}} regular solutions",
+        "numAlternativeSolutionsTooltip_one": ", and one more when using alternative values or spellings",
+        "numAlternativeSolutionsTooltip_other": ", and {{count}} more when using alternative values or spellings"
+    },
     "category": {
         "startingLetter": {
             "tooltip": "Country name starts with {{letter}}"

@@ -38,19 +38,16 @@ type CountryInfoTooltipContentProps = {
   isCapitalRelevant: boolean
 }
 const CountryInfoTooltipContents = ({ context, game, fieldState, isNameRelevant, isCapitalRelevant }: CountryInfoTooltipContentProps) => {
-  const texts = fieldState.guess ? [
-    ...(context == "flag" ? [`Name: ${fieldState.guess.name}`] : []),
-    ...(context == "name" ? [`Name: ${fieldState.guess.name}`] : []),  // TODO remove this, prevent empty tooltips
-    ...((isNameRelevant || game.state == GameState.Finished) && fieldState.guess.alternativeValues.name !== undefined ? [`Alternative name${fieldState.guess.alternativeValues.name.length > 1 ? "s" : ""}: ${fieldState.guess.alternativeValues.name.join(", ")}`] : []),
-    ...(isCapitalRelevant || game.state == GameState.Finished ? [`Capital: ${fieldState.guess.capital}`] : []),
-    ...((isCapitalRelevant || game.state == GameState.Finished) && fieldState.guess.alternativeValues.capital !== undefined ? [`Alternative capital${fieldState.guess.alternativeValues.capital.length > 1 ? "s" : ""}: ${fieldState.guess.alternativeValues.capital.join(", ")}`] : [])
-  ] : []
+  const { t } = useTranslation("common")
+  const c = fieldState.guess
+  const texts = c ? [
+    t("countryInfo.name", { value: c.name }),
+    ((isNameRelevant || game.state == GameState.Finished) && c.alternativeValues.name !== undefined ? t("countryInfo.alternativeNames", { count: c.alternativeValues.name.length, values: c.alternativeValues.name.join(", ") }) : undefined),
+    (isCapitalRelevant || game.state == GameState.Finished ? t("countryInfo.capital", { value: c.capital }) : undefined),
+    ((isCapitalRelevant || game.state == GameState.Finished) && c.alternativeValues.capital !== undefined ? t("countryInfo.alternativeCapitals", { count: c.alternativeValues.capital.length, values: c.alternativeValues.capital.join(", ") }) : undefined)
+  ].filter(s => s) as string[] : []
   return (<>
-    {fieldState.guess && (
-      <>
-        {texts.map((text, i) => (<p key={i}>{text}</p>))}
-      </>
-    )}
+    {texts.map((text, i) => (<p key={i}>{text}</p>))}
   </>)
 }
 
@@ -117,17 +114,17 @@ const Field = ({ pos, setActive, setIsSearching, game, row, col, apiRequest, has
   const NumSolutions = () => {
     const tooltipSolutions = (
       <TextTooltip id={`tooltipNumSolutions-${useId()}`}>
-        <p>Solutions: {solutions.map(c => c.name).join(", ")}</p>
+        <p>{t("solutions.solutions", { count: solutions.length })}: {solutions.map(c => c.name).join(", ")}</p>
         {alternativeSolutions.length != 0 && (<>
-          <p>Also accepted: {alternativeSolutions.map(c => c.name).join(", ")}</p>
+          <p>{t("solutions.alsoAccepted", { count: alternativeSolutions.length })}: {alternativeSolutions.map(c => c.name).join(", ")}</p>
         </>)}
       </TextTooltip>
     );
     const tooltipInfo = (
       <TextTooltip id={`tooltipNumSolutions-${useId()}`}>
         {alternativeSolutions.length != 0 && (<>
-          There {solutions.length > 1 ? `are ${solutions.length} regular solutions` : `is 1 regular solution`},
-          and {alternativeSolutions.length} more when using alternative values or spellings.
+          {t("solutions.numSolutionsTooltip", { count: solutions.length })}
+          {alternativeSolutions.length && t("solutions.numAlternativeSolutionsTooltip", { count: alternativeSolutions.length })}
         </>)}
       </TextTooltip>
     );
