@@ -293,11 +293,13 @@ const StartPage = ({ gameInformationMarkdown, isClient, userIdentifier, isCustom
         <Modal.Title>{t("info.title")}</Modal.Title>
       </Modal.Header>
       <Modal.Body>
-        <ReactMarkdown children={gameInformationMarkdown} remarkPlugins={[]} components={{
-          a: (props) => {
-              return (<a {...props}>{props.children}</a>)
+        <ReactMarkdown remarkPlugins={[]} components={{
+          a: ({ className, ...props}) => {
+              return (<a className={["markdownCustomLink", className].join(" ")} {...props}>{props.children}</a>)
           }
-        }} />
+        }}>
+          {gameInformationMarkdown}
+        </ReactMarkdown>
       </Modal.Body>
       <Modal.Footer>
         <Button variant="secondary" onClick={() => setShowGameInformation(false)}>{t("info.close")}</Button>
