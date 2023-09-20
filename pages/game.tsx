@@ -12,7 +12,7 @@ import { Settings, defaultSettings, Game, Country, RequestAction, FrontendQuery,
 import { capitalize, useAutoRefresh } from "@/src/util"
 import _ from "lodash";
 
-import Timer from "@/components/Timer";
+import RemoteTimer from "@/components/Timer";
 import Field from "@/components/Field";
 import { TableHeading } from '@/components/TableHeading';
 import { FaArrowsRotate, FaEllipsis, FaGear, FaMoon, FaPause, FaPersonCircleXmark, FaPlay } from "react-icons/fa6";
@@ -77,6 +77,9 @@ const GamePage = ({ isClient, toggleDarkMode, userIdentifier, isCustomUserIdenti
 
     if (params.action != RequestAction.RefreshGame) {
       setLoadingText(params.action == RequestAction.MakeGuess ? "Submitting guess" : "Loading")
+      if (timerRef.current) {
+        (timerRef.current as any).stop()
+      }
     }
 
     // Fetch the game data from the server
@@ -107,7 +110,9 @@ const GamePage = ({ isClient, toggleDarkMode, userIdentifier, isCustomUserIdenti
         setGame(newGame)
         setTurnStartTimestamp(oldValue => {
           const newValue = newGame.turnStartTimestamp ?? Date.now() - 60000
-          console.log(`turnStartTimestamp changed by a difference of ${newValue - oldValue}`)
+          if (newValue != oldValue) {
+            console.log(`turnStartTimestamp changed by a difference of ${newValue - oldValue}`)
+          }
           return newValue
         })
         setSession(newSession)
@@ -161,15 +166,10 @@ const GamePage = ({ isClient, toggleDarkMode, userIdentifier, isCustomUserIdenti
           }
         })
 
-        // init timer
-
-        // if (timerRef.current) {
-        //   (timerRef.current as any).reset()  // running = false
-        //   // (timerRef.current as any).start()
-        // }
-        setTimerRunning(true)
-
         setLoadingText(false)
+        if (timerRef.current) {
+          (timerRef.current as any).restart()
+        }
 
         return true
 
@@ -198,7 +198,7 @@ const GamePage = ({ isClient, toggleDarkMode, userIdentifier, isCustomUserIdenti
     }
   }, [game, notifyDecided])
 
-  const [timerRunning, setTimerRunning] = useState(false)
+  // const [timerRunning, setTimerRunning] = useState(false)
   const timerRef = useRef()
 
   // const [activeRow, setActiveRow] = useState<number | null>(null)
@@ -310,24 +310,23 @@ const GamePage = ({ isClient, toggleDarkMode, userIdentifier, isCustomUserIdenti
                     {game.playingMode == PlayingMode.Online && capitalize(t("turnInfoOnline", { player: t(hasTurn ? "yourTurn" : "opponentsTurn") }))}
                   </PlayerBadge>
                   {settings.timeLimit !== false && (<>
-                    <Timer
-                    className="mt-2"
-                    ref={timerRef}
-                    running={timerRunning}
-                    setRunning={setTimerRunning}
-                    initialTimestamp={turnStartTimestamp}
-                    initialTime={settings.timeLimit * 1000}
-                    onElapsed={() => {
-                      console.log(`Timer elapsed --- ${hasTurn ? "hasTurn = true" : "hasTurn = false"}`)
-                      if (hasTurn) {
-                        apiRequest({
-                          action: RequestAction.TimeElapsed,
-                          player: game.turn
-                        })
-                      } else {
-                        apiRequest({ action: RequestAction.RefreshGame })
-                      }
-                    }} />
+                    <RemoteTimer
+                      className="mt-2"
+                      ref={timerRef}
+                      initialTimestamp={turnStartTimestamp}
+                      initialTime={settings.timeLimit * 1000}
+                      onElapsed={() => {
+                        console.log(`Timer elapsed --- ${hasTurn ? "hasTurn = true" : "hasTurn = false"}`)
+                        if (hasTurn) {
+                          apiRequest({
+                            action: RequestAction.TimeElapsed,
+                            player: game.turn
+                          })
+                        } else {
+                          apiRequest({ action: RequestAction.RefreshGame })
+                        }
+                      }}
+                    />
                   </>)}
                 </>)}
               </div>
