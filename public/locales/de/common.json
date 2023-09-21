@@ -20,6 +20,11 @@
         "saint": "'Sankt': 'St.', 'St', 'Saint'",
         "and": "'und': '&', '+'"
     },
+    "info": {
+        "title": "Informationen",
+        "close": "Schließen",
+        "shareText": "Spiele jetzt TicTacGlobe! {{url}}"
+    },
     "countryInfo": {
         "name": "Land: {{value}}",
         "alternativeNames_one": "alternativer Name: {{values}}",

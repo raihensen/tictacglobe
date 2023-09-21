@@ -2,13 +2,11 @@
 import { IncomingMessage, ServerResponse } from 'http';
 import { Game, GameSetup, Country, RequestAction, Query, PlayingMode, GameState, Language, parseCountry, defaultLanguage, PlayerIndex, GameSession, DifficultyLevel, Settings, settingsFromQuery, defaultSettings } from "@/src/game.types"
 import { randomChoice } from "@/src/util";
-import { Lexend_Tera } from 'next/font/google';
 import _ from "lodash";
 // import { promises as fs } from 'fs';
 var fs = require('fs').promises;
 import path from 'path';
 import { Mutex } from 'async-mutex';
-import { SettingsModal } from '@/components/Settings';
 
 // debug game sessions
 // var sessions: GameSession[] = [{

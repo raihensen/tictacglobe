@@ -21,8 +21,9 @@ import { useRouter } from "next/router";
 import type { GetServerSideProps } from 'next'
 import { PageProps } from "./_app";
 import { SettingsModal, useSettings, LanguageSelector, changeLanguage } from "@/components/Settings";
-import { SplitButtonToolbar, IconButton, PlayerBadge, GameTable } from "@/components/styles";
+import { ButtonToolbar, IconButton, PlayerBadge, GameTable } from "@/components/styles";
 import { MarkdownModal } from "@/components/MarkdownModal";
+import ShareButton from "@/components/Share";
 
 
 const GamePage: React.FC<PageProps & GamePageProps> = ({ gameInformationMarkdown, isClient, toggleDarkMode, userIdentifier, isCustomUserIdentifier, hasError, setErrorMessage, isLoading, setLoadingText }) => {
@@ -230,7 +231,7 @@ const GamePage: React.FC<PageProps & GamePageProps> = ({ gameInformationMarkdown
     </>)}
     {game && (<>
       {/* <p>{gameData.isNewGame ? "New Game" : "Existing Game"}</p> */}
-      <SplitButtonToolbar className="mb-2">
+      <ButtonToolbar className="mb-2">
         <div className="left">
           {(!(game.state == GameState.Running && !hasTurn)) && (<>
             <IconButton label={t("newGame")} variant="danger" onClick={() => {
@@ -253,6 +254,7 @@ const GamePage: React.FC<PageProps & GamePageProps> = ({ gameInformationMarkdown
           
         </div>
         <div className="right">
+          <ShareButton title="TicTacGlobe" text="Play TicTacGlobe, it's awesome!" />
           <IconButton variant="secondary" onClick={() => setShowGameInformation(true)}><FaCircleInfo /></IconButton>
           <IconButton variant="secondary" onClick={toggleDarkMode} className="me-2"><FaMoon /></IconButton>
           <LanguageSelector value={router.locale ?? defaultLanguage} disabled={!hasTurn} onChange={async (oldLanguage, newLanguage) => {
@@ -271,7 +273,7 @@ const GamePage: React.FC<PageProps & GamePageProps> = ({ gameInformationMarkdown
           }} />
           <IconButton variant="secondary" disabled={!hasTurn} onClick={() => setShowSettings(true)}><FaGear /></IconButton>
         </div>
-      </SplitButtonToolbar>
+      </ButtonToolbar>
       
       <MarkdownModal show={showGameInformation} setShow={setShowGameInformation}>{gameInformationMarkdown}</MarkdownModal>
       <SettingsModal settings={settings} setSettings={setSettings} show={showSettings} setShow={setShowSettings} apiRequest={apiRequest} />

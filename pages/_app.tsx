@@ -1,7 +1,7 @@
 
 import type { AppProps } from 'next/app'
 import { appWithTranslation } from 'next-i18next'
-import { useDarkMode } from '@/src/util'
+import { useDarkMode, useIsClient } from '@/src/util'
 import { NextComponentType } from 'next'
 import Layout from '@/components/Layout'
 import { useEffect, useState } from 'react'
@@ -30,11 +30,7 @@ export type PageProps = InitialPageProps & {
 }
 
 const MyApp: React.FC<AppProps<InitialPageProps>> = ({ Component, pageProps }) => {
-  const [isClient, setIsClient] = useState<boolean>(false)
-  useEffect(() => {
-    setIsClient(true)
-  }, [])
-
+  const isClient = useIsClient()
   const searchParams = useSearchParams()
   const [userIdentifier, setUserIdentifier] = useState<string | undefined>(undefined)
   const [isCustomUserIdentifier, setIsCustomUserIdentifier] = useState<boolean>(false)

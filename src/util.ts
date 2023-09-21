@@ -166,3 +166,11 @@ export async function readReadme(locale: string | undefined, readFile: (file: st
 export function addClassName(passedClassName: string | undefined, extraClassName: string) {
   return [passedClassName, extraClassName].filter(x => x !== undefined).join(" ")
 }
+
+export function useIsClient(): boolean {
+  const [isClient, setIsClient] = useState<boolean>(false)
+  useEffect(() => {
+    setIsClient(true)
+  }, [])
+  return isClient
+}

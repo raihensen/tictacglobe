@@ -7,6 +7,7 @@ import { CategoryValue } from "@/src/game.types";
 import { useTranslation } from "next-i18next";
 
 import _ from "lodash";
+import { addClassName } from "@/src/util";
 
 const continentIcons = {
   AS: FaEarthAsia,
@@ -200,7 +201,7 @@ const CategoryBadgeInner = styled.span`
   }
 `
 const CategoryBadge = forwardRef<HTMLSpanElement, React.HTMLProps<HTMLSpanElement>>(({ className, ...props }, ref) => (
-  <CategoryBadgeInner ref={ref} className={["categoryBadge", className].join(" ")} {...props} />
+  <CategoryBadgeInner ref={ref} className={addClassName(className, "categoryBadge")} {...props} />
 ))
 
 const IconStack = styled.span`

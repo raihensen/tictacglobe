@@ -18,10 +18,10 @@ import styled from "styled-components";
 import { FaCircleInfo } from "react-icons/fa6";
 import { MarkdownModal } from "@/components/MarkdownModal";
 import Button from "react-bootstrap/Button";
-import ButtonToolbar from 'react-bootstrap/ButtonToolbar';
 import Form from 'react-bootstrap/Form';
 import InputGroup from 'react-bootstrap/InputGroup';
-import { IconButton } from "@/components/styles";
+import { ButtonToolbar, IconButton } from "@/components/styles";
+import ShareButton from "@/components/Share";
 
 enum PageState {
   Init = 0,
@@ -254,12 +254,12 @@ const IndexPage: React.FC<PageProps & IndexPageProps> = ({ gameInformationMarkdo
       </div>
     </>)}
 
-    <p>
-      <IconButton variant="secondary" onClick={() => setShowGameInformation(true)}>
+    <ButtonToolbar>
+      <IconButton variant="secondary" label="Game information" labelProps={{ className: "d-none d-sm-block" }} onClick={() => setShowGameInformation(true)}>
         <FaCircleInfo />
-        <span>Game information</span>
       </IconButton>
-    </p>
+      <ShareButton title="TicTacGlobe" text="Play TicTacGlobe, it's awesome!" />
+    </ButtonToolbar>
     <MarkdownModal show={showGameInformation} setShow={setShowGameInformation}>
       {gameInformationMarkdown}
     </MarkdownModal>

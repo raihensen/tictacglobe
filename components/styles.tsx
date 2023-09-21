@@ -1,10 +1,11 @@
 
-import Button from "react-bootstrap/Button";
+import Button, { ButtonProps } from "react-bootstrap/Button";
 import Dropdown from "react-bootstrap/Dropdown";
 import Tooltip from "react-bootstrap/Tooltip";
-import ButtonToolbar from "react-bootstrap/ButtonToolbar";
+import BsButtonToolbar from "react-bootstrap/ButtonToolbar";
 import styled from "styled-components";
 import { Modal, ModalDialog } from "react-bootstrap";
+import { PropsWithRef } from "react";
 
 const breakpointsMin = {
   xs: 0,
@@ -35,7 +36,8 @@ const breakWidth = (bpMin: Breakpoint, bpMax: Breakpoint) => {
   return [breakMinWidth(bpMin), breakMaxWidth(bpMax)].filter(x => x.length).join(" and ")
 }
 
-export const SplitButtonToolbar = styled(ButtonToolbar)`
+
+export const ButtonToolbar = styled(BsButtonToolbar)`
   gap: .5rem;
   & > .left {
     margin-right: auto;
@@ -220,18 +222,24 @@ export const MarkingBackground = styled.div<{ $player: number, $isWinning: boole
   z-index: -10;
 `
 
-export const IconButton = styled(({ children, label, ...props }: any) => (
-  <Button {...props}>
-    {children}
-    {label && <span>{label}</span>}
+export const IconButton = styled(({ children, label, labelProps, ref, ...props }: ButtonProps & { ref?: React.Ref<HTMLButtonElement> } & {
+  label?: string,
+  labelProps?: React.HTMLProps<HTMLSpanElement>
+}) => (
+  <Button ref={ref} {...props}>
+    <div className="btnContents">
+      {children}
+      {label && <span {...labelProps}>{label}</span>}
+    </div>
   </Button>
 ))`
-display: flex;
-align-items: center;
-justify-content: center;
-& > :not(:last-child) {
-  margin-right: .5em;
-}
+  .btnContents {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: .5rem;
+    min-height: 24px;
+  }
 `
 
 export const MultiLineTooltip = styled(Tooltip)`
