@@ -1,6 +1,6 @@
 /** @type {import('next-i18next').UserConfig} */
 
-import * as path from "path";
+const path = require('path');
 
 module.exports = {
   i18n: {
