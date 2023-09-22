@@ -6,15 +6,16 @@ import { NextRouter } from "next/router";
 
 export const autoRefreshInterval = 2000  // interval [ms] for auto refresh
 
-export type Settings = {
-  difficulty: DifficultyLevel;
-  showIso: boolean;
+export type FieldSettings = {  // also game-level, but passed to the Field component
   showNumSolutions: boolean;
   showNumSolutionsHint: boolean;
+}
+export type Settings = FieldSettings & {
+  difficulty: DifficultyLevel;
   timeLimit: number | false;
 }
 const parseSetting = (k: keyof Settings, v: string): Settings[keyof Settings] | string => {
-  if (k == "showIso" || k == "showNumSolutions" || k == "showNumSolutionsHint") {
+  if (k == "showNumSolutions" || k == "showNumSolutionsHint") {
     return v == "true"
   }
   if (k == "difficulty") {
@@ -32,7 +33,6 @@ const parseSetting = (k: keyof Settings, v: string): Settings[keyof Settings] | 
 
 export const defaultSettings: Settings = {
   difficulty: "easy",
-  showIso: false,
   showNumSolutions: true,
   showNumSolutionsHint: false,
   timeLimit: 30,

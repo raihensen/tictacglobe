@@ -1,7 +1,7 @@
 
 import styled from "styled-components";
 import { forwardRef, useEffect, useId, useMemo, useRef, useState } from 'react';
-import { Game, Country, CategoryValue, RequestAction, FrontendQuery, GameData, PlayingMode, GameState } from "@/src/game.types"
+import { Game, Country, CategoryValue, RequestAction, FrontendQuery, GameData, PlayingMode, GameState, FieldSettings } from "@/src/game.types"
 
 import { PlusCircleFill } from 'react-bootstrap-icons';
 import Badge, { BadgeProps } from 'react-bootstrap/Badge';
@@ -78,7 +78,21 @@ const NumSolutionsBadge = forwardRef<typeof Badge, BadgeProps & { children?: any
   <ResponsiveBadge ref={ref} {...props}>{children}</ResponsiveBadge>
 ))
 
-const Field = ({ pos, setActive, setIsSearching, game, row, col, apiRequest, hasTurn, notifyDecided, countries, settings }: FieldProps) => {
+const Field = ({ pos, setActive, setIsSearching, game, row, col, apiRequest, hasTurn, notifyDecided, countries, settings }: {
+  pos: number[],
+  active: boolean,
+  setActive: (active: boolean) => void,
+  setIsSearching: (searching: boolean) => void,
+  game: Game,
+  row: CategoryValue,
+  col: CategoryValue,
+  userIdentifier: string | undefined,
+  apiRequest: (query: FrontendQuery) => any,
+  hasTurn: boolean,
+  notifyDecided: boolean,
+  countries: Country[],
+  settings: FieldSettings,
+}) => {
   const { t, i18n } = useTranslation('common')
   const [i, j] = pos
   const solutions = countries.filter(c => game.setup.solutions[i][j].includes(c.iso))
@@ -236,8 +250,7 @@ const Field = ({ pos, setActive, setIsSearching, game, row, col, apiRequest, has
                 </TextTooltip>
               )}>
                 <TooltipTriggerSpan className="label">
-                  {fieldState.guess.name + (settings.showIso ? " " : "")}
-                  {settings.showIso && <span className="iso">({fieldState.guess.iso})</span>}
+                  {fieldState.guess.name}
                 </TooltipTriggerSpan>
               </OverlayTrigger>
             </div>
@@ -248,27 +261,6 @@ const Field = ({ pos, setActive, setIsSearching, game, row, col, apiRequest, has
     </TableCellInner>
   )
 
-}
-
-
-export type FieldProps = {
-  pos: number[];
-  active: boolean;
-  setActive: (active: boolean) => void;
-  setIsSearching: (searching: boolean) => void;
-  game: Game;
-  row: CategoryValue;
-  col: CategoryValue;
-  userIdentifier: string | undefined;
-  apiRequest: (query: FrontendQuery) => any;
-  hasTurn: boolean;
-  notifyDecided: boolean;
-  countries: Country[];
-  settings: {
-    showIso: boolean;
-    showNumSolutions: boolean;
-    showNumSolutionsHint: boolean;
-  }
 }
 
 export default Field;
