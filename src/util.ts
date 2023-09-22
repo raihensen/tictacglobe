@@ -159,7 +159,7 @@ export function useAutoRefresh(action: () => void, interval: number) {
 
 
 export async function readReadme(locale: string | undefined, readFile: (file: string) => Promise<string>) {
-  const file = path.join(process.cwd(), "public", locale == defaultLanguage || !locale ? "README.md" : `README-${locale.toUpperCase()}.md`)
+  const file = path.join(process.cwd(), "public", `game-info-${(locale ?? defaultLanguage).toLowerCase()}.md`)
   return await readFile(file)
 }
 
