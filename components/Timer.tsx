@@ -57,7 +57,7 @@ const RemoteTimerComponent = forwardRef(({
     return () => {
       clearAutoRefresh()
     }
-  }, [initialTimestamp, running])
+  }, [initialTimestamp, initialTime, running])
   
   useEffect(() => {
     if (time <= 0) {
@@ -104,75 +104,3 @@ const RemoteTimer = styled(RemoteTimerComponent)`
 
 RemoteTimer.displayName = "Timer"
 export default RemoteTimer;
-
-
-/*
-
-NS_ERROR_FILE_NOT_FOUND: 
-Timer: set running Timer.tsx:110:12
-Timer elapsed --- hasTurn = false game.tsx:320:30
-API request: /api/game?userIdentifier=debug&action=5 game.tsx:90:12
-Timer: set not running Timer.tsx:110:12
-turnStartTimestamp changed by a difference of 0 game.tsx:110:18
-Timer: set running Timer.tsx:110:12
-Timer elapsed --- hasTurn = false game.tsx:320:30
-API request: /api/game?userIdentifier=debug&action=5 game.tsx:90:12
-Timer: set not running Timer.tsx:110:12
-turnStartTimestamp changed by a difference of 0 game.tsx:110:18
-Timer: set running Timer.tsx:110:12
-Timer elapsed --- hasTurn = false game.tsx:320:30
-API request: /api/game?userIdentifier=debug&action=5 game.tsx:90:12
-Timer: set not running Timer.tsx:110:12
-turnStartTimestamp changed by a difference of 0 game.tsx:110:18
-Timer: set running Timer.tsx:110:12
-Timer elapsed --- hasTurn = false game.tsx:320:30
-API request: /api/game?userIdentifier=debug&action=5 game.tsx:90:12
-Timer: set not running Timer.tsx:110:12
-turnStartTimestamp changed by a difference of 0 game.tsx:110:18
-Timer: set running Timer.tsx:110:12
-Timer elapsed --- hasTurn = false game.tsx:320:30
-API request: /api/game?userIdentifier=debug&action=5 game.tsx:90:12
-Timer: set not running Timer.tsx:110:12
-turnStartTimestamp changed by a difference of 0 game.tsx:110:18
-Timer: set running Timer.tsx:110:12
-Timer elapsed --- hasTurn = false game.tsx:320:30
-API request: /api/game?userIdentifier=debug&action=5 game.tsx:90:12
-Timer: set not running Timer.tsx:110:12
-turnStartTimestamp changed by a difference of 0 game.tsx:110:18
-Timer: set running Timer.tsx:110:12
-Timer elapsed --- hasTurn = false game.tsx:320:30
-API request: /api/game?userIdentifier=debug&action=5 game.tsx:90:12
-Timer: set not running Timer.tsx:110:12
-turnStartTimestamp changed by a difference of 0 game.tsx:110:18
-Timer: set running Timer.tsx:110:12
-Timer elapsed --- hasTurn = false game.tsx:320:30
-API request: /api/game?userIdentifier=debug&action=5 game.tsx:90:12
-Timer: set not running Timer.tsx:110:12
-turnStartTimestamp changed by a difference of 0 game.tsx:110:18
-Timer: set running Timer.tsx:110:12
-Timer elapsed --- hasTurn = false game.tsx:320:30
-API request: /api/game?userIdentifier=debug&action=5 game.tsx:90:12
-Timer: set not running Timer.tsx:110:12
-turnStartTimestamp changed by a difference of 0 game.tsx:110:18
-Timer: set running Timer.tsx:110:12
-Timer elapsed --- hasTurn = false game.tsx:320:30
-API request: /api/game?userIdentifier=debug&action=5 game.tsx:90:12
-Timer: set not running Timer.tsx:110:12
-turnStartTimestamp changed by a difference of 0 game.tsx:110:18
-Timer: set running Timer.tsx:110:12
-Timer elapsed --- hasTurn = false game.tsx:320:30
-API request: /api/game?userIdentifier=debug&action=5 game.tsx:90:12
-Timer: set not running Timer.tsx:110:12
-turnStartTimestamp changed by a difference of 0 game.tsx:110:18
-Timer: set running Timer.tsx:110:12
-Timer elapsed --- hasTurn = false game.tsx:320:30
-API request: /api/game?userIdentifier=debug&action=5 game.tsx:90:12
-
-Timer: set not running Timer.tsx:110:12
-turnStartTimestamp changed by a difference of 0 game.tsx:110:18
-Timer: set running Timer.tsx:110:12
-Timer elapsed --- hasTurn = false game.tsx:320:30
-API request: /api/game?userIdentifier=debug&action=5 game.tsx:90:12
-
-
-*/

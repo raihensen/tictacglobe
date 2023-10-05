@@ -235,6 +235,10 @@ export class Game {
     return game
   }
 
+  isDecided() {
+    return this.state == GameState.Decided || this.state == GameState.Finished
+  }
+
   isValidGuess(i: number, j: number, country: Country) {
     return this.setup.solutions[i][j].concat(this.setup.alternativeSolutions[i][j]).includes(country.iso)
   }

@@ -36,6 +36,13 @@ const breakWidth = (bpMin: Breakpoint, bpMax: Breakpoint) => {
   return [breakMinWidth(bpMin), breakMaxWidth(bpMax)].filter(x => x.length).join(" and ")
 }
 
+export const HeaderStyle = styled.div`
+  display: flex;
+  align-items: center;
+  .logo {
+    margin-right: auto;
+  }
+`
 
 export const ButtonToolbar = styled(BsButtonToolbar)`
   gap: .5rem;
@@ -94,7 +101,7 @@ export const GameTable = styled.div`
 
       &.colHeading {
         font-weight: normal;
-        height: 80px;
+        height: 60px;
         flex-direction: column;
         padding-bottom: 10px;
       }

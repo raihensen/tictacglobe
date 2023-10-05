@@ -1,7 +1,6 @@
 
 import Button from "react-bootstrap/Button";
 import Alert from 'react-bootstrap/Alert';
-import { confirm } from 'react-bootstrap-confirmation';
 
 import 'bootstrap/dist/css/bootstrap.min.css';
 import { useEffect, useRef, useState } from 'react';
@@ -16,17 +15,24 @@ var fs = require('fs').promises;
 import RemoteTimer from "@/components/Timer";
 import Field from "@/components/Field";
 import { TableHeading } from '@/components/TableHeading';
-import { FaArrowsRotate, FaCircleInfo, FaEllipsis, FaGear, FaMoon, FaPause, FaPersonCircleXmark, FaPlay } from "react-icons/fa6";
+import { FaArrowsRotate, FaBars, FaCircleInfo, FaEllipsis, FaGear, FaMoon, FaPause, FaPersonCircleXmark, FaPlay } from "react-icons/fa6";
 import { useRouter } from "next/router";
 import type { GetServerSideProps } from 'next'
 import { PageProps } from "./_app";
 import { SettingsModal, useSettings, LanguageSelector, changeLanguage } from "@/components/Settings";
-import { ButtonToolbar, IconButton, PlayerBadge, GameTable } from "@/components/styles";
+import { ButtonToolbar, IconButton, PlayerBadge, GameTable, HeaderStyle } from "@/components/styles";
 import { MarkdownModal } from "@/components/MarkdownModal";
-import ShareButton from "@/components/Share";
+import Header from "@/components/Header";
 
 
-const GamePage: React.FC<PageProps & GamePageProps> = ({ gameInformationMarkdown, isClient, toggleDarkMode, userIdentifier, isCustomUserIdentifier, hasError, setErrorMessage, isLoading, setLoadingText }) => {
+const GamePage: React.FC<PageProps & GamePageProps> = ({
+  isClient,
+  darkMode, toggleDarkMode,
+  userIdentifier, isCustomUserIdentifier,
+  hasError, errorMessage, setErrorMessage,
+  isLoading, setLoadingText,
+  gameInformationMarkdown
+}) => {
 
   useEffect(() => {
     if (userIdentifier) {
@@ -39,9 +45,9 @@ const GamePage: React.FC<PageProps & GamePageProps> = ({ gameInformationMarkdown
   const router = useRouter()
   const { t, i18n } = useTranslation('common')
 
-  // const [settings, setSettings] = useSettings(defaultSettings)
   const [settings, setSettings] = useState<Settings>(defaultSettings)
   const [showSettings, setShowSettings] = useState(false)
+  const triggerShowSettings = () => { if (game) setShowSettings(true) }
   const [showGameInformation, setShowGameInformation] = useState<boolean>(false)
 
   const [game, setGame] = useState<Game | null>(null)
@@ -200,28 +206,21 @@ const GamePage: React.FC<PageProps & GamePageProps> = ({ gameInformationMarkdown
     }
   }, [game, notifyDecided])
 
-  // const [timerRunning, setTimerRunning] = useState(false)
   const timerRef = useRef()
-
-  // const [activeRow, setActiveRow] = useState<number | null>(null)
-  // const [activeCol, setActiveCol] = useState<number | null>(null)
-  // const eachCoord = _.range(game?.setup.size ?? 0)
-  // const fieldActiveUseState = eachCoord.map(i => eachCoord.map(j => useState<boolean>(false)))
-  
-  // const activeField = [0, 1]
   const [activeField, setActiveField] = useState<number[]>([-1, -1])
   const [isSearching, setIsSearching] = useState<boolean>(false)
-  // const notifyActiveField = (i: number, j: number) => {
-  //   setActiveField([i, j])
-  // }
-  // const isRowActive = (i: number) => activeField[0] == i
-  // const isColActive = (j: number) => activeField[1] == j
-  // const setRowActive = (i: number) => setActiveField(field => [i, field[1]])
-  // const setColActive = (j: number) => setActiveField(field => [field[0], j])
 
   return (<>
+    <Header
+      isGame={true} game={game}
+      darkMode={darkMode} toggleDarkMode={toggleDarkMode}
+      triggerShowGameInformation={() => setShowGameInformation(true)}
+      triggerShowSettings={triggerShowSettings}
+      apiRequest={apiRequest}
+      hasTurn={hasTurn}
+    />
     {(isClient && isCustomUserIdentifier) && (<h3>User: {userIdentifier}</h3>)}
-    {(!hasError && !game) && <Alert variant="warning">Loading game...</Alert>}
+    {(hasError && errorMessage) && <Alert variant="danger">Error: {errorMessage}</Alert>}
     {hasError && (<>
       <p>
         <Button variant="secondary" onClick={() => { 
@@ -253,30 +252,7 @@ const GamePage: React.FC<PageProps & GamePageProps> = ({ gameInformationMarkdown
           </>)}
           
         </div>
-        <div className="right">
-          <ShareButton title="TicTacGlobe" text="Play TicTacGlobe, it's awesome!" />
-          <IconButton variant="secondary" onClick={() => setShowGameInformation(true)}><FaCircleInfo /></IconButton>
-          <IconButton variant="secondary" onClick={toggleDarkMode} className="me-2"><FaMoon /></IconButton>
-          <LanguageSelector value={router.locale ?? defaultLanguage} disabled={!hasTurn} onChange={async (oldLanguage, newLanguage) => {
-            if (await confirm(t("changeLanguage.confirm.question"), {
-              title: t("changeLanguage.confirm.title"),
-              okText: t("newGame"),
-              cancelText: t("cancel")
-            })) {
-              apiRequest({ action: RequestAction.NewGame, language: newLanguage as Language })  // TODO if language change does not work, have to pass newLanguage here
-              return true
-            } else {
-              // undo change
-              changeLanguage(router, i18n, oldLanguage)
-              return false
-            }
-          }} />
-          <IconButton variant="secondary" disabled={!hasTurn} onClick={() => setShowSettings(true)}><FaGear /></IconButton>
-        </div>
       </ButtonToolbar>
-      
-      <MarkdownModal show={showGameInformation} setShow={setShowGameInformation}>{gameInformationMarkdown}</MarkdownModal>
-      <SettingsModal settings={settings} setSettings={setSettings} show={showSettings} setShow={setShowSettings} apiRequest={apiRequest} />
 
       {/* https://github.com/JedWatson/react-select/issues/2345 */}
       {/* <p>
@@ -379,8 +355,16 @@ const GamePage: React.FC<PageProps & GamePageProps> = ({ gameInformationMarkdown
         </GameTable>
       </div>
     </>)}
+
+    <MarkdownModal show={showGameInformation} setShow={setShowGameInformation}>{gameInformationMarkdown}</MarkdownModal>
+    {game && (
+      <SettingsModal settings={settings} setSettings={setSettings} game={game} show={showSettings} setShow={setShowSettings} apiRequest={apiRequest} />
+    )}
+
   </>)
 }
+
+GamePage.displayName = "Game"
 
 export default GamePage;
 

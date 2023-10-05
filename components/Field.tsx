@@ -146,13 +146,21 @@ const Field = ({ pos, setActive, setIsSearching, game, row, col, apiRequest, has
 
     return (
       <div className="field-abs-top-left">
-        {fieldState.mode == FieldMode.FILLED && <OverlayTrigger placement="top" overlay={tooltipSolutions}>
-          <NumSolutionsBadge bg={solutions.length == 1 ? "danger" : "secondary"} >{badgeContent}</NumSolutionsBadge>
-        </OverlayTrigger>}
-        {(fieldState.mode != FieldMode.FILLED && alternativeSolutions.length != 0) && <OverlayTrigger placement="top" overlay={tooltipInfo}>
-          <NumSolutionsBadge bg="secondary">{badgeContent}</NumSolutionsBadge>
-        </OverlayTrigger>}
-        {(fieldState.mode != FieldMode.FILLED && alternativeSolutions.length == 0) && <NumSolutionsBadge>{badgeContent}</NumSolutionsBadge>}
+        {game.isDecided() && (
+          <OverlayTrigger placement="top" overlay={tooltipSolutions}>
+            <NumSolutionsBadge bg={solutions.length == 1 ? "danger" : "secondary"}>{badgeContent}</NumSolutionsBadge>
+          </OverlayTrigger>
+        )}
+        {(!game.isDecided() && ((fieldState.mode == FieldMode.FILLED && settings.showNumSolutions) || (fieldState.mode != FieldMode.FILLED && settings.showNumSolutionsHint))) && (<>
+          {alternativeSolutions.length != 0 && (
+            <OverlayTrigger placement="top" overlay={tooltipInfo}>
+              <NumSolutionsBadge bg="secondary">{badgeContent}</NumSolutionsBadge>
+            </OverlayTrigger>
+          )}
+          {alternativeSolutions.length == 0 && (
+            <NumSolutionsBadge>{badgeContent}</NumSolutionsBadge>
+          )}
+        </>)}
       </div>
     )
   }

@@ -9,7 +9,7 @@ import 'rc-slider/assets/index.css';
 import { useTranslation } from 'next-i18next';
 
 import { NextRouter, useRouter } from "next/router";
-import { Settings, Language, defaultLanguage, DifficultyLevel, FrontendQuery, RequestAction, settingsToQuery } from "@/src/game.types";
+import { Settings, Language, defaultLanguage, DifficultyLevel, FrontendQuery, RequestAction, settingsToQuery, Game } from "@/src/game.types";
 import { Dropdown } from "react-bootstrap";
 import { CircleFlag } from "react-circle-flags";
 import styles from '@/pages/Game.module.css'
@@ -31,11 +31,12 @@ type SettingsValues = { id: "settingsTimeLimit", value: number | false }
 
 export const SettingsModal: React.FC<{
   settings: Settings;
+  game: Game;
   setSettings: (value: Settings) => void;
   show: boolean;
   setShow: (value: boolean) => void;
   apiRequest: (query: FrontendQuery) => any;
-}> = ({ settings, setSettings, show, setShow, apiRequest }) => {
+}> = ({ settings, setSettings, game, show, setShow, apiRequest }) => {
   const { t, i18n } = useTranslation()
 
   // const showSettings = () => setShowSettings(true)
@@ -66,7 +67,6 @@ export const SettingsModal: React.FC<{
             <option value={level} key={i}>{t(`settings.difficultyLevel.${level}`)}</option>
           ))}
         </Form.Select>
-        <Form.Check type="switch" onChange={updateSettings} checked={settings.showIso} id="settingsShowIso" label={t("settings.showIso")} />
         <Form.Check type="switch" onChange={updateSettings} checked={settings.showNumSolutions} id="settingsShowNumSolutions" label={t("settings.showNumSolutions")} />
         <Form.Check type="switch" onChange={updateSettings} checked={settings.showNumSolutionsHint} disabled={!settings.showNumSolutions} id="settingsShowNumSolutionsHint" label={t("settings.showNumSolutionsHint")} />
         

@@ -23,6 +23,7 @@ export type PageProps = InitialPageProps & {
   darkMode: boolean;
   toggleDarkMode: () => void;
   hasError: boolean;
+  errorMessage: string | false;
   setErrorMessage: (msg: string | false) => void;
   isLoading: boolean;
   setLoadingText: (text: string | false) => void;
@@ -30,6 +31,7 @@ export type PageProps = InitialPageProps & {
 }
 
 const MyApp: React.FC<AppProps<InitialPageProps>> = ({ Component, pageProps }) => {
+  const pageName = Component.displayName || Component.name || 'UnknownComponent'
   const isClient = useIsClient()
   const searchParams = useSearchParams()
   const [userIdentifier, setUserIdentifier] = useState<string | undefined>(undefined)
@@ -62,7 +64,14 @@ const MyApp: React.FC<AppProps<InitialPageProps>> = ({ Component, pageProps }) =
   }, [loadingText])
 
   return (<>
-    <Layout darkMode={darkMode} hasError={hasError} errorMessage={errorMessage} isLoading={isLoading} loadingText={loadingText}>
+    <Layout
+      pageName={pageName}
+      darkMode={darkMode}
+      hasError={hasError}
+      errorMessage={errorMessage}
+      isLoading={isLoading}
+      loadingText={loadingText}
+    >
       <Component
         isClient={isClient}
         darkMode={darkMode}
@@ -70,6 +79,7 @@ const MyApp: React.FC<AppProps<InitialPageProps>> = ({ Component, pageProps }) =
         userIdentifier={userIdentifier}
         isCustomUserIdentifier={isCustomUserIdentifier}
         hasError={hasError}
+        errorMessage={errorMessage}
         setErrorMessage={setErrorMessage}
         isLoading={isLoading}
         setLoadingText={setLoadingText}
