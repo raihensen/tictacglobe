@@ -25,6 +25,11 @@
         "close": "Schließen",
         "shareText": "Spiele jetzt TicTacGlobe! {{url}}"
     },
+    "fieldInfo": {
+        "title": "Feld-Informationen",
+        "categories": "Kategorien",
+        "solutions": "Lösungen"
+    },
     "countryInfo": {
         "name": "Land: {{value}}",
         "alternativeNames_one": "alternativer Name: {{values}}",
@@ -92,6 +97,13 @@
         "confirm": {
             "title": "Neues Spiel starten?",
             "question": "Die Sprache kann nicht während des Spiels geändert werden. Möchstest du ein neues Spiel starten?"
+        }
+    },
+    "endGame": {
+        "action": "Spiel beenden",
+        "confirm": {
+            "title": "Spiel beenden?",
+            "question": "Anschließend werden die Lösungen angezeigt und ein neues Spiel kann gestartet werden."
         }
     },
     "settings": {

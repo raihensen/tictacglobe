@@ -245,7 +245,7 @@ async function getCountryData(language: Language): Promise<Country[] | null> {
 }
 
 function isIngameAction(action: RequestAction) {
-  return action == RequestAction.MakeGuess || action == RequestAction.EndTurn || action == RequestAction.TimeElapsed || action == RequestAction.RefreshGame
+  return action == RequestAction.MakeGuess || action == RequestAction.EndTurn || action == RequestAction.TimeElapsed || action == RequestAction.RefreshGame || action == RequestAction.EndGame
 }
 function isGameInitAction(action: RequestAction) {
   return action == RequestAction.NewGame || action == RequestAction.ExistingOrNewGame
@@ -311,8 +311,9 @@ async function executeAndRespond(
 
   } else if (game && isIngameAction(action) && game.state != GameState.Finished && playerIndex !== undefined) {
 
-    // in-game actions: Need unfinished game and a playerIndex
-    if (action == RequestAction.MakeGuess && countryId && pos) {
+    // in-game actions
+    if (action == RequestAction.MakeGuess && countryId && pos && game.state != GameState.Ended) {
+      
       result = await makeGuess(game, playerIndex, query)
 
       // Check winner, if not already decided
@@ -331,6 +332,13 @@ async function executeAndRespond(
 
     if (action == RequestAction.EndTurn || action == RequestAction.TimeElapsed) {
       result = endTurn(game, playerIndex, query)
+    }
+
+    if (action == RequestAction.EndGame) {
+      if (game.state != GameState.Finished) {
+        game.state = GameState.Ended
+        result = true
+      }
     }
 
   } else if (isSessionInitAction(action)) {

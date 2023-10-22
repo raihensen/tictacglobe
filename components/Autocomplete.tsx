@@ -221,6 +221,24 @@ const CountryAutoComplete = ({ countries, makeGuess, onBlur }: CountryAutoComple
 
 export default CountryAutoComplete;
 
+
+
+/* https://github.com/JedWatson/react-select/issues/2345 */
+/* <p>
+        <CountryAutoComplete countries={countries} onBlur={() => {}} makeGuess={(c: Country) => false} />
+      </p>
+      <p>
+        <Form.Select aria-label="Default select example">
+          <option>Open this select menu</option>
+          <option value="1">One</option>
+          <option value="2">Two</option>
+          <option value="3">Three</option>
+        </Form.Select>
+      </p>
+      <p>
+        <Form.Control type="text" />
+      </p> */
+
 // https://github.com/JedWatson/react-select/issues/2345#issuecomment-843674624
 // function getSelectStyles(multi, size='') {
 // 	const suffix = size ? `-${size}` : '';

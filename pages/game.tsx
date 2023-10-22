@@ -1,6 +1,7 @@
 
 import Button from "react-bootstrap/Button";
 import Alert from 'react-bootstrap/Alert';
+import { confirm } from 'react-bootstrap-confirmation';
 
 import 'bootstrap/dist/css/bootstrap.min.css';
 import { useEffect, useRef, useState } from 'react';
@@ -15,7 +16,7 @@ var fs = require('fs').promises;
 import RemoteTimer from "@/components/Timer";
 import Field from "@/components/Field";
 import { TableHeading } from '@/components/TableHeading';
-import { FaArrowsRotate, FaBars, FaCircleInfo, FaEllipsis, FaGear, FaMoon, FaPause, FaPersonCircleXmark, FaPlay } from "react-icons/fa6";
+import { FaArrowsRotate, FaBars, FaCircleInfo, FaEllipsis, FaGear, FaMoon, FaPause, FaPersonCircleXmark, FaPlay, FaXmark } from "react-icons/fa6";
 import { useRouter } from "next/router";
 import type { GetServerSideProps } from 'next'
 import { PageProps } from "./_app";
@@ -196,7 +197,7 @@ const GamePage: React.FC<PageProps & GamePageProps> = ({
     if (!game) {
       setShowTurnInfo(false)
     } else {
-      if (game.state == GameState.Finished) {
+      if (game.state == GameState.Finished || game.state == GameState.Ended) {
         setShowTurnInfo(false)
       } else if (game.state == GameState.Decided) {
         setShowTurnInfo(!notifyDecided)
@@ -209,6 +210,11 @@ const GamePage: React.FC<PageProps & GamePageProps> = ({
   const timerRef = useRef()
   const [activeField, setActiveField] = useState<number[]>([-1, -1])
   const [isSearching, setIsSearching] = useState<boolean>(false)
+
+  const canControlGame = (game: Game) => !(game.state == GameState.Running && !hasTurn)
+  const canEndGame = (game: Game) => canControlGame(game) && !(game.state == GameState.Ended || game.state == GameState.Finished)
+  const canRequestNewGame = (game: Game) => canControlGame(game) && (game.state == GameState.Ended || game.state == GameState.Finished)
+  const canEndTurn = (game: Game, notifyDecided: boolean) => !notifyDecided && !(game.state == GameState.Ended || game.state == GameState.Finished)
 
   return (<>
     <Header
@@ -232,17 +238,27 @@ const GamePage: React.FC<PageProps & GamePageProps> = ({
       {/* <p>{gameData.isNewGame ? "New Game" : "Existing Game"}</p> */}
       <ButtonToolbar className="mb-2">
         <div className="left">
-          {(!(game.state == GameState.Running && !hasTurn)) && (<>
-            <IconButton label={t("newGame")} variant="danger" onClick={() => {
-              apiRequest({ action: RequestAction.NewGame })
-            }}><FaArrowsRotate /></IconButton>
-
-            {!notifyDecided && (<>
+          {canControlGame(game) && (<>
+            
+            {canEndGame(game) && (
+              <IconButton label={t("endGame.action")} variant="danger" onClick={async () => {
+                if (await confirm(t("endGame.confirm.question"), {
+                  title: t("endGame.confirm.title"),
+                  okText: t("endGame.action"),
+                  cancelText: t("cancel")
+                })) {
+                  apiRequest({ action: RequestAction.EndGame, player: game.turn })
+                }
+              }}><FaXmark /></IconButton>
+            )}
+            {canRequestNewGame(game) && (
+              <IconButton label={t("newGame")} variant="danger" onClick={() => {
+                apiRequest({ action: RequestAction.NewGame })
+              }}><FaArrowsRotate /></IconButton>
+            )}
+            {canEndTurn(game, notifyDecided) && (<>
               <IconButton label={t("endTurn")} variant="warning" onClick={() => {
-                apiRequest({
-                  action: RequestAction.EndTurn,
-                  player: game.turn
-                })
+                apiRequest({ action: RequestAction.EndTurn, player: game.turn })
               }}><FaPersonCircleXmark /></IconButton>
             </>)}
           </>)}
@@ -254,24 +270,8 @@ const GamePage: React.FC<PageProps & GamePageProps> = ({
         </div>
       </ButtonToolbar>
 
-      {/* https://github.com/JedWatson/react-select/issues/2345 */}
-      {/* <p>
-        <CountryAutoComplete countries={countries} onBlur={() => {}} makeGuess={(c: Country) => false} />
-      </p>
       <p>
-        <Form.Select aria-label="Default select example">
-          <option>Open this select menu</option>
-          <option value="1">One</option>
-          <option value="2">Two</option>
-          <option value="3">Three</option>
-        </Form.Select>
-      </p>
-      <p>
-        <Form.Control type="text" />
-      </p> */}
-
-      <p>
-        {/* State: <b>{GameState[game.state]}</b> */}
+        State: <b>{GameState[game.state]}</b>
         {(game.winner === 0 || game.winner === 1) && (<>
           {game.playingMode == PlayingMode.Offline && (<>{capitalize(t("winner"))}: <b>{capitalize(t(getPlayerColor(game.winner) ?? "noOne"))}</b></>)}
           {game.playingMode == PlayingMode.Online && (<>{capitalize(t("winNotificationOnline", { player: t(game.winner == userIndex ? "youWin" : "youLose") }))}</>)}

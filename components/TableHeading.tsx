@@ -4,7 +4,7 @@ import { OverlayTrigger, Tooltip } from "react-bootstrap";
 import styled from "styled-components";
 import { forwardRef, useId } from "react";
 import { CategoryValue } from "@/src/game.types";
-import { useTranslation } from "next-i18next";
+import { TFunction, useTranslation } from "next-i18next";
 
 import _ from "lodash";
 import { addClassName } from "@/src/util";
@@ -77,7 +77,7 @@ const CategoryBadgeLetters = ({ letter, isCapital, isStartsWith, isEndsWith, ...
 
 type TranslationArgsType = [string, { [x: string]: string }]
 
-const getCategoryInfo = ({ category, value, ...props }: CategoryValue & React.ComponentProps<typeof CategoryBadge>): {
+export const getCategoryInfo = ({ category, value, badge = true, ...props }: CategoryValue & { badge?: boolean } & React.ComponentProps<typeof CategoryBadge>): {
   description?: string | TranslationArgsType,
   badge?: JSX.Element
 } => {
@@ -85,13 +85,13 @@ const getCategoryInfo = ({ category, value, ...props }: CategoryValue & React.Co
   if (category == "landlocked") {
     return {
       description: "category.landlocked.tooltip",
-      badge: (<CategoryBadgeSimple icon={(<IconStack><FaWater color="white" /><FaSlash color="white" /></IconStack>)} label="category.landlocked.label" {...props} />)
+      badge: badge ? (<CategoryBadgeSimple icon={(<IconStack><FaWater color="white" /><FaSlash color="white" /></IconStack>)} label="category.landlocked.label" {...props} />) : undefined
     }
   }
   if (category == "island") {
     return {
       description: "category.island.tooltip",
-      badge: (<CategoryBadgeSimple icon={<FaCircle />} label="category.island.label" {...props} />)
+      badge: badge ? (<CategoryBadgeSimple icon={<FaCircle />} label="category.island.label" {...props} />) : undefined
     }
   }
 
@@ -102,7 +102,7 @@ const getCategoryInfo = ({ category, value, ...props }: CategoryValue & React.Co
     const letter = (value as string).toUpperCase()
     return {
       description: [`category.${_.camelCase(category)}.tooltip`, { letter }],
-      badge: (<CategoryBadgeLetters letter={letter} isCapital={isCapital} isStartsWith={isStartsWith} isEndsWith={isEndsWith} {...props} />)
+      badge: badge ? (<CategoryBadgeLetters letter={letter} isCapital={isCapital} isStartsWith={isStartsWith} isEndsWith={isEndsWith} {...props} />) : undefined
     }
   }
 
@@ -112,7 +112,7 @@ const getCategoryInfo = ({ category, value, ...props }: CategoryValue & React.Co
     const i18Key = "category.flagColor.values." + _.get({ "Yellow/Gold": "YellowOrGold" }, colorName, colorName)
     return {
       description: ["category.flagColor.tooltip", { color: i18Key }],
-      badge: (<CategoryBadgeSimple className="flagColorBadge" style={style} icon={<FaFlag />} label={i18Key} {...props} labelFormatter={s => s.toUpperCase()} />)
+      badge: badge ? (<CategoryBadgeSimple className="flagColorBadge" style={style} icon={<FaFlag />} label={i18Key} {...props} labelFormatter={s => s.toUpperCase()} />) : undefined
     }
   }
 
@@ -121,11 +121,27 @@ const getCategoryInfo = ({ category, value, ...props }: CategoryValue & React.Co
     const ContinentIcon = _.get(continentIcons, continent, FaEarthAfrica)
     return {
       description: ["category.continent.tooltip", { continent: `category.continent.values.${continent}` }],
-      badge: (<CategoryBadgeSimple icon={<ContinentIcon />} label={`category.continent.values.${continent}`} {...props} />)
+      badge: badge ?(<CategoryBadgeSimple icon={<ContinentIcon />} label={`category.continent.values.${continent}`} {...props} />) : undefined
     }
   }
   
   return {}
+}
+
+export function translateCategory(description: string | TranslationArgsType | undefined, t: TFunction): TranslationArgsType | undefined {
+  if (!description) {
+    return undefined
+  }
+  // translate translation parameters [ t("colorInfo", { color: "colorRed" }) ]
+  if (_.isArray(description)) {
+    if (description.length == 2) {
+      description[1] = Object.fromEntries(Object.entries(description[1]).map(([k, v]: [string, string]) => [k, t(v)]))
+    } else {
+      console.log(`Warning: TableHeading expected translation parameters to have length 2.`)
+    }
+    return description
+  }
+  return [description, {}]
 }
 
 export const TableHeading = ({ category, value, orient, active, setActive }: CategoryValue & {
@@ -141,20 +157,7 @@ export const TableHeading = ({ category, value, orient, active, setActive }: Cat
     onMouseEnter: () => { setActive(true) },
     onMouseLeave: () => { setActive(false) }
   })
-  if (description) {
-    // translate translation parameters [ t("colorInfo", { color: "colorRed" }) ]
-    if (_.isArray(description)) {
-      description = description as TranslationArgsType
-      if (description.length == 2) {
-        description[1] = Object.fromEntries(Object.entries(description[1]).map(([k, v]: [string, string]) => [k, t(v)]))
-      } else {
-        console.log(`Warning: TableHeading expected translation parameters to have length 2.`)
-      }
-    } else {
-      description = [description, {}]
-    }
-  }
-  description = description as TranslationArgsType
+  description = translateCategory(description, t)
 
   const tooltipId = useId()
   const tooltip = description ? (<Tooltip id={`categoryTooltip-${tooltipId}`}>{t(...description)}</Tooltip>) : undefined

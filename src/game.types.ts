@@ -98,6 +98,7 @@ export enum RequestAction {
   NewGame = 1,
   MakeGuess = 2,
   EndTurn = 3,
+  EndGame = 11,
   TimeElapsed = 4,
   RefreshGame = 5,
   InitSessionFriend = 6,
@@ -179,7 +180,8 @@ export enum GameState {
   Initialized = 0,
   Running = 1,
   Decided = 2,  // set as soon as a winner / draw is determined but the board is not full yet (might continue playing)
-  Finished = 3  // only set if the board is fully marked
+  Finished = 3,  // only set if the board is fully marked
+  Ended = 4  // After having clicked "End game", then show solutions
 }
 
 export type GameData = {

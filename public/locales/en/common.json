@@ -25,6 +25,11 @@
         "close": "Close",
         "shareText": "Play TicTacGlobe now! {{url}}"
     },
+    "fieldInfo": {
+        "title": "Field information",
+        "categories": "Categories",
+        "solutions": "Solutions"
+    },
     "countryInfo": {
         "name": "Country: {{value}}",
         "alternativeNames_one": "alternative name: {{values}}",
@@ -92,6 +97,13 @@
         "confirm": {
             "title": "Start a new game?",
             "question": "Changing the language is not possible mid-game. Do you want to start a new game?"
+        }
+    },
+    "endGame": {
+        "action": "End game",
+        "confirm": {
+            "title": "End game?",
+            "question": "After this, the solutions are shown and a new game can be started."
         }
     },
     "settings": {
