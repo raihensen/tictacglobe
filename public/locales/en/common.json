@@ -28,7 +28,8 @@
     "fieldInfo": {
         "title": "Field information",
         "categories": "Categories",
-        "solutions": "Solutions"
+        "solutions": "Solutions",
+        "alternativeSolutions": "Also accepted"
     },
     "countryInfo": {
         "name": "Country: {{value}}",
@@ -38,11 +39,10 @@
         "alternativeCapitals_one": "alternative capital: {{values}}",
         "alternativeCapitals_other": "alternative capitals: {{values}}"
     },
-    "solutions": {
-        "solutions_one": "Solution",
-        "solutions_other": "Solutions",
-        "alsoAccepted_one": "Also accepted",
-        "alsoAccepted_other": "Also accepted",
+    "numSolutions": {
+        "solutions_one": "Solution: {{values}}",
+        "solutions_other": "Solutions: {{values}}",
+        "alsoAccepted": "Also accepted: {{values}}",
         "numSolutionsTooltip_one": "There is one regular solution",
         "numSolutionsTooltip_other": "There are {{count}} regular solutions",
         "numAlternativeSolutionsTooltip_one": ", and one more when using alternative values or spellings",
@@ -124,5 +124,4 @@
     "countrySearch": {
         "noResults": "No results"
     }
-
 }

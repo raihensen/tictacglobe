@@ -1,7 +1,7 @@
 
 import styled from "styled-components";
 import { ReactNode, forwardRef, useEffect, useId, useMemo, useRef, useState } from 'react';
-import { Game, Country, CategoryValue, RequestAction, FrontendQuery, GameData, PlayingMode, GameState, FieldSettings } from "@/src/game.types"
+import { Game, Country, CategoryValue, RequestAction, FrontendQuery, GameData, PlayingMode, GameState, FieldSettings, Settings } from "@/src/game.types"
 
 import { PlusCircleFill } from 'react-bootstrap-icons';
 import Badge, { BadgeProps } from 'react-bootstrap/Badge';
@@ -12,7 +12,6 @@ import _ from "lodash";
 import { randomChoice } from "@/src/util";
 import { TableCellInner, MarkingBackground } from "@/components/styles";
 import CountryAutoComplete from "./Autocomplete";
-import { t } from "i18next";
 import { getCategoryInfo, translateCategory } from "./TableHeading";
 import { FaCircleInfo } from "react-icons/fa6";
 
@@ -73,14 +72,11 @@ const Field = ({ pos, setActive, setIsSearching, game, row, col, apiRequest, has
   }, [game])
 
   const [showFieldInfoModal, setShowFieldInfoModal] = useState<boolean>(false)
+  const closeFieldInfoModal = () => setShowFieldInfoModal(false)
+  const openFieldInfoModal = () => setShowFieldInfoModal(true)
+
   const categoryDescriptions = [row, col].map(({ category, value }) => getCategoryInfo({ category, value, badge: false }).description)
-  
-  useEffect(() => {
-    console.log(`show modal: ${showFieldInfoModal}`)
-  }, [showFieldInfoModal])
 
-
-  // TODO design modal. to be opened when clicking on the field after game ended.
 
   const setMode = (mode: FieldMode) => {
     setFieldState(fieldState => ({
@@ -95,47 +91,6 @@ const Field = ({ pos, setActive, setIsSearching, game, row, col, apiRequest, has
     }
     
   }, [fieldState])
-
-  // TODO define this out of Field
-  const NumSolutions = () => {
-    const tooltipSolutions = (
-      <TextTooltip id={`tooltipNumSolutions-${useId()}`}>
-        <p>{t("solutions.solutions", { count: solutions.length })}: {solutions.map(c => c.name).join(", ")}</p>
-        {alternativeSolutions.length != 0 && (<>
-          <p>{t("solutions.alsoAccepted", { count: alternativeSolutions.length })}: {alternativeSolutions.map(c => c.name).join(", ")}</p>
-        </>)}
-      </TextTooltip>
-    );
-    const tooltipInfo = (
-      <TextTooltip id={`tooltipNumSolutions-${useId()}`}>
-        {alternativeSolutions.length != 0 && (<>
-          {t("solutions.numSolutionsTooltip", { count: solutions.length })}
-          {alternativeSolutions.length && t("solutions.numAlternativeSolutionsTooltip", { count: alternativeSolutions.length })}
-        </>)}
-      </TextTooltip>
-    );
-    const badgeContent = `${solutions.length}${alternativeSolutions.length ? "*" : ""}`
-
-    return (
-      <div className="field-abs-top-left">
-        {game.isDecided() && (
-          <OverlayTrigger placement="top" overlay={tooltipSolutions}>
-            <NumSolutionsBadge bg={solutions.length == 1 ? "danger" : "secondary"}>{badgeContent}</NumSolutionsBadge>
-          </OverlayTrigger>
-        )}
-        {(!game.isDecided() && ((fieldState.mode == FieldMode.FILLED && settings.showNumSolutions) || (fieldState.mode != FieldMode.FILLED && settings.showNumSolutionsHint))) && (<>
-          {alternativeSolutions.length != 0 && (
-            <OverlayTrigger placement="top" overlay={tooltipInfo}>
-              <NumSolutionsBadge bg="secondary">{badgeContent}</NumSolutionsBadge>
-            </OverlayTrigger>
-          )}
-          {alternativeSolutions.length == 0 && (
-            <NumSolutionsBadge>{badgeContent}</NumSolutionsBadge>
-          )}
-        </>)}
-      </div>
-    )
-  }
 
   const makeGuess = (country: Country) => {
     const correct = game.isValidGuess(i, j, country)
@@ -159,11 +114,11 @@ const Field = ({ pos, setActive, setIsSearching, game, row, col, apiRequest, has
   const tooltipCountryInfoIds = [useId(), useId()]
   const canShowFieldInfo = (game: Game) => game.state == GameState.Ended || game.state == GameState.Finished || (game.state == GameState.Decided && notifyDecided)
 
-  return (
+  return (<>
     <TableCellInner
       onMouseEnter={() => { setActive(true) }}
       onMouseLeave={() => { setActive(false) }}
-      onClick={() => { setShowFieldInfoModal(canShowFieldInfo(game)) }}
+      onClick={() => { if (canShowFieldInfo(game)) { openFieldInfoModal() } }}
       style={canShowFieldInfo(game) ? { cursor: "pointer" } : undefined}
     >
       {/* <span>{mode}</span> */}
@@ -180,7 +135,7 @@ const Field = ({ pos, setActive, setIsSearching, game, row, col, apiRequest, has
               }}
             />
           </div></>}
-          {settings.showNumSolutionsHint && <NumSolutions />}
+          {settings.showNumSolutionsHint && <NumSolutions game={game} fieldState={fieldState} settings={settings} solutions={solutions} alternativeSolutions={alternativeSolutions} />}
         </>}
         {/* Game just became a tie: grey out */}
         {notifyDecided && (<MarkingBackground $player={-1} $isWinning={false} />)}
@@ -199,7 +154,7 @@ const Field = ({ pos, setActive, setIsSearching, game, row, col, apiRequest, has
               />
             </div>
           </div>
-          {settings.showNumSolutionsHint && <NumSolutions />}
+          {settings.showNumSolutionsHint && <NumSolutions game={game} fieldState={fieldState} settings={settings} solutions={solutions} alternativeSolutions={alternativeSolutions} />}
         </>
       )}
       {(fieldState.mode == FieldMode.FILLED && getCountry(game, fieldState)) && (
@@ -243,61 +198,69 @@ const Field = ({ pos, setActive, setIsSearching, game, row, col, apiRequest, has
               </OverlayTrigger>
             </div>
           </div>
-          {settings.showNumSolutions && <NumSolutions />}
+          {settings.showNumSolutions && <NumSolutions game={game} fieldState={fieldState} settings={settings} solutions={solutions} alternativeSolutions={alternativeSolutions} />}
         </>
       )}
-      <Modal id={useId()} show={showFieldInfoModal} fullscreen="sm-down" onHide={() => setShowFieldInfoModal(false)}>
-        <Modal.Header closeButton>
-          <Modal.Title>{t("fieldInfo.title")}</Modal.Title>
-        </Modal.Header>
-        <Modal.Body>
-          <h5>{t("fieldInfo.categories")}</h5>
-          <ul>
-            {categoryDescriptions.map((descr, i) => {
-              descr = translateCategory(descr, t)
-              return descr ? (<li key={i}>
-                {t(...descr)}
-              </li>) : undefined
-            })}
-          </ul>
-          <h5>{t("fieldInfo.solutions")}</h5>
-          <ColumnList contents={[
-            ..._.sortBy(solutions, country => country.name),
-            ..._.sortBy(alternativeSolutions, country => country.name)
-          ].map((country, i) => (
-            <SolutionInfoItem key={i}>
-              <CountryFlag country={country} size={25} />
-              <span>{country.name}</span>
-              {isCapitalRelevant() ? (
-                <span className="capital text-secondary">({t("countryInfo.capital", { value: country.capital })})</span>
-              ) : undefined}
-              {!_.isEmpty(country.alternativeValues) && (
-                <OverlayTrigger placement="right" overlay={(
-                  <TextTooltip id={tooltipCountryInfoIds[1]} className="d-none d-md-block">
-                    <CountryInfoTooltipContents
-                      context="fieldInfo"
-                      game={game}
-                      fieldState={fieldState}
-                      country={country}
-                      isNameRelevant={isNameRelevant()}
-                      isCapitalRelevant={isCapitalRelevant()}
-                    />
-                  </TextTooltip>
-                )}>
-                  <TooltipTriggerSpan className="ms-1">
-                    <FaCircleInfo />
-                  </TooltipTriggerSpan>
-                </OverlayTrigger>
-              )}
-            </SolutionInfoItem>
-          ))} />
-        </Modal.Body>
-        <Modal.Footer>
-          <Button variant="secondary" onClick={() => setShowFieldInfoModal(false)}>{t("info.close")}</Button>
-        </Modal.Footer>
-      </Modal>
     </TableCellInner>
-  )
+    <Modal
+      show={showFieldInfoModal}
+      fullscreen="sm-down"
+      onHide={closeFieldInfoModal}
+    >
+      <Modal.Header closeButton>
+        <Modal.Title>{t("fieldInfo.title")}</Modal.Title>
+      </Modal.Header>
+      <Modal.Body>
+        <h5>{t("fieldInfo.categories")}</h5>
+        <ul>
+          {categoryDescriptions.map((descr, i) => {
+            descr = translateCategory(descr, t)
+            return descr ? (<li key={i}>
+              {t(...descr)}
+            </li>) : undefined
+          })}
+        </ul>
+        {[
+          { sectionTitle: "fieldInfo.solutions", countries: solutions },
+          { sectionTitle: "fieldInfo.alternativeSolutions", countries: alternativeSolutions, alternative: true }
+        ].map(({ sectionTitle, countries, alternative = false }) => (<>
+          {countries.length != 0 && (<>
+            <h5>{t(sectionTitle)}</h5>
+            <ColumnList contents={_.sortBy(countries, country => country.name).map((country, i) => (
+              <SolutionInfoItem key={i}>
+                <CountryFlag country={country} size={25} />
+                <span>{country.name}</span>
+                {isCapitalRelevant() ? (
+                  <span className="capital text-secondary">{country.capital}</span>
+                ) : undefined}
+                {(alternative && !_.isEmpty(country.alternativeValues)) && (
+                  <OverlayTrigger placement="right" overlay={(
+                    <TextTooltip id={tooltipCountryInfoIds[1]} className="d-none d-md-block">
+                      <CountryInfoTooltipContents
+                        context="fieldInfo"
+                        game={game}
+                        fieldState={fieldState}
+                        country={country}
+                        isNameRelevant={isNameRelevant()}
+                        isCapitalRelevant={isCapitalRelevant()}
+                      />
+                    </TextTooltip>
+                  )}>
+                    <TooltipTriggerSpan className="ms-1">
+                      <FaCircleInfo />
+                    </TooltipTriggerSpan>
+                  </OverlayTrigger>
+                )}
+              </SolutionInfoItem>
+            ))} />
+          </>)}
+        </>))}
+      </Modal.Body>
+      <Modal.Footer>
+        <Button variant="secondary" onClick={closeFieldInfoModal}>{t("info.close")}</Button>
+      </Modal.Footer>
+    </Modal>
+  </>)
 
 }
 
@@ -338,6 +301,54 @@ export const ColumnList: React.FC<Omit<RowProps, "children"> & { contents: React
 
 }
 
+const NumSolutions: React.FC<{
+  game: Game,
+  fieldState: FieldState,
+  settings: FieldSettings,
+  solutions: Country[],
+  alternativeSolutions: Country[]
+}> = ({ game, fieldState, settings, solutions, alternativeSolutions }) => {
+  const { t } = useTranslation("common")
+  const tooltipSolutions = (
+    <TextTooltip id={`tooltipNumSolutions-${useId()}`}>
+      {/* <p>{t("numSolutions.solutions", { count: solutions.length, values: solutions.map(c => c.name).slice(0, 3).join(", "), omitted: solutions.length - 3 })}</p> */}
+      <p>{t("numSolutions.solutions", { count: solutions.length, values: solutions.map(c => c.name).join(", ") })}</p>
+      {alternativeSolutions.length != 0 && (<>
+        <p>{t("numSolutions.alsoAccepted", { count: alternativeSolutions.length, values: alternativeSolutions.map(c => c.name).join(", ") })}</p>
+      </>)}
+    </TextTooltip>
+  );
+  const tooltipInfo = (
+    <TextTooltip id={`tooltipNumSolutions-${useId()}`}>
+      {alternativeSolutions.length != 0 && (<>
+        {t("numSolutions.numSolutionsTooltip", { count: solutions.length })}
+        {alternativeSolutions.length && t("numSolutions.numAlternativeSolutionsTooltip", { count: alternativeSolutions.length })}
+      </>)}
+    </TextTooltip>
+  );
+  const badgeContent = `${solutions.length}${alternativeSolutions.length ? "*" : ""}`
+
+  return (
+    <div className="field-abs-top-left">
+      {game.isDecided() && (
+        <OverlayTrigger placement="top" overlay={tooltipSolutions}>
+          <NumSolutionsBadge bg={solutions.length == 1 ? "danger" : "secondary"}>{badgeContent}</NumSolutionsBadge>
+        </OverlayTrigger>
+      )}
+      {(!game.isDecided() && ((fieldState.mode == FieldMode.FILLED && settings.showNumSolutions) || (fieldState.mode != FieldMode.FILLED && settings.showNumSolutionsHint))) && (<>
+        {alternativeSolutions.length != 0 && (
+          <OverlayTrigger placement="top" overlay={tooltipInfo}>
+            <NumSolutionsBadge bg="secondary">{badgeContent}</NumSolutionsBadge>
+          </OverlayTrigger>
+        )}
+        {alternativeSolutions.length == 0 && (
+          <NumSolutionsBadge bg="secondary">{badgeContent}</NumSolutionsBadge>
+        )}
+      </>)}
+    </div>
+  )
+}
+
 const CountryFlag = ({ country, size, onClick }: { country: Country | null, size: number, onClick?: any }) => (
   <CircleFlag countryCode={country?.iso?.toLowerCase() ?? "xx"} height={size} onClick={onClick} title="" />
 );
@@ -352,14 +363,13 @@ type CountryInfoTooltipContentProps = {
 }
 const CountryInfoTooltipContents = ({ context, game, country, isNameRelevant, isCapitalRelevant }: CountryInfoTooltipContentProps) => {
   const { t } = useTranslation("common")
-  const c = country
   const isGameFinished = (game: Game) => game.state == GameState.Finished || game.state == GameState.Ended
 
-  const texts = c ? [
-    t("countryInfo.name", { value: c.name }),
-    ((isNameRelevant || isGameFinished(game)) && c.alternativeValues.name !== undefined ? t("countryInfo.alternativeNames", { count: c.alternativeValues.name.length, values: c.alternativeValues.name.join(", ") }) : undefined),
-    (isCapitalRelevant || isGameFinished(game) ? t("countryInfo.capital", { value: c.capital }) : undefined),
-    ((isCapitalRelevant || isGameFinished(game)) && c.alternativeValues.capital !== undefined ? t("countryInfo.alternativeCapitals", { count: c.alternativeValues.capital.length, values: c.alternativeValues.capital.join(", ") }) : undefined)
+  const texts = country ? [
+    t("countryInfo.name", { value: country.name }),
+    (isNameRelevant && country.alternativeValues.name !== undefined ? t("countryInfo.alternativeNames", { count: country.alternativeValues.name.length, values: country.alternativeValues.name.join(", ") }) : undefined),
+    (isCapitalRelevant || isGameFinished(game) ? t("countryInfo.capital", { value: country.capital }) : undefined),
+    (isCapitalRelevant && country.alternativeValues.capital !== undefined ? t("countryInfo.alternativeCapitals", { count: country.alternativeValues.capital.length, values: country.alternativeValues.capital.join(", ") }) : undefined)
   ].filter(s => s) as string[] : []
   return (<>
     {texts.map((text, i) => (<p key={i}>{text}</p>))}

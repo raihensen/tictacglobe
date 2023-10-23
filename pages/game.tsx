@@ -280,7 +280,7 @@ const GamePage: React.FC<PageProps & GamePageProps> = ({
       </p>
       {/* {(notifyDecided && (game.winner === 0 || game.winner === 1)) && <Alert variant="success"><b>{capitalize(getPlayerColor(game.winner) ?? "No one")} wins!</b></Alert>} */}
       
-      <div style={{ display: "flex" }}>
+      <div style={{ display: "flex", marginBottom: "50px" }}>
         <GameTable style={{ margin: "0 auto" }}>
           <div className="tableRow header">
             <div className="topLeft">

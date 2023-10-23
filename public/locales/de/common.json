@@ -28,7 +28,8 @@
     "fieldInfo": {
         "title": "Feld-Informationen",
         "categories": "Kategorien",
-        "solutions": "Lösungen"
+        "solutions": "Lösungen",
+        "alternativeSolutions": "Auch akzeptiert"
     },
     "countryInfo": {
         "name": "Land: {{value}}",
@@ -38,11 +39,10 @@
         "alternativeCapitals_one": "alternative Hauptstadt: {{values}}",
         "alternativeCapitals_other": "alternative Hauptstädte: {{values}}"
     },
-    "solutions": {
-        "solutions_one": "Lösung",
-        "solutions_other": "Lösungen",
-        "alsoAccepted_one": "Auch möglich",
-        "alsoAccepted_other": "Auch möglich",
+    "numSolutions": {
+        "solutions_one": "Lösung: {{values}}",
+        "solutions_other": "Lösungen: {{values}}",
+        "alsoAccepted": "Auch möglich: {{values}}",
         "numSolutionsTooltip_one": "1 Lösung",
         "numSolutionsTooltip_other": "{{count}} Lösungen",
         "numAlternativeSolutionsTooltip_one": " (eine weitere durch alternative Eigenschaften/Schreibweisen)",
@@ -124,5 +124,4 @@
     "countrySearch": {
         "noResults": "Kein Treffer"
     }
-
 }

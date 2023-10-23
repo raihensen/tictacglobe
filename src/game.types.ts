@@ -238,7 +238,7 @@ export class Game {
   }
 
   isDecided() {
-    return this.state == GameState.Decided || this.state == GameState.Finished
+    return this.state == GameState.Decided || this.state == GameState.Finished || this.state == GameState.Ended
   }
 
   isValidGuess(i: number, j: number, country: Country) {
