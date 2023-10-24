@@ -28,6 +28,16 @@ import { DonationModal, ShareButtonProps } from "@/components/Share";
 
 
 
+import WorldMap from "react-svg-worldmap";
+import {
+  ComposableMap,
+  Geographies,
+  Geography,
+  Sphere,
+  Graticule
+} from "react-simple-maps";
+
+
 const GamePage: React.FC<PageProps & GamePageProps> = ({
   isClient,
   darkMode, toggleDarkMode,
@@ -363,6 +373,29 @@ const GamePage: React.FC<PageProps & GamePageProps> = ({
           ))}
         </GameTable>
       </div>
+
+      <div>
+        {/* <MyWorldMap countries={countries} /> */}
+        <WorldMap
+          color="red"
+          title="Top 10 Populous Countries"
+          value-suffix="people"
+          size="lg"
+          data={[
+            { country: "cn", value: 1389618778 }, // china
+            { country: "in", value: 1311559204 }, // india
+            { country: "us", value: 331883986 }, // united states
+            { country: "id", value: 264935824 }, // indonesia
+            { country: "pk", value: 210797836 }, // pakistan
+            { country: "br", value: 210301591 }, // brazil
+            { country: "ng", value: 208679114 }, // nigeria
+            { country: "bd", value: 161062905 }, // bangladesh
+            { country: "ru", value: 141944641 }, // russia
+            { country: "mx", value: 127318112 }, // mexico
+          ]}
+        />
+      </div>
+
     </>)}
 
     <MarkdownModal show={showGameInformation} setShow={setShowGameInformation}>{gameInformationMarkdown}</MarkdownModal>
@@ -377,6 +410,45 @@ const GamePage: React.FC<PageProps & GamePageProps> = ({
 
 GamePage.displayName = "Game"
 export default GamePage;
+
+// export const MyWorldMap: React.FC<{
+//   countries: Country[]
+// }> = ({ countries }) => {
+
+//   const geoUrl = "public/ne_110m_admin_0_countries_lakes.geojson"
+
+//   const data = [
+//     { iso3: "DEU", value: 5 }
+//   ]
+
+//   return (
+//     <ComposableMap
+//       projectionConfig={{
+//         rotate: [-10, 0, 0],
+//         scale: 147
+//       }}
+//     >
+//       <Sphere stroke="#E4E5E6" strokeWidth={0.5} />
+//       <Graticule stroke="#E4E5E6" strokeWidth={0.5} />
+//       {data.length > 0 && (
+//         <Geographies geography={geoUrl}>
+//           {({ geographies }) =>
+//             geographies.map((geo) => {
+//               const d = data.find(s => s.iso3 === geo.id);
+//               return (
+//                 <Geography
+//                   key={geo.rsmKey}
+//                   geography={geo}
+//                   fill={d ? colorScale(d.value) : "#F5F4F6"}
+//                 />
+//               );
+//             })
+//           }
+//         </Geographies>
+//       )}
+//     </ComposableMap>
+//   )
+// }
 
 export type GamePageProps = {
   gameInformationMarkdown: string
