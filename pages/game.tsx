@@ -16,7 +16,7 @@ var fs = require('fs').promises;
 import RemoteTimer from "@/components/Timer";
 import Field from "@/components/Field";
 import { TableHeading } from '@/components/TableHeading';
-import { FaArrowsRotate, FaBars, FaCircleInfo, FaEllipsis, FaGear, FaMoon, FaPause, FaPersonCircleXmark, FaPlay, FaXmark } from "react-icons/fa6";
+import { FaArrowsRotate, FaBars, FaCircleInfo, FaEllipsis, FaGear, FaMoon, FaPause, FaPaypal, FaPersonCircleXmark, FaPlay, FaXmark } from "react-icons/fa6";
 import { useRouter } from "next/router";
 import type { GetServerSideProps } from 'next'
 import { PageProps } from "./_app";
@@ -24,6 +24,8 @@ import { SettingsModal, useSettings, LanguageSelector, changeLanguage } from "@/
 import { ButtonToolbar, IconButton, PlayerBadge, GameTable, HeaderStyle } from "@/components/styles";
 import { MarkdownModal } from "@/components/MarkdownModal";
 import Header from "@/components/Header";
+import { DonationModal, ShareButtonProps } from "@/components/Share";
+
 
 
 const GamePage: React.FC<PageProps & GamePageProps> = ({
@@ -50,6 +52,12 @@ const GamePage: React.FC<PageProps & GamePageProps> = ({
   const [showSettings, setShowSettings] = useState(false)
   const triggerShowSettings = () => { if (game) setShowSettings(true) }
   const [showGameInformation, setShowGameInformation] = useState<boolean>(false)
+  const [showDonationModal, setShowDonationModal] = useState<boolean>(false)
+  const shareButtonProps: ShareButtonProps = {
+    title: "TicTacGlobe",
+    text: "Play TicTacGlobe, it's awesome!",
+    onShare: () => setShowDonationModal(true)
+  }
 
   const [game, setGame] = useState<Game | null>(null)
   const [session, setSession] = useState<SessionWithoutGames | null>(null)
@@ -222,6 +230,7 @@ const GamePage: React.FC<PageProps & GamePageProps> = ({
       darkMode={darkMode} toggleDarkMode={toggleDarkMode}
       triggerShowGameInformation={() => setShowGameInformation(true)}
       triggerShowSettings={triggerShowSettings}
+      shareButtonProps={shareButtonProps}
       apiRequest={apiRequest}
       hasTurn={hasTurn}
     />
@@ -271,7 +280,7 @@ const GamePage: React.FC<PageProps & GamePageProps> = ({
       </ButtonToolbar>
 
       <p>
-        State: <b>{GameState[game.state]}</b>
+        {/* State: <b>{GameState[game.state]}</b> */}
         {(game.winner === 0 || game.winner === 1) && (<>
           {game.playingMode == PlayingMode.Offline && (<>{capitalize(t("winner"))}: <b>{capitalize(t(getPlayerColor(game.winner) ?? "noOne"))}</b></>)}
           {game.playingMode == PlayingMode.Online && (<>{capitalize(t("winNotificationOnline", { player: t(game.winner == userIndex ? "youWin" : "youLose") }))}</>)}
@@ -361,11 +370,12 @@ const GamePage: React.FC<PageProps & GamePageProps> = ({
       <SettingsModal settings={settings} setSettings={setSettings} game={game} show={showSettings} setShow={setShowSettings} apiRequest={apiRequest} />
     )}
 
+    <DonationModal show={showDonationModal} setShow={setShowDonationModal} href={process.env.NEXT_PUBLIC_PAYPAL_DONATE_LINK as string} />
+
   </>)
 }
 
 GamePage.displayName = "Game"
-
 export default GamePage;
 
 export type GamePageProps = {

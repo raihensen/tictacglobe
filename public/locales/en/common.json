@@ -106,6 +106,13 @@
             "question": "After this, the solutions are shown and a new game can be started."
         }
     },
+    "leaveSession": {
+        "action": "Leave",
+        "confirm": {
+            "title": "Leave game?",
+            "question": "You will not be able to re-join this session."
+        }
+    },
     "settings": {
         "settings": "Settings",
         "close": "Close",
@@ -123,5 +130,11 @@
     },
     "countrySearch": {
         "noResults": "No results"
+    },
+    "donate": {
+        "buttonText": "Support",
+        "text1": "Thanks for sharing - I'm really happy you like the game :)",
+        "text2": "If you want to support the project even further, I appreciate your support through a little donation. This helps the project to be maintained and further developed in the future. Thank you so much!",
+        "thanks": "Thanks for your support! ♥"
     }
 }

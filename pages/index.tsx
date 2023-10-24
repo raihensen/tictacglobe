@@ -21,7 +21,7 @@ import Button from "react-bootstrap/Button";
 import Form from 'react-bootstrap/Form';
 import InputGroup from 'react-bootstrap/InputGroup';
 import { ButtonToolbar, IconButton } from "@/components/styles";
-import ShareButton from "@/components/Share";
+import ShareButton, { DonationModal, ShareButtonProps } from "@/components/Share";
 
 enum PageState {
   Init = 0,
@@ -39,6 +39,12 @@ const IndexPage: React.FC<PageProps & IndexPageProps> = ({ gameInformationMarkdo
   const searchParams = useSearchParams()
 
   const [showGameInformation, setShowGameInformation] = useState<boolean>(false)
+  const [showDonationModal, setShowDonationModal] = useState<boolean>(false)
+  const shareButtonProps: ShareButtonProps = {
+    title: "TicTacGlobe",
+    text: "Play TicTacGlobe, it's awesome!",
+    onShare: () => setShowDonationModal(true)
+  }
 
   const [isWaiting, setIsWaiting] = useState<boolean>(false)
   useEffect(() => {
@@ -258,11 +264,14 @@ const IndexPage: React.FC<PageProps & IndexPageProps> = ({ gameInformationMarkdo
       <IconButton variant="secondary" label="Game information" labelProps={{ className: "d-none d-sm-block" }} onClick={() => setShowGameInformation(true)}>
         <FaCircleInfo />
       </IconButton>
-      <ShareButton title="TicTacGlobe" text="Play TicTacGlobe, it's awesome!" />
+      <ShareButton {...shareButtonProps} tooltipPlacement="top" />
     </ButtonToolbar>
     <MarkdownModal show={showGameInformation} setShow={setShowGameInformation}>
       {gameInformationMarkdown}
     </MarkdownModal>
+    
+    <DonationModal show={showDonationModal} setShow={setShowDonationModal} href={process.env.NEXT_PUBLIC_PAYPAL_DONATE_LINK as string} />
+
     
   </>)
 

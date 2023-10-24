@@ -213,20 +213,16 @@ const Field = ({ pos, setActive, setIsSearching, game, row, col, apiRequest, has
       <Modal.Body>
         <h5>{t("fieldInfo.categories")}</h5>
         <ul>
-          {categoryDescriptions.map((descr, i) => {
-            descr = translateCategory(descr, t)
-            return descr ? (<li key={i}>
-              {t(...descr)}
-            </li>) : undefined
-          })}
+          <li>{t(...(translateCategory(categoryDescriptions[0], t) ?? [""]))}</li>
+          <li>{t(...(translateCategory(categoryDescriptions[1], t) ?? [""]))}</li>
         </ul>
         {[
           { sectionTitle: "fieldInfo.solutions", countries: solutions },
           { sectionTitle: "fieldInfo.alternativeSolutions", countries: alternativeSolutions, alternative: true }
-        ].map(({ sectionTitle, countries, alternative = false }) => (<>
-          {countries.length != 0 && (<>
-            <h5>{t(sectionTitle)}</h5>
-            <ColumnList contents={_.sortBy(countries, country => country.name).map((country, i) => (
+        ].map(({ sectionTitle, countries, alternative = false }, k) => (<>
+          {countries.length != 0 && (<div key={k}>
+            <h5 key={`${k}a`}>{t(sectionTitle)}</h5>
+            <ColumnList key={`${k}b`} contents={_.sortBy(countries, country => country.name).map((country, i) => (
               <SolutionInfoItem key={i}>
                 <CountryFlag country={country} size={25} />
                 <span>{country.name}</span>
@@ -253,7 +249,7 @@ const Field = ({ pos, setActive, setIsSearching, game, row, col, apiRequest, has
                 )}
               </SolutionInfoItem>
             ))} />
-          </>)}
+          </div>)}
         </>))}
       </Modal.Body>
       <Modal.Footer>

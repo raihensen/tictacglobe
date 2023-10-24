@@ -106,6 +106,13 @@
             "question": "Anschließend werden die Lösungen angezeigt und ein neues Spiel kann gestartet werden."
         }
     },
+    "leaveSession": {
+        "action": "Spiel verlassen",
+        "confirm": {
+            "title": "Spiel verlassen?",
+            "question": "Anschließend musst du eine neue Spiel-Session starten."
+        }
+    },
     "settings": {
         "settings": "Einstellungen",
         "close": "Schließen",
@@ -123,5 +130,11 @@
     },
     "countrySearch": {
         "noResults": "Kein Treffer"
+    },
+    "donate": {
+        "buttonText": "Unterstützen",
+        "text1": "Vielen Dank für's Teilen - Es freut mich sehr, dass dir das Spiel gefällt :)",
+        "text2": "Wenn du das Projekt weiter unterstützen möchtest, freue ich mich über eine kleine Spende. So kann das Spiel auch in Zukunft weiterentwickelt werden.",
+        "thanks": "Vielen Dank für deinen Support! ♥"
     }
 }

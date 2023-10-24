@@ -14,7 +14,7 @@ import { LanguageSelector, changeLanguage } from "@/components/Settings";
 import { ButtonToolbar, IconButton, HeaderStyle } from "@/components/styles";
 import Image from "next/image";
 import Link from "next/link";
-import ShareButton from "@/components/Share";
+import ShareButton, { ShareButtonProps } from "@/components/Share";
 
 
 const Header: React.FC<{
@@ -24,9 +24,10 @@ const Header: React.FC<{
   toggleDarkMode: () => void,
   triggerShowGameInformation: () => void,
   triggerShowSettings: () => void,
+  shareButtonProps: ShareButtonProps,
   hasTurn: boolean,
   apiRequest: (query: FrontendQuery) => any,
-}> = ({ isGame, game, darkMode, toggleDarkMode, triggerShowGameInformation, triggerShowSettings, hasTurn, apiRequest }) => {
+}> = ({ isGame, game, darkMode, toggleDarkMode, triggerShowGameInformation, triggerShowSettings, shareButtonProps, hasTurn, apiRequest }) => {
   const { t, i18n } = useTranslation("common")
   const router = useRouter()
 
@@ -34,11 +35,26 @@ const Header: React.FC<{
 
   return (
     <HeaderStyle>
-      <Image className="logo" src={`/tictacglobe-logo${darkMode ? "-white" : ""}.svg`} width={80} height={80} alt={"TicTacGlobe logo"} />
+      <Image
+        className="logo cursor-pointer"
+        src={`/tictacglobe-logo${darkMode ? "-white" : ""}.svg`}
+        width={80}
+        height={80}
+        alt={"TicTacGlobe logo"}
+        onClick={async () => {
+          if (!game || await confirm(t("leaveSession.confirm.question"), {
+            title: t("leaveSession.confirm.title"),
+            okText: t("leaveSession.action"),
+            cancelText: t("cancel")
+          })) {
+            router.push("/")
+          }
+        }}
+      />
       {isGame && (<>
         <ButtonToolbar>
           <ButtonToolbar className={expanded ? "d-flex" : "d-none d-md-flex"}>
-            <ShareButton title="TicTacGlobe" text="Play TicTacGlobe, it's awesome!" />
+            <ShareButton {...shareButtonProps} tooltipPlacement='bottom' />
             <IconButton variant="secondary" onClick={triggerShowGameInformation}><FaCircleInfo /></IconButton>
             <IconButton variant="secondary" onClick={toggleDarkMode}><FaMoon /></IconButton>
             <LanguageSelector value={router.locale ?? defaultLanguage} disabled={!hasTurn} onChange={async (oldLanguage, newLanguage) => {
