@@ -26,17 +26,14 @@ import { MarkdownModal } from "@/components/MarkdownModal";
 import Header from "@/components/Header";
 import { DonationModal, ShareButtonProps } from "@/components/Share";
 
-
-
-import WorldMap from "react-svg-worldmap";
-import {
-  ComposableMap,
-  Geographies,
-  Geography,
-  Sphere,
-  Graticule
-} from "react-simple-maps";
-
+// import WorldMap from "react-svg-worldmap";
+// import {
+//   ComposableMap,
+//   Geographies,
+//   Geography,
+//   Sphere,
+//   Graticule
+// } from "react-simple-maps";
 
 const GamePage: React.FC<PageProps & GamePageProps> = ({
   isClient,
@@ -374,8 +371,8 @@ const GamePage: React.FC<PageProps & GamePageProps> = ({
         </GameTable>
       </div>
 
-      <div>
-        {/* <MyWorldMap countries={countries} /> */}
+      {/* <div>
+        <MyWorldMap countries={countries} />
         <WorldMap
           color="red"
           title="Top 10 Populous Countries"
@@ -394,7 +391,7 @@ const GamePage: React.FC<PageProps & GamePageProps> = ({
             { country: "mx", value: 127318112 }, // mexico
           ]}
         />
-      </div>
+      </div> */}
 
     </>)}
 
