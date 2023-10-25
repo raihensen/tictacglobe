@@ -113,6 +113,12 @@ export const getCategoryInfo = ({ category, value, badge = true, ...props }: Cat
       badge: badge ? (<CategoryBadgeSimple icon={(<FaMaximize color="white" />)} label="category.top_20_area.label" {...props} />) : undefined
     }
   }
+  if (category == "bottom_20_area") {
+    return {
+      description: "category.bottom_20_area.tooltip",
+      badge: badge ? (<CategoryBadgeSimple icon={(<FaMinimize color="white" />)} label="category.bottom_20_area.label" {...props} />) : undefined
+    }
+  }
   if (category == "elevation_sup5k") {
     return {
       description: "category.elevation_sup5k.tooltip",
@@ -122,7 +128,7 @@ export const getCategoryInfo = ({ category, value, badge = true, ...props }: Cat
   if (category == "elevation_sub1k") {
     return {
       description: "category.elevation_sub1k.tooltip",
-      badge: badge ? (<CategoryBadgeSimple icon={(<span className="icon-stack"><FaMountain color="white" /><FaSlash color="white" /></span>)} label="category.elevation_sub1k.label" {...props} />) : undefined
+      badge: badge ? (<CategoryBadgeSimple icon={(<span className="icon-stack"><FaMountain color="white" style={{ fontSize: "20px" }} /><FaSlash color="white" /></span>)} label="category.elevation_sub1k.label" {...props} />) : undefined
     }
   }
 
