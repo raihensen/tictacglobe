@@ -1,11 +1,11 @@
 
 from functools import total_ordering
-from typing import Callable
+from typing import Callable, Optional
 import pandas as pd
 
 @total_ordering
 class Category:
-    def __init__(self, key: str, name: str, difficulty: float, values: pd.Series, alt_values: pd.Series):  # alt_values might be None
+    def __init__(self, key: str, name: str, difficulty: float, values: pd.Series, alt_values: Optional[pd.Series]):  # alt_values might be None
         self.key = key
         self.alt_key = key + "_alt"
         self.name = name
@@ -54,9 +54,6 @@ class NominalCategory(Category):
     
     def __eq__(self, other):
         return self.key == other.key
-    
-    def __hash__(self):
-        return hash(self.key)
 
 
 @total_ordering
@@ -77,13 +74,15 @@ class MultiNominalCategory(Category):
     
     def __eq__(self, other):
         return self.key == other.key
-    
-    def __hash__(self):
-        return hash(self.key)
 
 
-@total_ordering
 class BooleanCategory(Category):
+    def __str__(self):
+        return f"BooleanCategory('{self.key}', {len(self.sets[True])}x True)"
+
+# SimpleBooleanCategory used for island, landlocked, ... (boolean values contained in the df)
+@total_ordering
+class SimpleBooleanCategory(BooleanCategory):
     def __init__(self, df: pd.DataFrame, key: str, name: str, difficulty: float, col: str):
         values = df[col]
         altcol = col + "_alt"
@@ -95,14 +94,61 @@ class BooleanCategory(Category):
     def __str__(self):
         return f"BooleanCategory('{self.key}', {len(self.sets[True])}x True)"
     
-    def __lt__(self, other):
-        return self.key < other.key
-    
-    def __eq__(self, other):
-        return self.key == other.key
-    
-    def __hash__(self):
-        return hash(self.key)
+# GreaterThanCategory(self.df, key="elevation_sup5k", name="Mountain over 5000m", difficulty=2.5, col="max_elev", bound=5000, or_equal=True),
+# LessThanCategory(self.df, key="elevation_sub1k", name="No mountains over 1000m", difficulty=2.5, col="max_elev", bound=1000, or_equal=True)
+
+class ComparisonCategory(BooleanCategory):
+    def __init__(self, df: pd.DataFrame, key: str, name: str, difficulty: float, col: str, bound: float, mode: str, or_equal: bool):
+        # mode: "greater_than" | "less_than"
+        if mode == "greater_than" and or_equal:
+            values = df[col] >= bound
+            self.comparator = ">="
+        elif mode == "greater_than" and not or_equal:
+            values = df[col] > bound
+            self.comparator = ">"
+        elif mode == "less_than" and or_equal:
+            values = df[col] <= bound
+            self.comparator = "<="
+        elif mode == "less_than" and not or_equal:
+            values = df[col] < bound
+            self.comparator = "<"
+        else:
+            raise ValueError(f"ComparisonCategory received undefined parameters (mode={mode}, or_eqial={or_equal})")
+        
+        self.col = col
+        self.mode = mode
+        self.bound = bound
+        super().__init__(key, name, difficulty, values, alt_values=None)
+        
+    def __str__(self):
+        return f"ComparisonCategory('{self.key}', {self.col} {self.comparator} {self.bound})"
+
+class GreaterThanCategory(ComparisonCategory):
+    def __init__(self, df: pd.DataFrame, key: str, name: str, difficulty: float, col: str, bound: float, or_equal: bool = False):
+        super().__init__(df, key, name, difficulty, col, bound=bound, mode="greater_than", or_equal=or_equal)
+
+class LessThanCategory(ComparisonCategory):
+    def __init__(self, df: pd.DataFrame, key: str, name: str, difficulty: float, col: str, bound: float, or_equal: bool = False):
+        super().__init__(df, key, name, difficulty, col, bound=bound, mode="less_than", or_equal=or_equal)
+
+class TopNCategory(GreaterThanCategory):
+    def __init__(self, df: pd.DataFrame, key: str, name: str, difficulty: float, col: str, n: int):
+        bound = df[col].nlargest(n).iloc[-1]
+        self.n = n
+        super().__init__(df, key, name, difficulty, col, bound=bound, or_equal=True)
+        
+    def __str__(self):
+        return f"TopNCategory('{self.key}', {self.n})"
+
+
+class BottomNCategory(LessThanCategory):
+    def __init__(self, df: pd.DataFrame, key: str, name: str, difficulty: float, col: str, n: int):
+        bound = df[col].nsmallest(n).iloc[-1]
+        self.n = n
+        super().__init__(df, key, name, difficulty, col, bound=bound, or_equal=True)
+        
+    def __str__(self):
+        return f"BottomNCategory('{self.key}', {self.n})"
 
 
 def compare_sets(set1, set2):

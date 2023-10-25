@@ -36,7 +36,8 @@ const Header: React.FC<{
   return (
     <HeaderStyle>
       <Image
-        className="logo cursor-pointer"
+        className="logo"
+        role="button"
         src={`/tictacglobe-logo${darkMode ? "-white" : ""}.svg`}
         width={80}
         height={80}
