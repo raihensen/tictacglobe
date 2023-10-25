@@ -52,12 +52,12 @@ class Preprocessor:
             SimpleBooleanCategory(self.df, key="landlocked", name="Landlocked", difficulty=2, col="landlocked"),
             SimpleBooleanCategory(self.df, key="island", name="Island Nation", difficulty=1.5, col="island"),
             # New as of 20231025
-            TopNCategory(self.df, key="top_20_population", name="Top 20 Population", difficulty=1.5, col="population", n=20),
+            TopNCategory(self.df, key="top_20_population", name="Top 20 Population", difficulty=1, col="population", n=20),
             BottomNCategory(self.df, key="bottom_20_population", name="Bottom 20 Population", difficulty=2, col="population", n=20),
             TopNCategory(self.df, key="top_20_area", name="Top 20 Area", difficulty=1.5, col="area_km2", n=20),
             BottomNCategory(self.df, key="bottom_20_area", name="Bottom 20 Area", difficulty=2, col="area_km2", n=20),
             GreaterThanCategory(self.df, key="elevation_sup5k", name="Mountain over 5000m", difficulty=2, col="max_elev", bound=5000, or_equal=True),
-            LessThanCategory(self.df, key="elevation_sub1k", name="No mountains over 1000m", difficulty=2, col="max_elev", bound=1000, or_equal=True)
+            LessThanCategory(self.df, key="elevation_sub1k", name="No mountains over 1000m", difficulty=2.5, col="max_elev", bound=1000, or_equal=False)
         ]
         self.categories = {cat.key: cat for cat in self.categories}
 

@@ -91,6 +91,30 @@
                 "NA": "Nordamerika",
                 "SA": "Südamerika"
             }
+        },
+        "top_20_population": {
+            "label": "Top 20",
+            "tooltip": "Die 20 bevölkerungsreichsten Länder"
+        },
+        "bottom_20_population": {
+            "label": "Bottom 20",
+            "tooltip": "Die 20 bevölkerungsärmsten Länder"
+        },
+        "top_20_area": {
+            "label": "Top 20",
+            "tooltip": "Die 20 größten Länder (nach Fläche)"
+        },
+        "bottom_20_area": {
+            "label": "Bottom 20",
+            "tooltip": "Die 20 kleinsten Länder (nach Fläche)"
+        },
+        "elevation_sup5k": {
+            "label": "≥ 5000m",
+            "tooltip": "Länder mit einem Berg über 5000m"
+        },
+        "elevation_sub1k": {
+            "label": "< 1000m",
+            "tooltip": "Länder ohne Berge über 1000m"
         }
     },
     "changeLanguage": {

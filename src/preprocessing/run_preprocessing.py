@@ -17,6 +17,7 @@ language = "de"
 
 countries = pd.read_json(f"../../public/data/countries/countries-{language.lower()}.json", encoding="utf8")
 preprocessor = Preprocessor(countries=countries,
+                            language=language,
                             field_size=FIELD_SIZE,
                             min_cell_size=MIN_CELL_SIZE,
                             max_cell_size=MAX_CELL_SIZE)
