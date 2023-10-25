@@ -342,19 +342,19 @@ class GameGenerator:
             if new_col is not None:
                 cols.append(new_col)
             else:
-                print("Cancel")
+                # print("Cancel")
                 return None, None
             
-            if i > 0:
-                print(len(rows) + len(cols), rows, cols)
+            # if i > 0:
+            #     print(len(rows) + len(cols), rows, cols)
 
             new_row = self._sample_fitting_set(cols, rows)
             if new_row is not None:
                 rows.append(new_row)
             else:
-                print("Cancel")
+                # print("Cancel")
                 return None, None
-            print(len(rows) + len(cols), rows, cols)
+            # print(len(rows) + len(cols), rows, cols)
         
         # Check constraints
         if not all(c.apply(rows + cols) for c in self.constraints if isinstance(c, CategoryConstraint)):

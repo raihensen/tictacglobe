@@ -11,20 +11,25 @@ COUNTRY_DIFFICULTY_WEIGHTS = {
     "log_gdp": -2,
     "log_gdp_per_capita": -0.5
 }
-SOLUTION_DIFFICULTY_WEIGHTS = {
+CATEGORY_SOLUTION_DIFFICULTY_WEIGHTS = {
     "median": 3,
     "std": 0.5,
     "size_score": 2,
     "offset": 1.5  # here: category difficulty
 }
+CELL_SOLUTION_DIFFICULTY_WEIGHTS = {
+    "median": 3,
+    "size_sqrt": -2,
+    "min": 5
+}
 CELL_DIFFICULTY_WEIGHTS = {
-    "row_col_difficulty": 2,
-    "content_difficulty": 3
-    # TODO min solution difficulty
+    "row_col_difficulty": 1,
+    "solution_difficulty": 1
 }
 GAME_DIFFICULTY_WEIGHTS = {
-    "avg_cell_difficulty": 1,
-    "num_unique": 0.33
+    "avg_cell_difficulty": 3,
+    "max_cell_difficulty": 1,
+    "num_unique": 1
 }
 
 
@@ -66,22 +71,6 @@ class DifficultyEstimator:
         self.category_info = self.compute_category_difficulties()
         self.cell_info = self.compute_cell_difficulties(self.category_info)
 
-    @staticmethod
-    def compute_solution_difficulties(difficulties: pd.Series, offsets=None):
-        if offsets is None:
-            offsets = np.zeros_like(difficulties)
-        info = difficulties.copy().rename("difficulties").reset_index()
-        info["offset"] = offsets
-        info["size"] = info.difficulties.apply(len)
-        info["size_score"] = normalize(-np.sqrt(info["size"]), scale=10)
-        info["mean"] = info.difficulties.apply(np.mean)
-        info["min"] = info.difficulties.apply(min)
-        info["max"] = info.difficulties.apply(max)
-        info["median"] = info.difficulties.apply(np.median)
-        info["std"] = info.difficulties.apply(np.std)
-        info.drop(columns=["difficulties"], inplace=True)
-        return normalized_combination(info, SOLUTION_DIFFICULTY_WEIGHTS, scale=10).astype("float64")
-
     def compute_country_difficulties(self):
         df = self.df
         print(f"Compute difficulty of {len(df)} countries...")
@@ -110,10 +99,29 @@ class DifficultyEstimator:
         category_info = category_info.reset_index()
         category_info.columns=["key", "value", "difficulties"]
         cat_difficulty = normalize(category_info.key.apply(lambda key: categories[key].difficulty), scale=10)
-        category_info["difficulty"] = self.compute_solution_difficulties(category_info["difficulties"], offsets=cat_difficulty)
+        category_info["difficulty"] = self.compute_solution_difficulties(category_info["difficulties"],
+                                                                         CATEGORY_SOLUTION_DIFFICULTY_WEIGHTS,
+                                                                         offsets=cat_difficulty)
         category_info["countries"] = category_info.apply(lambda row: categories[row["key"]].sets.loc[row["value"]], axis=1)
         category_info.set_index(["key", "value"], inplace=True)
         return category_info
+
+    @staticmethod
+    def compute_solution_difficulties(difficulties: pd.Series, weights, offsets=None):
+        if offsets is None:
+            offsets = np.zeros_like(difficulties)
+        info = difficulties.copy().rename("difficulties").reset_index()
+        info["offset"] = offsets
+        info["size"] = info.difficulties.apply(len)
+        info["size_sqrt"] = normalize(np.sqrt(info["size"]), scale=10)
+        info["size_score"] = normalize(-np.sqrt(info["size"]), scale=10)
+        info["mean"] = info.difficulties.apply(np.mean)
+        info["min"] = info.difficulties.apply(min)
+        info["max"] = info.difficulties.apply(max)
+        info["median"] = info.difficulties.apply(np.median)
+        info["std"] = info.difficulties.apply(np.std)
+        info.drop(columns=["difficulties"], inplace=True)
+        return normalized_combination(info, weights, scale=10).astype("float64")
 
     def compute_cell_difficulties(self, category_info):
         # Compute cell difficulties
@@ -123,10 +131,10 @@ class DifficultyEstimator:
         cell_info = cell_info.join(category_info["difficulty"].rename("row_difficulty"), on=["row_cat", "row_val"])
         cell_info = cell_info.join(category_info["difficulty"].rename("col_difficulty"), on=["col_cat", "col_val"])
         cell_info["row_col_difficulty"] = normalize(cell_info["row_difficulty"] + cell_info["col_difficulty"], scale=10)
-        cell_info["row_col_difficulty_harmonic"] = normalize((cell_info["row_difficulty"] + 1) * (cell_info["col_difficulty"] + 1), scale=10)
+        # cell_info["row_col_difficulty_harmonic"] = normalize((cell_info["row_difficulty"] + 1) * (cell_info["col_difficulty"] + 1), scale=10)
 
         content_difficulties = cell_info["contents"].apply(lambda cc: df[df.iso.isin(cc)].difficulty.agg(list))
-        cell_info["content_difficulty"] = self.compute_solution_difficulties(content_difficulties)
+        cell_info["solution_difficulty"] = self.compute_solution_difficulties(content_difficulties, CELL_SOLUTION_DIFFICULTY_WEIGHTS)
         cell_info["difficulty"] = normalized_combination(cell_info, CELL_DIFFICULTY_WEIGHTS, scale=10)
         return cell_info
 
