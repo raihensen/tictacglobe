@@ -1,5 +1,5 @@
 
-import { FaBuildingColumns, FaFlag, FaEarthAmericas, FaEarthAfrica, FaEarthAsia, FaEarthEurope, FaEarthOceania, FaWater, FaSlash, FaCircle } from "react-icons/fa6";
+import { FaBuildingColumns, FaFlag, FaEarthAmericas, FaEarthAfrica, FaEarthAsia, FaEarthEurope, FaEarthOceania, FaWater, FaSlash, FaCircle, FaPeopleGroup, FaMinimize, FaMaximize, FaUsersSlash, FaUsers, FaMountain } from "react-icons/fa6";
 import { OverlayTrigger, Tooltip } from "react-bootstrap";
 import styled from "styled-components";
 import { forwardRef, useId } from "react";
@@ -82,16 +82,47 @@ export const getCategoryInfo = ({ category, value, badge = true, ...props }: Cat
   badge?: JSX.Element
 } => {
   
+  // TODO convert this to simpler code, just need to define the icons in a dict
   if (category == "landlocked") {
     return {
       description: "category.landlocked.tooltip",
-      badge: badge ? (<CategoryBadgeSimple icon={(<IconStack><FaWater color="white" /><FaSlash color="white" /></IconStack>)} label="category.landlocked.label" {...props} />) : undefined
+      badge: badge ? (<CategoryBadgeSimple icon={(<span className="icon-stack"><FaWater color="white" /><FaSlash color="white" /></span>)} label="category.landlocked.label" {...props} />) : undefined
     }
   }
   if (category == "island") {
     return {
       description: "category.island.tooltip",
       badge: badge ? (<CategoryBadgeSimple icon={<FaCircle />} label="category.island.label" {...props} />) : undefined
+    }
+  }
+  if (category == "top_20_population") {
+    return {
+      description: "category.top_20_population.tooltip",
+      badge: badge ? (<CategoryBadgeSimple icon={(<FaUsers color="white" />)} label="category.top_20_population.label" {...props} />) : undefined
+    }
+  }
+  if (category == "bottom_20_population") {
+    return {
+      description: "category.bottom_20_population.tooltip",
+      badge: badge ? (<CategoryBadgeSimple icon={(<FaUsersSlash color="white" />)} label="category.bottom_20_population.label" {...props} />) : undefined
+    }
+  }
+  if (category == "top_20_area") {
+    return {
+      description: "category.top_20_area.tooltip",
+      badge: badge ? (<CategoryBadgeSimple icon={(<FaMaximize color="white" />)} label="category.top_20_area.label" {...props} />) : undefined
+    }
+  }
+  if (category == "elevation_sup5k") {
+    return {
+      description: "category.elevation_sup5k.tooltip",
+      badge: badge ? (<CategoryBadgeSimple icon={(<FaMountain color="white" />)} label="category.elevation_sup5k.label" {...props} />) : undefined
+    }
+  }
+  if (category == "elevation_sub1k") {
+    return {
+      description: "category.elevation_sub1k.tooltip",
+      badge: badge ? (<CategoryBadgeSimple icon={(<span className="icon-stack"><FaMountain color="white" /><FaSlash color="white" /></span>)} label="category.elevation_sub1k.label" {...props} />) : undefined
     }
   }
 
@@ -194,7 +225,7 @@ const CategoryBadgeInner = styled.span`
   -ms-user-select: none; /* IE 10 and IE 11 */
   user-select: none; /* Standard syntax */
 
-  svg, .icon-stack {
+  svg, .icon-stack { /* icon, IconStack */
     vertical-align: inherit;
     margin-right: 6px;
     font-size: 24px;
@@ -202,15 +233,25 @@ const CategoryBadgeInner = styled.span`
   .icon-label {
     font-size: 80%;
   }
+  .icon-stack {
+    /* display: grid; */
+    display: block;
+    width: 24px;
+    height: 24px;
+    transform: scale(1);
+    
+    svg {
+      /* grid-area: 1 / 1; */
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      margin-top: -50%;
+      margin-left: -50%;
+    }
+
+  }
 `
 const CategoryBadge = forwardRef<HTMLSpanElement, React.HTMLProps<HTMLSpanElement>>(({ className, ...props }, ref) => (
   <CategoryBadgeInner ref={ref} className={addClassName(className, "categoryBadge")} {...props} />
 ))
 
-const IconStack = styled.span`
-  display: grid;
-
-  svg {
-    grid-area: 1 / 1;
-  }
-`

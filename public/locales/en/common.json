@@ -91,6 +91,30 @@
                 "NA": "North America",
                 "SA": "South America"
             }
+        },
+        "top_20_population": {
+            "label": "Top 20",
+            "tooltip": "20 most populated countries"
+        },
+        "bottom_20_population": {
+            "label": "Bottom 20",
+            "tooltip": "20 least populated countries"
+        },
+        "top_20_area": {
+            "label": "Top 20",
+            "tooltip": "20 biggest countries (by area)"
+        },
+        "bottom_20_area": {
+            "label": "Bottom 20",
+            "tooltip": "20 smallest countries (by area)"
+        },
+        "elevation_sup5k": {
+            "label": "≥ 5000m",
+            "tooltip": "Countries with a mountain of at least 5000m"
+        },
+        "elevation_sub1k": {
+            "label": "< 1000m",
+            "tooltip": "Countries without a mountain over 1000m"
         }
     },
     "changeLanguage": {

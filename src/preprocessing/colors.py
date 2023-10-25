@@ -59,7 +59,8 @@ add = [
 
 def add_flag_colors(df):
     # Assign colors
-    colors = pd.read_csv("../../data/local/flag-colors.csv", sep=";")
+    colors = pd.read_csv(
+        "../../public/data/local/flag_colors/flag-colors.csv", sep=";")
     colors.columns = ["country", "color"]
     colors["country"].fillna(method='ffill', inplace=True)
     colors.dropna(inplace=True)
@@ -99,7 +100,7 @@ def add_flag_colors(df):
     cfre = re.compile(r"^(?:(?:\[(?P<main_set>[^\(\)]*)\])|(?:(?P<main_add>[^\(\)]*)))?(?:,?\s*\((?P<optional>[^\(\)]*?)\))?,?\s*(?:\(\((?P<ignore>[^\(\)]*?)\)\))?$")
 
 
-    color_fixes = open("../../data/local/flag color fixes.txt").read().split("\n")
+    color_fixes = open("../../public/data/local/flag_colors/flag color fixes.txt").read().split("\n")
     color_fixes = list(parse_fixes(color_fixes))
 
     # Apply the fixes
@@ -123,7 +124,7 @@ def add_flag_colors(df):
 
     changes = set(iso for iso, _, _ in color_fixes)    
 
-    print("Adjusted flag colors:")
-    print(df[df["iso"].isin(changes)][["iso", "name", "flag_colors", "flag_colors_alt"]])
+    # print("Adjusted flag colors:")
+    # print(df[df["iso"].isin(changes)][["iso", "name", "flag_colors", "flag_colors_alt"]])
     return df
 

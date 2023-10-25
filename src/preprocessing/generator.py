@@ -192,6 +192,12 @@ class GameGenerator:
                 sample = sample[ix]
                 prob = sample["prob0"] / sample["prob0"].sum()
                 # shuffle category-value pairs with weights
+
+                # ValueError: Fewer non-zero entries in p than size
+                # nonzero = (prob > 0).sum()
+                # if nonzero < len(sample):
+                #     print(f"Too few values to sample ({nonzero} < {len(sample)})")
+                #     print(sample.sort_values("prob0"))
                 sample = sample.sample(len(sample), replace=False, weights=prob, random_state=random_state)
             
             elif self.selection_mode == "shuffle_categories":  # NEW
@@ -330,20 +336,26 @@ class GameGenerator:
     def _sample_game_setup(self):
         rows, cols = [], []
         # print("--------------------------------------------------------------------------")
-        for _ in range(self.field_size):
+        for i in range(self.field_size):
             # Sample a new column, then a new row
             new_col = self._sample_fitting_set(rows, cols)
             if new_col is not None:
                 cols.append(new_col)
             else:
+                # print("Cancel")
                 return None, None
+            
+            # if i > 0:
+            #     print(len(rows) + len(cols), rows, cols)
+
             new_row = self._sample_fitting_set(cols, rows)
             if new_row is not None:
                 rows.append(new_row)
             else:
+                # print("Cancel")
                 return None, None
-        if len(rows) != self.field_size or len(cols) != self.field_size:
-            return None
+            # print(len(rows) + len(cols), rows, cols)
+        
         # Check constraints
         if not all(c.apply(rows + cols) for c in self.constraints if isinstance(c, CategoryConstraint)):
             return None, None
@@ -383,7 +395,7 @@ class GameGenerator:
         for _ in iter:
             game = self.sample_game()
             if game is None:
-                return
+                return []
             yield game
     
     # Alias for sample_game()

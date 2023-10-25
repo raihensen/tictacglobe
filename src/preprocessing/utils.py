@@ -82,12 +82,12 @@ def chdir_this_file():
 
 def export_country_data(df, language):
     # CSV export
-    csv_path = f"../../data/countries/countries-{language.lower()}.csv"
+    csv_path = f"../../public/data/countries/countries-{language.lower()}.csv"
     df.to_csv(csv_path, encoding="utf8", index=False)
     print(f"CSV Country data exported to {csv_path}.")
 
     # JSON export
-    json_path = f"../../data/countries/countries-{language.lower()}.json"
+    json_path = f"../../public/data/countries/countries-{language.lower()}.json"
     json.dump(df.to_dict(orient="records"),
               open(json_path, mode="w"))
     print(f"JSON Country data exported to {json_path}.")

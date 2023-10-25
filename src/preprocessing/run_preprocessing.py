@@ -15,9 +15,9 @@ MAX_CELL_SIZE = None
 
 language = "de"
 
-
-countries = pd.read_json(f"../../data/countries/countries-{language.lower()}.json", encoding="utf8")
+countries = pd.read_json(f"../../public/data/countries/countries-{language.lower()}.json", encoding="utf8")
 preprocessor = Preprocessor(countries=countries,
+                            language=language,
                             field_size=FIELD_SIZE,
                             min_cell_size=MIN_CELL_SIZE,
                             max_cell_size=MAX_CELL_SIZE)
@@ -37,16 +37,23 @@ category_probs = {
     'capital_starting_letter': 2,
     'capital_ending_letter': .5,
     'flag_colors': 3,
-    'landlocked': 4,
-    'island': 4
+    'landlocked': 2,
+    'island': 2,
+    'top_20_population': 2.5,
+    'bottom_20_population': 2,
+    'top_20_area': 2.5,
+    'bottom_20_area': 2,
+    'elevation_sup5k': 2.5,
+    'elevation_sub1k': 2,
 }
 
 generator = preprocessor.get_generator(constraints, category_probs,
                                        seed=None, selection_mode="shuffle_setkeys", uniform=False, shuffle=True)
-games = list(generator.sample_games(n=1000))
+games = list(generator.sample_games(n=5000))
 
 # Difficulty computation
-difficulty_info = DifficultyEstimator(preprocessor).compute_game_difficulties(games)
+estimator = DifficultyEstimator(preprocessor)
+difficulty_info = estimator.compute_game_difficulties(games)
 
 # Save games to JSON file
-preprocessor.save_games(games, name="first-german")
+preprocessor.save_games(games, name="elev-pop")
