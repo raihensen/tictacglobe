@@ -390,8 +390,9 @@ class GameGenerator:
         return game
     
     def sample_games(self, n=100, progress_bar=True):
-        print(f"Generate {n} games...")
-        iter = tqdm.tqdm(range(n)) if progress_bar else range(n)
+        print(f"Generate {n} games...\n")
+        
+        iter = tqdm.tqdm(range(n), unit="games") if progress_bar else range(n)
         for _ in iter:
             game = self.sample_game()
             if game is None:

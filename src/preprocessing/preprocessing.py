@@ -209,12 +209,17 @@ class Preprocessor:
                              uniform=uniform,
                              shuffle=shuffle)
 
-
     def save_games(self, games, name: str):
         games = list(games)
         timestamp = datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
         info = [timestamp, name, self.language.lower()]
+
+        # Save category info
+        path = f"../../public/data/categories/{self.language.lower()}/categories-{'-'.join(info)}.json"
+        json.dump({cat.key: cat.to_json() for cat in self.categories.values()}, open(path, mode="w", encoding="utf-8"))
+        print(f"{len(self.categories)} categories saved to {path}")
+
+        # Save games
         path = f"../../public/data/games/{self.language.lower()}/games-{'-'.join(info)}.json"
         json.dump([game.to_json() for game in games], open(path, mode="w", encoding="utf-8"))
         print(f"{len(games)} games saved to {path}")
-
