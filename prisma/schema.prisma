@@ -1,0 +1,101 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider          = "mysql"
+  url               = env("DATABASE_URL")
+  shadowDatabaseUrl = env("SHADOW_DATABASE_URL")
+}
+
+enum ItemType {
+  Country
+}
+
+model Item {
+  id          Int          @id @default(autoincrement())
+  type        ItemType
+  key         String // country ISO code
+  name        String
+  countryData CountryData?
+
+  markings Marking[]
+
+  @@index(fields: [type, key])
+}
+
+model CountryData {
+  id     Int  @id @default(autoincrement())
+  item   Item @relation(fields: [itemId], references: [id])
+  itemId Int  @unique
+  
+  name String
+  capital String
+  population Int
+  area Int
+  flagColors String  // TODO comma-separated? JSON encoded?
+  maxElevation Int
+  maxElevationName String
+  minElevation Int
+  minElevationName String
+
+  // TODO
+    // alternative values
+    // multi-language
+
+}
+
+// model CityData {
+//   id     Int  @id @default(autoincrement())
+//   item   Item @relation(fields: [itemId], references: [id])
+//   itemId Int  @unique
+//   // ...
+// }
+
+model Game {
+  id                 Int         @id @default(autoincrement())
+  setup              Json
+  user1              String
+  user2              String?
+  turn               Int
+  playingMode        PlayingMode
+  state              GameState   @default(Initialized)
+  winner             Int?
+  turnCounter        Int         @default(0)
+  turnStartTimeStamp DateTime    @default(now())
+  createdAt          DateTime    @default(now())
+  finishedAt         DateTime?
+
+  markings Marking[]
+}
+
+// model Session {
+
+// }
+
+enum PlayingMode {
+  Offline
+  Online
+}
+
+enum GameState {
+  Initialized
+  Running
+  Decided // set as soon as a winner / draw is determined but the board is not full yet (might continue playing)
+  Finished // only set if the board is fully marked
+  Ended // After having clicked "End game", then show solutions
+}
+
+model Marking {
+  id        Int      @id @default(autoincrement())
+  game      Game     @relation(fields: [gameId], references: [id])
+  gameId    Int
+  item      Item     @relation(fields: [itemId], references: [id])
+  itemId    Int
+  player    Int
+  isWinning Boolean  @default(false)
+  createdAt DateTime @default(now())
+}
