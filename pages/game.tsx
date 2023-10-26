@@ -250,6 +250,7 @@ const GamePage: React.FC<PageProps & GamePageProps> = ({
         }}>Enter new game</Button>
       </p>
     </>)}
+
     {game && (<>
       {/* <p>{gameData.isNewGame ? "New Game" : "Existing Game"}</p> */}
       <ButtonToolbar className="mb-2">

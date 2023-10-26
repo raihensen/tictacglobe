@@ -8,6 +8,7 @@ import { TFunction, useTranslation } from "next-i18next";
 
 import _ from "lodash";
 import { addClassName } from "@/src/util";
+import { IconBaseProps, IconType } from "react-icons";
 
 const continentIcons = {
   AS: FaEarthAsia,
@@ -77,61 +78,46 @@ const CategoryBadgeLetters = ({ letter, isCapital, isStartsWith, isEndsWith, ...
 
 type TranslationArgsType = [string, { [x: string]: string }]
 
+function crossed(Icon: IconType): React.FC<IconBaseProps> {
+  return ({ color, ...props }) => (
+    <span className="icon-stack">
+      {/* Actual icon */}
+      <Icon color={color} {...props} />
+      {/* Slash */}
+      <svg fill="currentColor" stroke="var(--bs-secondary)" width="1em" height="1em" viewBox="0 0 140.14 140.14" version="1.1" xmlns="http://www.w3.org/2000/svg">
+        <g transform="translate(119.25 -36.39)">
+          <path stroke-width="10" stroke-linecap="round" d="m10.675 36.395a10.001 10.001 0 0 0-6.873 3.0254l-120 120a10.001 10.001 0 1 0 14.141 14.143l120-120a10.001 10.001 0 0 0-7.2676-17.168z" />
+        </g>
+      </svg>
+    </span>
+  )
+}
+const simpleCategoryIcons: {[category: string]: React.FC<IconBaseProps>} = {
+  landlocked: crossed(FaWater),
+  island: FaCircle,
+  top_20_population: FaUsers,
+  bottom_20_population: crossed(FaUsers),
+  top_20_area: FaMaximize,
+  bottom_20_area: FaMinimize,
+  elevation_sup5k: FaMountain,
+  elevation_sub1k: crossed(FaMountain)
+}
+
 export const getCategoryInfo = ({ category, value, badge = true, ...props }: CategoryValue & { badge?: boolean } & React.ComponentProps<typeof CategoryBadge>): {
   description?: string | TranslationArgsType,
   badge?: JSX.Element
 } => {
   
-  // TODO convert this to simpler code, just need to define the icons in a dict
-  if (category == "landlocked") {
+  // Simple badges (only for boolean categories)
+  if (category in simpleCategoryIcons) {
+    const Icon = simpleCategoryIcons[category]
     return {
-      description: "category.landlocked.tooltip",
-      badge: badge ? (<CategoryBadgeSimple icon={(<span className="icon-stack"><FaWater color="white" /><FaSlash color="white" /></span>)} label="category.landlocked.label" {...props} />) : undefined
-    }
-  }
-  if (category == "island") {
-    return {
-      description: "category.island.tooltip",
-      badge: badge ? (<CategoryBadgeSimple icon={<FaCircle />} label="category.island.label" {...props} />) : undefined
-    }
-  }
-  if (category == "top_20_population") {
-    return {
-      description: "category.top_20_population.tooltip",
-      badge: badge ? (<CategoryBadgeSimple icon={(<FaUsers color="white" />)} label="category.top_20_population.label" {...props} />) : undefined
-    }
-  }
-  if (category == "bottom_20_population") {
-    return {
-      description: "category.bottom_20_population.tooltip",
-      badge: badge ? (<CategoryBadgeSimple icon={(<FaUsersSlash color="white" />)} label="category.bottom_20_population.label" {...props} />) : undefined
-    }
-  }
-  if (category == "top_20_area") {
-    return {
-      description: "category.top_20_area.tooltip",
-      badge: badge ? (<CategoryBadgeSimple icon={(<FaMaximize color="white" />)} label="category.top_20_area.label" {...props} />) : undefined
-    }
-  }
-  if (category == "bottom_20_area") {
-    return {
-      description: "category.bottom_20_area.tooltip",
-      badge: badge ? (<CategoryBadgeSimple icon={(<FaMinimize color="white" />)} label="category.bottom_20_area.label" {...props} />) : undefined
-    }
-  }
-  if (category == "elevation_sup5k") {
-    return {
-      description: "category.elevation_sup5k.tooltip",
-      badge: badge ? (<CategoryBadgeSimple icon={(<FaMountain color="white" />)} label="category.elevation_sup5k.label" {...props} />) : undefined
-    }
-  }
-  if (category == "elevation_sub1k") {
-    return {
-      description: "category.elevation_sub1k.tooltip",
-      badge: badge ? (<CategoryBadgeSimple icon={(<span className="icon-stack"><FaMountain color="white" style={{ fontSize: "20px" }} /><FaSlash color="white" /></span>)} label="category.elevation_sub1k.label" {...props} />) : undefined
+      description: `category.${category}.tooltip`,
+      badge: badge ? (<CategoryBadgeSimple icon={<Icon color="white" />} label={`category.${category}.label`} {...props} />) : undefined
     }
   }
 
+  // Custom badges (for nominal categories)
   const isStartsWith = category == "starting_letter" || category == "capital_starting_letter"
   const isEndsWith = category == "ending_letter" || category == "capital_ending_letter"
   if (isStartsWith || isEndsWith) {
