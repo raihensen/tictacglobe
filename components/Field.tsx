@@ -1,7 +1,7 @@
 
 import styled from "styled-components";
 import { ReactNode, forwardRef, useEffect, useId, useMemo, useRef, useState } from 'react';
-import { Game, Country, CategoryValue, RequestAction, FrontendQuery, GameData, PlayingMode, GameState, FieldSettings, Settings } from "@/src/game.types"
+import { Game, Country, CategoryValue, RequestAction, FrontendQuery, GameData, PlayingMode, GameState, FieldSettings, Settings, Category } from "@/src/game.types"
 
 import { PlusCircleFill } from 'react-bootstrap-icons';
 import Badge, { BadgeProps } from 'react-bootstrap/Badge';
@@ -12,8 +12,8 @@ import _ from "lodash";
 import { randomChoice } from "@/src/util";
 import { TableCellInner, MarkingBackground } from "@/components/styles";
 import CountryAutoComplete from "./Autocomplete";
-import { getCategoryInfo, translateCategory } from "./TableHeading";
-import { FaCircleInfo } from "react-icons/fa6";
+import { getCategoryInfo, translateCategory, ContinentIcon } from "./TableHeading";
+import { FaCircleInfo, FaMountain } from "react-icons/fa6";
 
 enum FieldMode {
   INITIAL = 0,
@@ -28,7 +28,7 @@ type FieldState = {
   mode: FieldMode;
 }
 
-const Field = ({ pos, setActive, setIsSearching, game, row, col, apiRequest, hasTurn, notifyDecided, countries, settings }: {
+const Field = ({ pos, setActive, setIsSearching, game, row, col, apiRequest, hasTurn, notifyDecided, countries, categories, settings }: {
   pos: number[],
   active: boolean,
   setActive: (active: boolean) => void,
@@ -41,6 +41,7 @@ const Field = ({ pos, setActive, setIsSearching, game, row, col, apiRequest, has
   hasTurn: boolean,
   notifyDecided: boolean,
   countries: Country[],
+  categories: Category[],
   settings: FieldSettings,
 }) => {
   const { t, i18n } = useTranslation('common')
@@ -104,12 +105,10 @@ const Field = ({ pos, setActive, setIsSearching, game, row, col, apiRequest, has
     return correct
   }
 
-  const isNameRelevant = () => {
-    return [row, col].some(({ category, value }) => category == "starting_letter" || category == "ending_letter")
-  }
-  const isCapitalRelevant = () => {
-    return [row, col].some(({ category, value }) => category.startsWith("capital"))
-  }
+  const relevantColumns = [row, col].map(({ category: key }) => categories.find(cat => cat.key == key)?.columnDependencies || []).flat(1)
+  const isRelevant = (key: string) => relevantColumns.includes(key)
+  const isRelevantAndHasAltValue = (key: string, country: Country) => isRelevant(key) && key in country.alternativeValues
+  const getAllValues = (key: string, country: Country) => [country[key], ..._.get(country.alternativeValues, key, [])]
 
   const tooltipCountryInfoIds = [useId(), useId()]
   const canShowFieldInfo = (game: Game) => game.state == GameState.Ended || game.state == GameState.Finished || (game.state == GameState.Decided && notifyDecided)
@@ -168,8 +167,8 @@ const Field = ({ pos, setActive, setIsSearching, game, row, col, apiRequest, has
                   game={game}
                   fieldState={fieldState}
                   country={getCountry(game, fieldState)}
-                  isNameRelevant={isNameRelevant()}
-                  isCapitalRelevant={isCapitalRelevant()}
+                  isNameRelevant={isRelevant("name")}
+                  isCapitalRelevant={isRelevant("capital")}
                 />
               </TextTooltip>
             )}>
@@ -187,8 +186,8 @@ const Field = ({ pos, setActive, setIsSearching, game, row, col, apiRequest, has
                     game={game}
                     fieldState={fieldState}
                     country={getCountry(game, fieldState)}
-                    isNameRelevant={isNameRelevant()}
-                    isCapitalRelevant={isCapitalRelevant()}
+                    isNameRelevant={isRelevant("name")}
+                    isCapitalRelevant={isRelevant("capital")}
                   />
                 </TextTooltip>
               )}>
@@ -226,10 +225,23 @@ const Field = ({ pos, setActive, setIsSearching, game, row, col, apiRequest, has
               <SolutionInfoItem key={i}>
                 <CountryFlag country={country} size={25} />
                 <span>{country.name}</span>
-                {isCapitalRelevant() ? (
+                {(alternative && isRelevantAndHasAltValue("name", country)) && (
+                  <span className="alternativeName text-secondary">({t("fieldInfo.alternativeValues", { values: (country.alternativeValues.name ?? []).join(" / ") })})</span>
+                )}
+                {isRelevant("capital") && (
                   <span className="capital text-secondary">{country.capital}</span>
-                ) : undefined}
-                {(alternative && !_.isEmpty(country.alternativeValues)) && (
+                )}
+                {(alternative && isRelevantAndHasAltValue("capital", country)) && (
+                  <span className="alternativeCapital text-secondary">({t("fieldInfo.alternativeValues", { values: (country.alternativeValues.capital ?? []).join(" / ") })})</span>
+                )}
+                {isRelevant("maxElev") && (
+                  <span className="maxElev text-secondary"><FaMountain />{country.maxElevName} ({country.maxElev}m)</span>
+                )}
+                {(alternative && isRelevantAndHasAltValue("continent", country)) && (
+                  <span className="continent text-secondary"><ContinentIcon continent={country.continent} />{getAllValues("continent", country).map(continent => t(`category.continent.values.${continent}`)).join("/")}</span>
+                )}
+
+                {/* {(alternative && !_.isEmpty(country.alternativeValues)) && (
                   <OverlayTrigger placement="right" overlay={(
                     <TextTooltip id={tooltipCountryInfoIds[1]} className="d-none d-md-block">
                       <CountryInfoTooltipContents
@@ -237,8 +249,8 @@ const Field = ({ pos, setActive, setIsSearching, game, row, col, apiRequest, has
                         game={game}
                         fieldState={fieldState}
                         country={country}
-                        isNameRelevant={isNameRelevant()}
-                        isCapitalRelevant={isCapitalRelevant()}
+                        isNameRelevant={isRelevant("name")}
+                        isCapitalRelevant={isRelevant("capital")}
                       />
                     </TextTooltip>
                   )}>
@@ -246,7 +258,7 @@ const Field = ({ pos, setActive, setIsSearching, game, row, col, apiRequest, has
                       <FaCircleInfo />
                     </TooltipTriggerSpan>
                   </OverlayTrigger>
-                )}
+                )} */}
               </SolutionInfoItem>
             ))} />
           </div>)}
@@ -263,16 +275,18 @@ const Field = ({ pos, setActive, setIsSearching, game, row, col, apiRequest, has
 export default Field;
 
 const SolutionInfoItem = styled.div`
-  padding: .25rem;
+  padding: .2rem 0;
   display: flex;
   align-items: center;
+  gap: .25rem;
   img {
-    margin-right: .5rem;
+    margin-right: .25rem;
   }
   span {
     line-height: 1rem;
-    &.capital {
-      margin-left: .25rem;
+    &.continent {
+      display: flex;
+      gap: .125rem;
     }
   }
 `

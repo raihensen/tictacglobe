@@ -4,6 +4,14 @@ import path from "path";
 import { defaultLanguage } from "@/src/game.types";
 
 
+export async function GET<T>(url: string): Promise<T> {
+  const res = await fetch(url)
+  const data = await res.json()
+  console.log(`SWR: GET ${url}`)
+  return (data?.data || {}) as T
+}
+
+
 export const capitalize = <T extends string>(s: T) => (s[0].toUpperCase() + s.slice(1)) as Capitalize<typeof s>;
 
 export function randomChoice<T>(arr: Array<T>): T | undefined {

@@ -29,7 +29,8 @@
         "title": "Feld-Informationen",
         "categories": "Kategorien",
         "solutions": "Lösungen",
-        "alternativeSolutions": "Auch akzeptiert"
+        "alternativeSolutions": "Auch akzeptiert",
+        "alternativeValues": "Auch: {{values}}"
     },
     "countryInfo": {
         "name": "Land: {{value}}",

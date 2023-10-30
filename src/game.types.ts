@@ -143,15 +143,37 @@ export interface Country {
   continent: string;
   flagColors: string[];
   neighbors: string[];
+  island: boolean;
+  landlocked: boolean;
+  population: number;
+  areaKm2: number;
+  maxElev: number;
+  maxElevName: string;
+  minElev?: number;
+  minElevName?: string;
   alternativeValues: {
     name?: string[];
     capital?: string[];
     continent?: string[];
     flagColors?: string[];
     neighbors?: string[];
+    island?: boolean;
+    landlocked?: boolean;
     // [x: string]: any[];
   }
   [x: string]: any;
+}
+
+export type Category = {
+  key: string,
+  name: string,
+  columnDependencies: string[],
+  difficulty: number,
+  type: "NominalCategory" | "MultiNominalCategory" | "SimpleBooleanCategory" | "TopNCategory" | "BottomNCategory" | "GreaterThanCategory" | "LessThanCategory",
+  usesAlternativeValues: boolean,
+  isBooleanCategory: boolean,
+  isNominalCategory: boolean,
+  isMultiNominalCategory: boolean
 }
 
 export type CategoryValue = {

@@ -8,8 +8,8 @@ import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'next-i18next'
 import { serverSideTranslations } from 'next-i18next/serverSideTranslations'
 
-import { Settings, defaultSettings, Game, Country, RequestAction, FrontendQuery, PlayingMode, GameState, Language, SessionWithoutGames, defaultLanguage, PlayerIndex, autoRefreshInterval, Query, settingsToQuery, settingsChanged, getApiUrl } from "@/src/game.types"
-import { capitalize, readReadme, useAutoRefresh } from "@/src/util"
+import { Settings, defaultSettings, Game, Country, Category, RequestAction, FrontendQuery, PlayingMode, GameState, Language, SessionWithoutGames, defaultLanguage, PlayerIndex, autoRefreshInterval, Query, settingsToQuery, settingsChanged, getApiUrl } from "@/src/game.types"
+import { GET, capitalize, readReadme, useAutoRefresh } from "@/src/util"
 import _ from "lodash";
 var fs = require('fs').promises;
 
@@ -25,6 +25,8 @@ import { ButtonToolbar, IconButton, PlayerBadge, GameTable, HeaderStyle } from "
 import { MarkdownModal } from "@/components/MarkdownModal";
 import Header from "@/components/Header";
 import { DonationModal, ShareButtonProps } from "@/components/Share";
+import useSWR from "swr";
+import axios from "axios";
 
 // import WorldMap from "react-svg-worldmap";
 // import {
@@ -75,7 +77,7 @@ const GamePage: React.FC<PageProps & GamePageProps> = ({
   const [turnStartTimestamp, setTurnStartTimestamp] = useState<number>(Date.now() - 60000)
 
   const [countries, setCountries] = useState<Country[]>([])
-
+  const { data: categories, mutate: mutateCategories, error: categoriesError, isLoading: isLoadingCategories } = useSWR<Category[]>(`/api/categories?language=${router.locale}`, GET)
 
   const getIndexUrl = (absolute: boolean = false) => {
     let url = ""
@@ -253,6 +255,8 @@ const GamePage: React.FC<PageProps & GamePageProps> = ({
 
     {game && (<>
       {/* <p>{gameData.isNewGame ? "New Game" : "Existing Game"}</p> */}
+      {/* <p>loading categories: {isLoadingCategories}</p>
+      {categories && (<p>categories: {categories.map(cat => cat.name).join(", ")}</p>)} */}
       <ButtonToolbar className="mb-2">
         <div className="left">
           {canControlGame(game) && (<>
@@ -363,6 +367,7 @@ const GamePage: React.FC<PageProps & GamePageProps> = ({
                     hasTurn={hasTurn}
                     notifyDecided={notifyDecided}
                     countries={countries}
+                    categories={categories ?? []}
                     settings={settings}
                   />
                 </div>)

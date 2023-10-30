@@ -10,6 +10,16 @@ import _ from "lodash";
 import { addClassName } from "@/src/util";
 import { IconBaseProps, IconType } from "react-icons";
 
+const simpleCategoryIcons: { [category: string]: React.FC<IconBaseProps> } = {
+  landlocked: crossed(FaWater),
+  island: FaCircle,
+  top_20_population: FaUsers,
+  bottom_20_population: crossed(FaUsers),
+  top_20_area: FaMaximize,
+  bottom_20_area: FaMinimize,
+  elevation_sup5k: FaMountain,
+  elevation_sub1k: crossed(FaMountain)
+}
 const continentIcons = {
   AS: FaEarthAsia,
   NA: FaEarthAmericas,
@@ -18,6 +28,11 @@ const continentIcons = {
   AF: FaEarthAfrica,
   OC: FaEarthOceania
 }
+export const ContinentIcon: React.FC<IconBaseProps & { continent: string }> = ({ continent, ...props }) => {
+  const Icon = _.get(continentIcons, continent, FaEarthAfrica) as IconType
+  return (<Icon {...props} />)
+}
+
 const flagColorStyles = {
   "White": { background: "#eeeeee", color: "var(--bs-dark)"},
   "Black": { background: "#333333", color: "var(--bs-light)"},
@@ -92,16 +107,6 @@ function crossed(Icon: IconType): React.FC<IconBaseProps> {
     </span>
   )
 }
-const simpleCategoryIcons: {[category: string]: React.FC<IconBaseProps>} = {
-  landlocked: crossed(FaWater),
-  island: FaCircle,
-  top_20_population: FaUsers,
-  bottom_20_population: crossed(FaUsers),
-  top_20_area: FaMaximize,
-  bottom_20_area: FaMinimize,
-  elevation_sup5k: FaMountain,
-  elevation_sub1k: crossed(FaMountain)
-}
 
 export const getCategoryInfo = ({ category, value, badge = true, ...props }: CategoryValue & { badge?: boolean } & React.ComponentProps<typeof CategoryBadge>): {
   description?: string | TranslationArgsType,
@@ -141,10 +146,9 @@ export const getCategoryInfo = ({ category, value, badge = true, ...props }: Cat
 
   if (category == "continent") {
     const continent = value as string
-    const ContinentIcon = _.get(continentIcons, continent, FaEarthAfrica)
     return {
       description: ["category.continent.tooltip", { continent: `category.continent.values.${continent}` }],
-      badge: badge ?(<CategoryBadgeSimple icon={<ContinentIcon />} label={`category.continent.values.${continent}`} {...props} />) : undefined
+      badge: badge ?(<CategoryBadgeSimple icon={<ContinentIcon continent={continent} />} label={`category.continent.values.${continent}`} {...props} />) : undefined
     }
   }
   

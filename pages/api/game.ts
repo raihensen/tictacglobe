@@ -261,7 +261,7 @@ async function executeAndRespond(
   query: Query,
   session: GameSession,
   game: Game | null,
-  settings: {
+  responseOptions: {
     addCountryData?: boolean
   }
 ) {
@@ -269,7 +269,7 @@ async function executeAndRespond(
   const { action, player, countryId, pos, language } = query
   const newSettings = settingsFromQuery(query)
 
-  const addCountryData = settings.addCountryData ?? false
+  const addCountryData = responseOptions.addCountryData ?? false
 
   // --- Apply new settings -----------------------------------------------
   if (isIngameAction(action) && !_.isEmpty(newSettings)) {
