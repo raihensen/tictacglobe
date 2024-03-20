@@ -124,15 +124,16 @@ export type FrontendQuery = Omit<ScalarQuery, "userIdentifier" | "playingMode"> 
 
 
 export type GameSession = {
-  index: number;
-  isPublic: boolean;
-  invitationCode?: string;
-  playingMode: PlayingMode;
-  currentGame: Game | null;
-  previousGames: Game[];
-  users: string[];
-  score: number[];
-  settings: Settings;
+  index: number
+  id: string
+  isPublic: boolean
+  invitationCode?: string
+  playingMode: PlayingMode
+  currentGame: Game | null
+  previousGames: Game[]
+  users: string[]
+  score: number[]
+  settings: Settings
 }
 export type SessionWithoutGames = Omit<GameSession, "currentGame" | "previousGames">
 

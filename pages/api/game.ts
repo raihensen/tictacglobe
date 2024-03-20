@@ -3,6 +3,7 @@ import { IncomingMessage, ServerResponse } from 'http';
 import { Game, GameSetup, Country, RequestAction, Query, PlayingMode, GameState, Language, parseCountry, defaultLanguage, PlayerIndex, GameSession, DifficultyLevel, Settings, settingsFromQuery, defaultSettings } from "@/src/game.types"
 import { randomChoice } from "@/src/util";
 import _ from "lodash";
+import { v4 as uuidv4 } from "uuid";
 // import { promises as fs } from 'fs';
 var fs = require('fs').promises;
 import path from 'path';
@@ -13,7 +14,7 @@ var userSessionMap: Record<string, GameSession> = {}
 var sessions: GameSession[] = []
 
 var sessionIndex = 1
-var sessionsMutex = new Mutex()
+var allSessionsMutex = new Mutex()
 var countryData: Record<string, Country[]> = {}
 
 
@@ -22,7 +23,7 @@ function getWinningFormations(size: number) {
   if (size < 2) {
     return []
   }
-  const sizeKey = size.toString()
+  const sizeKey = `${size}x${size}`
   if (sizeKey in _winningFormations) {
     return _winningFormations[sizeKey]
   }
@@ -38,7 +39,11 @@ function getWinningFormations(size: number) {
 }
 
 
-async function makeGuess(game: Game, playerIndex: PlayerIndex, { userIdentifier, countryId, pos }: Query) {
+async function makeGuess(
+  game: Game,
+  playerIndex: PlayerIndex,
+  { userIdentifier, countryId, pos }: Query
+) {
   const match = (pos as string).match(/^(\d+),(\d+)$/)
   if (!match) {
     console.log(`Error: Invalid pos argument`);
@@ -122,10 +127,10 @@ function checkWinner(game: Game) {
     if (winners.length == 1) {
       // Assume recent winner
       game.winner = winners[0]
-      game.winCoords = wins[0]
+      game.winCoords = wins[0]  // TODO support highlighting multiple winning formations at once?
       return winners[0]
     }
-    // Multiple winners can happen if after a win the players decide to continue playing
+    // Both players can have winning formations if after a win the players decide to continue playing
     // If this happens, this function should not be called though
     return null
   }
@@ -270,7 +275,7 @@ async function executeAndRespond(
 
   // --- Action / Response ------------------------------------------------
   // actions
-  let result = false
+  let success = false
   const additionalResponseData: {
     countries?: Country[],
     invitationCode?: string
@@ -297,14 +302,14 @@ async function executeAndRespond(
   if (action == RequestAction.ExistingOrNewGame || action == RequestAction.NewGame || action == RequestAction.RefreshGame) {
 
     // Just load / initialize game
-    result = !!game
+    success = !!game
 
   } else if (game && isIngameAction(action) && game.state != GameState.Finished && playerIndex !== undefined) {
 
     // in-game actions
     if (action == RequestAction.MakeGuess && countryId && pos && game.state != GameState.Ended) {
       
-      result = await makeGuess(game, playerIndex, query)
+      success = await makeGuess(game, playerIndex, query)
 
       // Check winner, if not already decided
       if (game.state != GameState.Decided) {
@@ -321,21 +326,21 @@ async function executeAndRespond(
     }
 
     if (action == RequestAction.EndTurn || action == RequestAction.TimeElapsed) {
-      result = endTurn(game, playerIndex, query)
+      success = endTurn(game, playerIndex, query)
     }
 
     if (action == RequestAction.EndGame) {
       if (game.state != GameState.Finished) {
         game.state = GameState.Ended
-        result = true
+        success = true
       }
     }
 
   } else if (isSessionInitAction(action)) {
 
-    result = !!session
+    success = !!session
     if (action == RequestAction.InitSessionFriend) {
-      result = result && !!session.invitationCode
+      success = success && !!session.invitationCode
     }
 
   }
@@ -346,7 +351,7 @@ async function executeAndRespond(
     }
   }
 
-  console.log(`${RequestAction[action]}: ${result ? "successful" : "not successful"}`)
+  console.log(`${RequestAction[action]}: ${success ? "successful" : "not successful"}`)
 
   const { currentGame, previousGames, ...sessionWithoutGames } = session  // type SessionWithoutGames
 
@@ -364,12 +369,15 @@ function respondWithError(res: ServerResponse<Request>, err: string = "API Error
   res.end(JSON.stringify({ error: err }))
 }
 
-async function cleanCache() {
+async function garbageCollector() {
+  // TODO inplace updates?
 
   // delete sessions without users
   sessions = sessions.filter(session => session.users.length >= 1)
 
   // TODO delete old sessions (save timestamp on every API query)
+
+  // cleanup userSessionMap
   Object.entries(userSessionMap).filter(([user, session]) => !sessions.includes(session)).forEach(([user, session]) => {
     delete userSessionMap[user]
   })
@@ -382,19 +390,20 @@ async function cleanCache() {
 }
 
 function sessionInfo(session: GameSession) {
-  return `#${session.index} [${session.users.join(", ")}]`
+  return `#${session.id} [users ${session.users.join(", ")}]`
 }
 
 function createSession(
   userIdentifier: string,
   playingMode: PlayingMode,
   settings: Settings,
-  invitationCode: string | undefined = undefined
+  invitationCode?: string
 ) {
 
   // Create new session
-  const session = {
+  const session: GameSession = {
     index: sessionIndex++,
+    id: uuidv4(),
     playingMode: playingMode,
     isPublic: !invitationCode,
     invitationCode: invitationCode,
@@ -403,7 +412,7 @@ function createSession(
     users: [userIdentifier],
     score: [0, 0],
     settings: settings
-  } as GameSession
+  }
 
   sessions.push(session)
   userSessionMap[userIdentifier] = session
@@ -413,7 +422,11 @@ function createSession(
 
 }
 
-function joinSession(session: GameSession, userIdentifier: string, invitationCode: string | undefined = undefined) {
+function joinSession(
+  session: GameSession,
+  userIdentifier: string,
+  invitationCode?: string
+) {
   if (session.users.length >= 2 || session.playingMode == PlayingMode.Offline) {
     return false
   }
@@ -437,7 +450,7 @@ const gameApi = async (req: Request, res: ServerResponse<Request>) => {
 
   const { userIdentifier, playingMode, invitationCode, action, player, difficulty, language }: Query = req.query as Query
 
-  await sessionsMutex.runExclusive(async () => {
+  await allSessionsMutex.runExclusive(async () => {
 
     console.log(`\nIncoming request [${RequestAction[action]}] from ${userIdentifier}: ${JSON.stringify(req.query)}`)
     // console.log(`isSessionInitAction: ${isSessionInitAction(action)}, isGameInitAction: ${isGameInitAction(action)}, isIngameAction: ${isIngameAction(action)}`)
@@ -456,7 +469,7 @@ const gameApi = async (req: Request, res: ServerResponse<Request>) => {
 
     }
 
-    cleanCache()
+    garbageCollector()
     // find the user's session and game if exists
     let session = _.get(userSessionMap, userIdentifier, null) as GameSession | null
     let game = session ? session.currentGame : null
@@ -574,6 +587,9 @@ const gameApi = async (req: Request, res: ServerResponse<Request>) => {
           }
           const availableSessions = sessions.filter(session => session.users.length < 2 && !session.isPublic && session.invitationCode == invitationCode)
           if (availableSessions.length != 1) {
+            if (availableSessions.length > 1) {
+              console.warn(`ambiguous invitation code "${invitationCode}"!`)
+            }
             return respondWithError(res, "Invalid invitation code - try again!")
           }
           session = availableSessions[0]
