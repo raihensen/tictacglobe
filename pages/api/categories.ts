@@ -5,7 +5,7 @@ var fs = require('fs').promises;
 import path from 'path';
 import _ from "lodash";
 
-var categoryData: { [x: string]: Category[] } = {}
+var categoryData: Record<string, Category[]> = {}  // key: language
 
 type Request = IncomingMessage & {
   query: {

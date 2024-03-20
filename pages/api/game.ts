@@ -8,26 +8,16 @@ var fs = require('fs').promises;
 import path from 'path';
 import { Mutex } from 'async-mutex';
 
-// debug game sessions
-// var sessions: GameSession[] = [{
-//   currentGame: null,
-//   index: 0,
-//   isPublic: false,
-//   playingMode: PlayingMode.Offline,
-//   previousGames: [],
-//   score: [0, 0],
-//   users: ["debug"]
-// }]
-// var userSessionMap: { [x: string]: GameSession } = { "debug": sessions[0] }
-var userSessionMap: { [x: string]: GameSession } = {}
+// var userSessionMap: Record<string, GameSession> = { "debug": sessions[0] }
+var userSessionMap: Record<string, GameSession> = {}
 var sessions: GameSession[] = []
 
 var sessionIndex = 1
 var sessionsMutex = new Mutex()
-var countryData: { [x: string]: Country[] } = {}
+var countryData: Record<string, Country[]> = {}
 
 
-const _winningFormations: { [x: string]: number[][][] } = {}  // saves all combinations of coords leading to a win (axes: combination, coord pair, coord)
+const _winningFormations: Record<string, number[][][]> = {}  // saves all combinations of coords leading to a win (axes: combination, coord pair, coord)
 function getWinningFormations(size: number) {
   if (size < 2) {
     return []

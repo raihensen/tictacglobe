@@ -91,7 +91,7 @@ const CategoryBadgeLetters = ({ letter, isCapital, isStartsWith, isEndsWith, ...
   )
 }
 
-type TranslationArgsType = [string, { [x: string]: string }]
+type TranslationArgsType = [string, Record<string, string>]
 
 function crossed(Icon: IconType): React.FC<IconBaseProps> {
   return ({ color, ...props }) => (
