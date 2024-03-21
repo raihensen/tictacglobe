@@ -2,11 +2,11 @@
 
 import { NextRouter, useRouter } from "next/router";
 import { useSearchParams } from 'next/navigation';
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'next-i18next'
 import { serverSideTranslations } from "next-i18next/serverSideTranslations";
 
-import { RequestAction, PlayingMode, FrontendQuery, SessionWithoutGames, autoRefreshInterval, getApiUrl, defaultLanguage } from "@/src/game.types"
+import { RequestAction, FrontendQuery, SessionWithoutGames, autoRefreshInterval, getApiUrl, defaultLanguage } from "@/src/game.types"
 import { readReadme, useAutoRefresh } from "@/src/util"
 import type { GetServerSideProps } from 'next'
 import { PageProps } from "./_app";
@@ -22,6 +22,15 @@ import Form from 'react-bootstrap/Form';
 import InputGroup from 'react-bootstrap/InputGroup';
 import { ButtonToolbar, IconButton } from "@/components/styles";
 import ShareButton, { DonationModal, ShareButtonProps } from "@/components/Share";
+import { Session } from "@/src/db.types";
+import { PlayingMode, User } from "@prisma/client";
+
+export type ApiResponse = {
+  session: Session
+  user?: User
+} | {
+  error: string
+}
 
 enum PageState {
   Init = 0,
@@ -35,7 +44,8 @@ const IndexPage: React.FC<PageProps & IndexPageProps> = ({ gameInformationMarkdo
   const router = useRouter()
   const [state, setState] = useState<PageState>(PageState.Init)
 
-  const [session, setSession] = useState<SessionWithoutGames | null>()
+  const [session, setSession] = useState<Session | null>()
+  const [user, setUser] = useState<User | null>()
   const searchParams = useSearchParams()
 
   const [showGameInformation, setShowGameInformation] = useState<boolean>(false)
@@ -66,15 +76,25 @@ const IndexPage: React.FC<PageProps & IndexPageProps> = ({ gameInformationMarkdo
     }
   }, [userIdentifier, searchParams])
 
-  const { scheduleAutoRefresh, clearAutoRefresh } = useAutoRefresh(() => {
-      // TODO db route
-      apiRequest(PlayingMode.Online, { action: RequestAction.RefreshSession })
+  const getSessionId = useCallback(() => {
+    return session?.id
+  }, [session])
+
+  const { scheduleAutoRefresh, clearAutoRefresh } = useAutoRefresh((sessionId: number | null) => {
+      apiRequest(async () => {
+        if (!sessionId) return false
+        return fetch(`api/session/${sessionId}/refresh`, {
+          method: "GET"
+        })
+      }, RequestAction.RefreshSession)
     },
     autoRefreshInterval
   )
 
-  async function apiRequest(playingMode: PlayingMode, params: FrontendQuery) {
-    const action = params.action
+  async function apiRequest(
+    exec: () => Promise<any>,
+    action: RequestAction
+  ) {
     if (!userIdentifier) {
       return false
     }
@@ -88,37 +108,30 @@ const IndexPage: React.FC<PageProps & IndexPageProps> = ({ gameInformationMarkdo
     if (action != RequestAction.RefreshSession) {
       setIsWaiting(true)
     }
-    const url = getApiUrl({
-      userIdentifier: userIdentifier,
-      playingMode: playingMode,
-      ...params
-    })
-    console.log(`API request: ${url}`)
 
-    const data = await fetch(url).then(response => response.json())
+    const response = await exec()
+    if (response === false) {
+      return false
+    }
+    const data = await response.json() as ApiResponse
 
     // const newGame = data.game ? Game.fromApi(data.game) : null
-    const newSession = data.session ? data.session as SessionWithoutGames : null
-    const error = data.error ? data.error as string : null
+    if ("error" in data) {
+      setErrorMessage(data.error)
+      return false
+    }
 
+    setErrorMessage(false)
     setIsWaiting(false)
-    setSession(newSession)
-
-    if (error) {
-      setErrorMessage(error)
-      return false
-    } else {
-      setErrorMessage(false)
+    setSession(data.session)
+    if (data.user) {
+      setUser(data.user)
     }
-
-    if (!newSession) {
-      setErrorMessage("Error loading or creating the session.")
-      return false
-    }
-    console.log("Session: " + JSON.stringify(newSession))
+    
+    console.log("Session: " + JSON.stringify(data.session))
 
     // session is filled: forward to game page
-    if (playingMode == PlayingMode.Offline || newSession.users.length == 2) {
+    if (data.session.playingMode == PlayingMode.Offline || data.session.isFull) {
       goToGame(router)
       return true
     }
@@ -130,7 +143,7 @@ const IndexPage: React.FC<PageProps & IndexPageProps> = ({ gameInformationMarkdo
     }
 
     if (action == RequestAction.InitSessionFriend) {
-      if (!newSession.invitationCode) {
+      if (!data.session.invitationCode) {
         setErrorMessage("Error loading or creating the session.")
         return false
       }
@@ -177,17 +190,16 @@ const IndexPage: React.FC<PageProps & IndexPageProps> = ({ gameInformationMarkdo
       return false
     }
     apiRequest(
-      PlayingMode.Online, {
-        action: RequestAction.JoinSession,
-        invitationCode: invitationCode
-      }
+      () => {
+        const formData = new FormData()
+        formData.set("action", RequestAction.JoinSession.toString())
+        return fetch(`api/code/${invitationCode}/join`, {
+          body: formData,
+          method: "POST"
+        })
+      },
+      RequestAction.JoinSession
     )
-    const formData = new FormData()
-    formData.set("action", RequestAction.JoinSession.toString())
-    fetch(`api/code/${invitationCode}/join`, {
-      body: formData,
-      method: "POST"
-    })
     return true
   }
 
@@ -200,36 +212,47 @@ const IndexPage: React.FC<PageProps & IndexPageProps> = ({ gameInformationMarkdo
     {state == PageState.Init && (<>
       <div style={{ display: "flex", flexDirection: "column", width: "250px", maxWidth: "90%", alignItems: "stretch" }}>
         <Button variant="danger" size="lg" className="mb-2" onClick={() => {
-          apiRequest(PlayingMode.Online, { action: RequestAction.InitSessionRandom })
-          // TODO
-          const formData = new FormData()
-          formData.set("action", RequestAction.InitSessionRandom.toString())
-          fetch(`api/session/create`, {
-            body: formData,
-            method: "POST"
-          })
+          apiRequest(
+            () => {
+              const formData = new FormData()
+              formData.set("action", RequestAction.InitSessionRandom.toString())
+              return fetch(`api/session/create`, {
+                body: formData,
+                method: "POST"
+              })
+            },
+            RequestAction.InitSessionRandom
+          )
         }}>Search opponent</Button>
         <Button variant="warning" size="lg" className="mb-2" onClick={() => {
-          apiRequest(PlayingMode.Online, { action: RequestAction.InitSessionFriend })
-          const formData = new FormData()
-          formData.set("action", RequestAction.InitSessionFriend.toString())
-          fetch(`api/session/create`, {
-            body: formData,
-            method: "POST"
-          })
+          apiRequest(
+            () => {
+              const formData = new FormData()
+              formData.set("action", RequestAction.InitSessionFriend.toString())
+              return fetch(`api/session/create`, {
+                body: formData,
+                method: "POST"
+              })
+            },
+            RequestAction.InitSessionFriend
+          )
         }}>Invite a friend</Button>
         <Button variant="warning" size="lg" className="mb-2" onClick={() => {
           setState(PageState.EnterCode)
         }}>Enter code</Button>
         {/* <Button size="lg" className="mb-2">Online opponent</Button> */}
         <Button variant="primary" size="lg" className="mb-2" onClick={() => {
-          apiRequest(PlayingMode.Offline, { action: RequestAction.InitSessionOffline })
-          const formData = new FormData()
-          formData.set("action", RequestAction.InitSessionOffline.toString())
-          fetch(`api/session/create`, {
-            body: formData,
-            method: "POST"
-          })
+          apiRequest(
+            () => {
+              const formData = new FormData()
+              formData.set("action", RequestAction.InitSessionOffline.toString())
+              return fetch(`api/session/create`, {
+                body: formData,
+                method: "POST"
+              })
+            },
+            RequestAction.InitSessionOffline
+          )
         }}>Same screen</Button>
       </div>
     </>)}
@@ -246,7 +269,7 @@ const IndexPage: React.FC<PageProps & IndexPageProps> = ({ gameInformationMarkdo
             <Button size="lg" id="btnGroupInvitationCode" variant="secondary" onClick={() => {
               navigator.clipboard.writeText(session?.invitationCode || "")
             }}>Copy</Button>
-            <Form.Control size="lg" type="text" readOnly placeholder={session?.invitationCode} aria-describedby="btnGroupInvitationCode" />
+            <Form.Control size="lg" type="text" readOnly placeholder={session?.invitationCode ?? undefined} aria-describedby="btnGroupInvitationCode" />
           </InputGroup>
           <Button size="lg" variant="primary" onClick={() => {
             const origin = isClient && window.location.origin ? window.location.origin : ""

@@ -8,7 +8,8 @@ const sessionWithCurrentGame = Prisma.validator<Prisma.SessionDefaultArgs>()({
         markings: true
       },
       take: 1
-    }
+    },
+    users: true
   },
 })
 const gameWithMarkings = Prisma.validator<Prisma.GameDefaultArgs>()({

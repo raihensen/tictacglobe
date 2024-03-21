@@ -28,18 +28,24 @@ export function respond(session: Session, game?: Game) {
 }
 
 export async function joinSession(sessionId: number, name?: string) {
-  return db.session.update({
+  const user = await db.user.create({
+    data: {
+      name: name
+    }
+  })
+  const session = await db.session.update({
     where: { id: sessionId },
     data: {
       isFull: true,
       users: {
-        create: {
-          name: name
+        connect: {
+          id: user.id
         }
       }
     },
     include: sessionIncludeCurrentGame
   })
+  return { session, user }
 }
 
 export async function findSessionWithCurrentGame(sessionId: number) {

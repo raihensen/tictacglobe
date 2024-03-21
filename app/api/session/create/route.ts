@@ -45,10 +45,11 @@ export async function POST(
     })
     if (availableSessions.length) {
       const sessionToJoin = availableSessions[0]
-      const session = await joinSession(sessionToJoin.id, name)
+      const { session, user } = await joinSession(sessionToJoin.id, name)
       console.log("Joined", session)
       if (!session) return error("Internal Server Error", 500)
       return NextResponse.json({
+        user: user,
         session: session,
         success: true
       })
@@ -67,12 +68,16 @@ export async function POST(
           name: name
         }
       }
+    },
+    include: {
+      users: true
     }
   })
   const session = await findSessionWithCurrentGame(newSession.id)
   if (!session) return error("Internal Server Error", 500)
 
   return NextResponse.json({
+    user: newSession.users[0],
     session: session,
     success: true
   })

@@ -5,14 +5,12 @@ import { db } from "@/src/db";
 import { RequestAction } from "@/src/game.types";
 
 
-export async function POST(
+export async function GET(
   req: NextRequest,
   { params }: { params: { session: number } }
 ) {
-  // need POST also to avoid caching
-  const data = Object.fromEntries((await req.formData()).entries())
+  // might need POST also to avoid caching
 
-  const action = data.action as unknown as RequestAction
   const sessionId = params.session
   if (!sessionId) return error("Invalid request", 400)
 
