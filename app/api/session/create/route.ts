@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { error, findSessionWithCurrentGame, invitationCodeAlive, respond } from "@/src/api.utils";
+import { error, findSessionWithCurrentGame, invitationCodeAlive, joinSession, respond } from "@/src/api.utils";
 import { PlayingMode, PrismaClient } from '@prisma/client'
 import { generateInvitationCode } from "@/src/api.utils";
 import { db } from "@/src/db";
@@ -24,6 +24,35 @@ export async function POST(
   if (action == RequestAction.InitSessionFriend) {
     invitationCode = await generateNewInvitationCode(db)
     if (!invitationCode) return error("Internal Server Error", 500)
+  }
+
+  // Join existing random session?
+  if (action == RequestAction.InitSessionRandom) {
+    // TODO TTG-31 filter for sessions with matching settings (difficulty, language)
+    const availableSessions = await db.session.findMany({
+      where: {
+        AND: {
+          isPublic: true,
+          playingMode: PlayingMode.Online,
+          isFull: false,
+          isAlive: true
+        }
+      },
+      orderBy: {
+        createdAt: "asc"
+      },
+      take: 1
+    })
+    if (availableSessions.length) {
+      const sessionToJoin = availableSessions[0]
+      const session = await joinSession(sessionToJoin.id, name)
+      console.log("Joined", session)
+      if (!session) return error("Internal Server Error", 500)
+      return NextResponse.json({
+        session: session,
+        success: true
+      })
+    }
   }
 
   // Create session in db

@@ -14,6 +14,8 @@ datasource db {
 model Session {
   id             Int         @id @default(autoincrement())
   isPublic       Boolean
+  isFull         Boolean     @default(false)
+  isAlive        Boolean     @default(true)
   invitationCode String?
   playingMode    PlayingMode
   games          Game[]      @relation("SessionGame")

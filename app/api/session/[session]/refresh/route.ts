@@ -1,24 +1,30 @@
 import { NextRequest, NextResponse } from "next/server";
-// import { Session, SessionState, Player, PlayerState } from "@/src/types";
-import { error, respond, refreshState } from "@/src/api.utils";
+
+import { error, invitationCodeAlive, joinSession, sessionIncludeCurrentGame } from "@/src/api.utils";
 import { db } from "@/src/db";
+import { RequestAction } from "@/src/game.types";
 
 
 export async function POST(
   req: NextRequest,
-  { params }: { params: { session: string } }
+  { params }: { params: { session: number } }
 ) {
-  // POST to avoid caching
+  // need POST also to avoid caching
+  const data = Object.fromEntries((await req.formData()).entries())
 
+  const action = data.action as unknown as RequestAction
   const sessionId = params.session
+  if (!sessionId) return error("Invalid request", 400)
 
-  if (!sessionId) return error("Invalid request")
-  const session = await db.session.findFirst({ where: { id: sessionId }, include: { players: { include: { topics: true } } } })
+  const session = await db.session.findUnique({
+    where: { id: sessionId },
+    include: sessionIncludeCurrentGame
+  })
 
-  if (!session) return error("Session could not be created", 400)
-
-  await refreshState(session)
-  return respond(session)
+  return NextResponse.json({
+    session: session,
+    success: true
+  })
 
 }
 

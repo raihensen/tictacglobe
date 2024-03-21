@@ -67,8 +67,9 @@ const IndexPage: React.FC<PageProps & IndexPageProps> = ({ gameInformationMarkdo
   }, [userIdentifier, searchParams])
 
   const { scheduleAutoRefresh, clearAutoRefresh } = useAutoRefresh(() => {
-    // TODO db route
-    apiRequest(PlayingMode.Online, { action: RequestAction.RefreshSession }) },
+      // TODO db route
+      apiRequest(PlayingMode.Online, { action: RequestAction.RefreshSession })
+    },
     autoRefreshInterval
   )
 

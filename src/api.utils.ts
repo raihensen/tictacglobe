@@ -27,6 +27,21 @@ export function respond(session: Session, game?: Game) {
 
 }
 
+export async function joinSession(sessionId: number, name?: string) {
+  return db.session.update({
+    where: { id: sessionId },
+    data: {
+      isFull: true,
+      users: {
+        create: {
+          name: name
+        }
+      }
+    },
+    include: sessionIncludeCurrentGame
+  })
+}
+
 export async function findSessionWithCurrentGame(sessionId: number) {
   return db.session.findFirst({
     where: {
@@ -45,7 +60,8 @@ export const sessionIncludeCurrentGame: Prisma.SessionInclude<DefaultArgs> = {
     include: {
       markings: true
     }
-  }
+  },
+  users: true
 }
 
 export function generateInvitationCode(length: number = 4) {

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 
-import { error, invitationCodeAlive, sessionIncludeCurrentGame } from "@/src/api.utils";
+import { error, invitationCodeAlive, joinSession, sessionIncludeCurrentGame } from "@/src/api.utils";
 import { db } from "@/src/db";
 import { RequestAction } from "@/src/game.types";
 
@@ -9,7 +9,6 @@ export async function POST(
   req: NextRequest,
   { params }: { params: { code: string } }
 ) {
-
   // need POST also to avoid caching
   const data = Object.fromEntries((await req.formData()).entries())
 
@@ -24,18 +23,8 @@ export async function POST(
     }
   })
   if (!sessionFromCode) return error("Session not found", 404)
-  
-  const session = await db.session.update({
-    where: { id: sessionFromCode.id },
-    data: {
-      users: {
-        create: {
-          name: name
-        }
-      }
-    },
-    include: sessionIncludeCurrentGame
-  })
+
+  const session = await joinSession(sessionFromCode.id, name)
 
   return NextResponse.json({
     session: session,
