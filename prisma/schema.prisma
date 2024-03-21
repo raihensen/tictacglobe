@@ -25,6 +25,7 @@ model Session {
   score1         Int         @default(0)
   score2         Int         @default(0)
   settings       String      @db.Text
+  language       String      @default("en")
   createdAt      DateTime    @default(now())
 }
 
@@ -32,20 +33,20 @@ model User {
   id        String    @id @default(uuid())
   name      String?
   createdAt DateTime  @default(now())
-  session   Session?  @relation(fields: [sessionId], references: [id])
-  sessionId Int?
+  sessions  Session[]
   markings  Marking[]
 }
 
 model Game {
   id                 Int       @id @default(autoincrement())
   setup              String    @db.Text
+  language           String    @default("en")
   turn               Int
   state              GameState @default(Initialized)
   markings           Marking[]
   winner             Int?
   turnCounter        Int       @default(0)
-  turnStartTimeStamp DateTime  @default(now())
+  turnStartTimestamp DateTime  @default(now())
   createdAt          DateTime  @default(now())
   finishedAt         DateTime?
 
@@ -71,6 +72,8 @@ model Marking {
   id        Int      @id @default(autoincrement())
   game      Game     @relation(fields: [gameId], references: [id])
   gameId    Int
+  x         Int
+  y         Int
   value     String
   // item      Item     @relation(fields: [itemId], references: [id])
   // itemId    Int

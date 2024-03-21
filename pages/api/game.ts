@@ -1,6 +1,6 @@
 
 import { IncomingMessage, ServerResponse } from 'http';
-import { Game, GameSetup, Country, RequestAction, Query, PlayingMode, GameState, Language, parseCountry, defaultLanguage, PlayerIndex, GameSession, DifficultyLevel, Settings, settingsFromQuery, defaultSettings, isIngameAction, isSessionInitAction, isGameInitAction } from "@/src/game.types"
+import { Game, GameSetup, Country, RequestAction, Query, PlayingMode, GameState, Language, parseCountry, defaultLanguage, PlayerIndex, GameSession, DifficultyLevel, Settings, settingsFromQuery, defaultSettings, isIngameAction, isSessionInitAction, isGameInitAction, chooseGameSetup } from "@/src/game.types"
 import { randomChoice } from "@/src/util";
 import _ from "lodash";
 import { v4 as uuidv4 } from "uuid";
@@ -68,7 +68,7 @@ async function makeGuess(
     console.log(`Error: Cell (${i},${j}) already occupied!`);
     return false
   }
-  const userIndex = game.users.indexOf(userIdentifier)
+  const userIndex = game.users.findIndex(u => u.id == userIdentifier)
   if (![0, 1].includes(userIndex)) {
     console.log(`Error: User identifier not found!`);
     return false
@@ -114,7 +114,7 @@ function switchTurns(game: Game) {
 /**
  * Checks if there is a winner. If there is a (unique) winner, set winner and winCoords on the game instance.
  * @param game Game instance
- * @returns The winner (0, 1), or null
+ * @returns The winner (0, 1), -1 for a draw, or null
  */
 function checkWinner(game: Game) {
   const winningFormations = getWinningFormations(game.setup.size)
@@ -145,81 +145,6 @@ function checkWinner(game: Game) {
     return -1
   }
   return null
-}
-
-
-async function chooseGameSetup(
-  language: Language,
-  filter: ((gameSetup: GameSetup) => boolean) | null = null
-): Promise<GameSetup | null> {
-
-  // const allFiles = await fs.readdir("./data")
-  // console.log(`all files: ${allFiles.join(", ")}`)
-  
-  const dir = path.join(process.cwd(), 'public', 'data', 'games', language)
-  // const dir = `./data/games/${language}`
-  // console.log(`Listing game files in directory "${dir}"`)
-  try {
-    const files = await fs.readdir(dir)
-    if (!files.length) {
-      return null
-    }
-    const file = path.join(dir, _.max(files) ?? "")
-    console.log(`Read games from file ${file}`);
-    const data = await fs.readFile(file)
-    let gameSetups = JSON.parse(data).map((props: Omit<GameSetup, "props">) => ({
-      ...props,
-      language: language
-    })) as GameSetup[]
-
-    if (filter) {
-      gameSetups = gameSetups.filter(filter)
-    }
-    // console.log(`Choose game setup (out of ${gameSetups.length})`)
-    const gameSetup =  randomChoice(gameSetups)
-    if (!gameSetup) {
-      return null
-    }
-    return gameSetup
-
-  } catch (err) {
-    return null
-  }
-}
-
-async function createGame(
-  session: GameSession,
-  difficulty: DifficultyLevel,
-  language: Language
-): Promise<Game | null> {
-
-  // Archive the current game to then create a new one
-  if (session.currentGame) {
-    session.previousGames.push(session.currentGame)
-    session.currentGame = null
-  }
-  
-  // Create new game
-  const gameSetup: GameSetup | null = await chooseGameSetup(
-    language,
-    gameSetup => {
-      return gameSetup.data.difficultyLevel == difficulty
-    }
-  )
-  if (!gameSetup) {
-    return null
-  }
-  const game = new Game(
-    gameSetup,
-    [...session.users],
-    session.playingMode,
-    (Math.random() < .5 ? 0 : 1)  // who starts?
-    // TODO logic within session to determine who starts (loser? alternating?)
-  )
-  game.turnStartTimestamp = Date.now()
-  session.currentGame = game
-  return game
-
 }
 
 async function getCountryData(language: Language): Promise<Country[] | null> {

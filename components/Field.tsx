@@ -1,7 +1,7 @@
 
 import styled from "styled-components";
-import { ReactNode, forwardRef, useEffect, useId, useMemo, useRef, useState } from 'react';
-import { Game, Country, CategoryValue, RequestAction, FrontendQuery, GameData, PlayingMode, GameState, FieldSettings, Settings, Category } from "@/src/game.types"
+import { ReactNode, forwardRef, useEffect, useId, useState } from 'react';
+import { Game, Country, CategoryValue, RequestAction, FrontendQuery, FieldSettings, Category } from "@/src/game.types"
 
 import { PlusCircleFill } from 'react-bootstrap-icons';
 import Badge, { BadgeProps } from 'react-bootstrap/Badge';
@@ -14,6 +14,8 @@ import { TableCellInner, MarkingBackground } from "@/components/styles";
 import CountryAutoComplete from "./Autocomplete";
 import { getCategoryInfo, translateCategory, ContinentIcon } from "./TableHeading";
 import { FaCircleInfo, FaMountain } from "react-icons/fa6";
+import { useTtgStore } from "@/src/zustand";
+import { GameState } from "@prisma/client";
 
 enum FieldMode {
   INITIAL = 0,
@@ -36,7 +38,6 @@ const Field = ({ pos, setActive, setIsSearching, game, row, col, apiRequest, has
   game: Game,
   row: CategoryValue,
   col: CategoryValue,
-  userIdentifier: string | undefined,
   apiRequest: (query: FrontendQuery) => any,
   hasTurn: boolean,
   notifyDecided: boolean,

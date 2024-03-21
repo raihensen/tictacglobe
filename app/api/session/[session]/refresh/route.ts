@@ -7,11 +7,11 @@ import { RequestAction } from "@/src/game.types";
 
 export async function GET(
   req: NextRequest,
-  { params }: { params: { session: number } }
+  { params }: { params: { session: string } }
 ) {
   // might need POST also to avoid caching
 
-  const sessionId = params.session
+  const sessionId = Number.parseInt(params.session)
   if (!sessionId) return error("Invalid request", 400)
 
   const session = await db.session.findUnique({

@@ -1,5 +1,4 @@
 
-import { confirm } from 'react-bootstrap-confirmation';
 import 'bootstrap/dist/css/bootstrap.min.css';
 import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'next-i18next'
@@ -15,6 +14,7 @@ import { ButtonToolbar, IconButton, HeaderStyle } from "@/components/styles";
 import Image from "next/image";
 import Link from "next/link";
 import ShareButton, { ShareButtonProps } from "@/components/Share";
+import { useConfirmation } from './common/Confirmation';
 
 
 const Header: React.FC<{
@@ -30,6 +30,7 @@ const Header: React.FC<{
 }> = ({ isGame, game, darkMode, toggleDarkMode, triggerShowGameInformation, triggerShowSettings, shareButtonProps, hasTurn, apiRequest }) => {
   const { t, i18n } = useTranslation("common")
   const router = useRouter()
+  const confirm = useConfirmation()
 
   const [ expanded, setExpanded ] = useState<boolean>(false)
 
@@ -45,7 +46,7 @@ const Header: React.FC<{
         onClick={async () => {
           if (!game || await confirm(t("leaveSession.confirm.question"), {
             title: t("leaveSession.confirm.title"),
-            okText: t("leaveSession.action"),
+            confirmText: t("leaveSession.action"),
             cancelText: t("cancel")
           })) {
             router.push("/")
@@ -61,7 +62,7 @@ const Header: React.FC<{
             <LanguageSelector value={router.locale ?? defaultLanguage} disabled={!hasTurn} onChange={async (oldLanguage, newLanguage) => {
               if (await confirm(t("changeLanguage.confirm.question"), {
                 title: t("changeLanguage.confirm.title"),
-                okText: t("newGame"),
+                confirmText: t("newGame"),
                 cancelText: t("cancel")
               })) {
                 apiRequest({ action: RequestAction.NewGame, language: newLanguage as Language })  // TODO if language change does not work, have to pass newLanguage here

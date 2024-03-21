@@ -1,7 +1,6 @@
 
 import Button from "react-bootstrap/Button";
 import Alert from 'react-bootstrap/Alert';
-import { confirm } from 'react-bootstrap-confirmation';
 
 import 'bootstrap/dist/css/bootstrap.min.css';
 import { useEffect, useRef, useState } from 'react';
@@ -27,32 +26,36 @@ import Header from "@/components/Header";
 import { DonationModal, ShareButtonProps } from "@/components/Share";
 import useSWR from "swr";
 import axios from "axios";
+import { useConfirmation } from "@/components/common/Confirmation";
+import { useTtgStore } from "@/src/zustand";
+import { Session, Game as DbGame } from "@/src/db.types";
+import { User } from "@prisma/client";
 
-// import WorldMap from "react-svg-worldmap";
-// import {
-//   ComposableMap,
-//   Geographies,
-//   Geography,
-//   Sphere,
-//   Graticule
-// } from "react-simple-maps";
+export type ApiResponse = {
+  session: Session
+  game: DbGame
+  user?: User
+} | {
+  error: string
+}
 
 const GamePage: React.FC<PageProps & GamePageProps> = ({
   isClient,
   darkMode, toggleDarkMode,
-  userIdentifier, isCustomUserIdentifier,
   hasError, errorMessage, setErrorMessage,
   isLoading, setLoadingText,
   gameInformationMarkdown
 }) => {
+  const confirm = useConfirmation()
+  const user = useTtgStore.use.user()
 
   useEffect(() => {
-    if (userIdentifier) {
-      // First client-side init
-      console.log(`First client-side init (GamePage) - userIdentifier ${userIdentifier}`)
+    if (user) {
+      // First client-side init with user set
+      console.log(`First client-side init (GamePage) - userId ${user.id}`)
       apiRequest({ action: RequestAction.ExistingOrNewGame })
     }
-  }, [userIdentifier])
+  }, [user])
 
   const router = useRouter()
   const { t, i18n } = useTranslation('common')
@@ -68,24 +71,20 @@ const GamePage: React.FC<PageProps & GamePageProps> = ({
     onShare: () => setShowDonationModal(true)
   }
 
-  const [game, setGame] = useState<Game | null>(null)
-  const [session, setSession] = useState<SessionWithoutGames | null>(null)
+  const { session, setSession } = useTtgStore.useState.session()
+  const { game, setGame } = useTtgStore.useState.game()
+  const opponentUser = session?.users.filter(u => u.id != user?.id)[0]
+
   const [notifyDecided, setNotifyDecided] = useState<boolean>(false)
-  
-  const [userIndex, setUserIndex] = useState<PlayerIndex>(0)  // who am i? 0/1
+
+  // const [userIndex, setUserIndex] = useState<PlayerIndex>(0)  // who am i? 0/1
+  // const userIndex = game.startingUser.id == user.id ? 0 : 1
+  const userIndex = session?.users.findIndex(u => u.id == user?.id)
   const [hasTurn, setHasTurn] = useState<boolean>(true)
   const [turnStartTimestamp, setTurnStartTimestamp] = useState<number>(Date.now() - 60000)
 
   const [countries, setCountries] = useState<Country[]>([])
   const { data: categories, mutate: mutateCategories, error: categoriesError, isLoading: isLoadingCategories } = useSWR<Category[]>(`/api/categories?language=${router.locale}`, GET)
-
-  const getIndexUrl = (absolute: boolean = false) => {
-    let url = ""
-    if (absolute) {
-      url = isClient && window.location.origin ? window.location.origin : ""
-    }
-    return url + `/${isCustomUserIdentifier ? `?user=${userIdentifier}` : ""}`
-  }
 
   const { scheduleAutoRefresh, clearAutoRefresh } = useAutoRefresh(() => {
     apiRequest({ action: RequestAction.RefreshGame })
@@ -95,8 +94,11 @@ const GamePage: React.FC<PageProps & GamePageProps> = ({
     console.log(`settings after update: ${JSON.stringify(settings)}`)
   }, [settings])
 
-  function apiRequest(params: FrontendQuery) {
-    if (!userIdentifier) {
+  async function apiRequest(
+    exec: false | (() => Promise<any>),
+    params: FrontendQuery
+  ) {
+    if (!user) {
       return false
     }
     clearAutoRefresh()
@@ -109,97 +111,95 @@ const GamePage: React.FC<PageProps & GamePageProps> = ({
     }
 
     // Fetch the game data from the server
-    const url = getApiUrl({
-      userIdentifier: userIdentifier,
-      ...params
-    }, {
-      settings: settings,
-      router: router
+    // const url = getApiUrl({
+    //   userIdentifier: userIdentifier,
+    //   ...params
+    // }, {
+    //   settings: settings,
+    //   router: router
+    // })
+    // console.log(`API request: ${url}`)
+    if (!exec) {
+      console.warn("Change to new apiRequest!")
+      return
+    }
+    const res = await exec()
+    const data = await res.json() as ApiResponse
+    
+    if ("error" in data || !data.session || !data.game) {
+      setErrorMessage("error" in data ? data.error : "Error loading the game.")
+      setGame(null)
+      setSession(null)
+      return false
+    }
+    setErrorMessage(false)
+
+    const newGameInstance = new Game(data.game, data.session)
+    const gameHadBeenDecided = game?.isDecided() ?? false
+    const gameSetup = newGameInstance.setup
+    setSession(data.session)
+    setGame(newGameInstance)
+
+    setTurnStartTimestamp(oldValue => {
+      const newValue = data.game.turnStartTimestamp.getTime()
+      if (newValue != oldValue) {
+        console.log(`turnStartTimestamp changed by a difference of ${newValue - oldValue}`)
+      }
+      return newValue
     })
-    console.log(`API request: ${url}`)
-    fetch(url)
-      .then(response => response.json())
-      .then(data => {
-        const newGame = data.game ? Game.fromApi(data.game) : null
-        const newSession = data.session ? data.session as SessionWithoutGames : null
-        const error = data.error ? data.error as string : null
 
-        if (error || !newGame || !newSession) {
-          setErrorMessage(error ?? "Error loading the game.")
-          setGame(null)
-          setSession(null)
-          return false
-        } else {
-          setErrorMessage(false)
+    if (data.session.playingMode == PlayingMode.Offline) {
+      setHasTurn(true)
+
+    } else if (data.session.playingMode == PlayingMode.Online) {
+
+      const willHaveTurn = userIndex == data.game.turn
+      setHasTurn(willHaveTurn)
+
+      // synchronize language (TODO TTG-43 synchronize all settings)
+      if (router.locale != newGameInstance.language.toString()) {
+        console.log(`Game language: ${newGameInstance.language}, Frontend language: ${router.locale} - changing frontend to ${newGameInstance.language}`)
+        changeLanguage(router, i18n, newGameInstance.language)
+      }
+
+      if (!willHaveTurn) {
+        scheduleAutoRefresh()
+      }
+
+    }
+
+    let showNotifyDecided = false
+    if (game) {  // game had been loaded before
+      if (data.game.markings.length) {  // No new game
+        if (newGameInstance !== null && !gameHadBeenDecided) {  // There's a new winner (or a draw)
+          showNotifyDecided = true
         }
+      }
+    }
 
-        setGame(newGame)
-        setTurnStartTimestamp(oldValue => {
-          const newValue = newGame.turnStartTimestamp ?? Date.now() - 60000
-          if (newValue != oldValue) {
-            console.log(`turnStartTimestamp changed by a difference of ${newValue - oldValue}`)
-          }
-          return newValue
-        })
-        setSession(newSession)
+    setNotifyDecided(showNotifyDecided)
+    // TODO countries
+    // if (data.countries) {
+    //   setCountries(data.countries)
+    // }
+    setSettings(settings => {
+      const sessionSettings = JSON.parse(data.session.settings) as Settings
+      if (settingsChanged(settings, sessionSettings)) {
+        console.log(`Session settings changed. New settings: ${JSON.stringify(data.session.settings)}`)
+        return sessionSettings
+      } else {
+        // No changes, prevent re-render by passing the old object
+        return settings
+      }
+    })
 
-        if (newGame.playingMode == PlayingMode.Offline) {
-          setHasTurn(true)
+    setLoadingText(false)
+    if (timerRef.current) {
+      (timerRef.current as any).restart()
+    }
 
-        } else if (newGame.playingMode == PlayingMode.Online) {
-          
-          const newUserIndex = newGame.users.indexOf(userIdentifier) as PlayerIndex | -1
-          if (newUserIndex == -1) {
-            setErrorMessage("userIdentifier is not part of the game!")
-            return false
-          }
-          setUserIndex(newUserIndex)
-          const willHaveTurn = newUserIndex == newGame.turn
-          setHasTurn(willHaveTurn)
-
-          // synchronize language (TODO TTG-43 synchronize all settings)
-          if (router.locale != newGame.setup.language.toString()) {
-            console.log(`Game language: ${newGame.setup.language}, Frontend language: ${router.locale} - changing frontend to ${newGame.setup.language}`)
-            changeLanguage(router, i18n, newGame.setup.language)
-          }
-
-          if (!willHaveTurn) {
-            scheduleAutoRefresh()
-          }
-
-        }
-
-        let showNotifyDecided = false
-        if (game) {  // game had been loaded before
-          if (newGame.marking.flat(1).some(m => m != -1)) {  // No new game
-            if (newGame.winner !== game.winner) {  // There's a new winner (or a draw)
-              showNotifyDecided = true
-            }
-          }
-        }
-
-        setNotifyDecided(showNotifyDecided)
-        if (data.countries) {
-          setCountries(data.countries)
-        }
-        setSettings(settings => {
-          if (settingsChanged(settings, newSession.settings)) {
-            console.log(`Session settings changed. New settings: ${JSON.stringify(newSession.settings)}`)
-            return newSession.settings
-          } else {
-            // No changes, prevent re-render by passing the old object
-            return settings
-          }
-        })
-
-        setLoadingText(false)
-        if (timerRef.current) {
-          (timerRef.current as any).restart()
-        }
-
-        return true
-
-      })
+    return true
+      
   }
 
   const getPlayerColor = (player: number | null) => {
@@ -243,12 +243,14 @@ const GamePage: React.FC<PageProps & GamePageProps> = ({
       apiRequest={apiRequest}
       hasTurn={hasTurn}
     />
-    {(isClient && isCustomUserIdentifier) && (<h3>User: {userIdentifier}</h3>)}
+    {/* {(isClient && isCustomUserIdentifier) && (<h3>User: {userIdentifier}</h3>)} */}
+    <p>You: {user?.name ?? <span className="text-muted small">{user?.id ?? "null"}</span>}</p>
+    <p>You: {opponentUser?.name ?? <span className="text-muted small">{opponentUser?.id ?? "null"}</span>}</p>
     {(hasError && errorMessage) && <Alert variant="danger">Error: {errorMessage}</Alert>}
     {hasError && (<>
       <p>
-        <Button variant="secondary" onClick={() => { 
-          router.push(getIndexUrl())
+        <Button variant="secondary" onClick={() => {
+          router.push("/")
         }}>Enter new game</Button>
       </p>
     </>)}
@@ -260,12 +262,12 @@ const GamePage: React.FC<PageProps & GamePageProps> = ({
       <ButtonToolbar className="mb-2">
         <div className="left">
           {canControlGame(game) && (<>
-            
+
             {canEndGame(game) && (
               <IconButton label={t("endGame.action")} variant="danger" onClick={async () => {
                 if (await confirm(t("endGame.confirm.question"), {
                   title: t("endGame.confirm.title"),
-                  okText: t("endGame.action"),
+                  confirmText: t("endGame.action"),
                   cancelText: t("cancel")
                 })) {
                   apiRequest({ action: RequestAction.EndGame, player: game.turn })
@@ -287,7 +289,7 @@ const GamePage: React.FC<PageProps & GamePageProps> = ({
           {(notifyDecided && game.state != GameState.Finished && hasTurn) && (<>
             <IconButton label={t("continuePlaying")} variant="secondary" onClick={() => { setNotifyDecided(false) }}><FaEllipsis /></IconButton>
           </>)}
-          
+
         </div>
       </ButtonToolbar>
 
@@ -300,7 +302,7 @@ const GamePage: React.FC<PageProps & GamePageProps> = ({
         {(game.winner === -1) && (<b>{t("tieNotification")}</b>)}
       </p>
       {/* {(notifyDecided && (game.winner === 0 || game.winner === 1)) && <Alert variant="success"><b>{capitalize(getPlayerColor(game.winner) ?? "No one")} wins!</b></Alert>} */}
-      
+
       <div style={{ display: "flex", marginBottom: "50px" }}>
         <GameTable style={{ margin: "0 auto" }}>
           <div className="tableRow header">
@@ -362,7 +364,6 @@ const GamePage: React.FC<PageProps & GamePageProps> = ({
                     game={game}
                     row={game.setup.rows[i]}
                     col={game.setup.cols[j]}
-                    userIdentifier={userIdentifier}
                     apiRequest={apiRequest}
                     hasTurn={hasTurn}
                     notifyDecided={notifyDecided}

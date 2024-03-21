@@ -2,12 +2,12 @@
 
 import { NextRouter, useRouter } from "next/router";
 import { useSearchParams } from 'next/navigation';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'next-i18next'
 import { serverSideTranslations } from "next-i18next/serverSideTranslations";
 
-import { RequestAction, FrontendQuery, SessionWithoutGames, autoRefreshInterval, getApiUrl, defaultLanguage } from "@/src/game.types"
-import { readReadme, useAutoRefresh } from "@/src/util"
+import { RequestAction, autoRefreshInterval, defaultLanguage } from "@/src/game.types"
+import { readReadme, setLocalStorage, useAutoRefresh } from "@/src/util"
 import type { GetServerSideProps } from 'next'
 import { PageProps } from "./_app";
 import _ from "lodash";
@@ -24,6 +24,7 @@ import { ButtonToolbar, IconButton } from "@/components/styles";
 import ShareButton, { DonationModal, ShareButtonProps } from "@/components/Share";
 import { Session } from "@/src/db.types";
 import { PlayingMode, User } from "@prisma/client";
+import { useTtgStore } from "@/src/zustand";
 
 export type ApiResponse = {
   session: Session
@@ -39,14 +40,18 @@ enum PageState {
   EnterCode = 3,
 }
 
-const IndexPage: React.FC<PageProps & IndexPageProps> = ({ gameInformationMarkdown, isClient, userIdentifier, isCustomUserIdentifier, hasError, setErrorMessage, isLoading, setLoadingText }) => {
+const IndexPage: React.FC<PageProps & IndexPageProps> = ({
+  gameInformationMarkdown, isClient,
+  hasError, setErrorMessage, isLoading, setLoadingText
+}) => {
   const { t } = useTranslation("common")
   const router = useRouter()
-  const [state, setState] = useState<PageState>(PageState.Init)
-
-  const [session, setSession] = useState<Session | null>()
-  const [user, setUser] = useState<User | null>()
   const searchParams = useSearchParams()
+  
+  const { user, setUser } = useTtgStore.useState.user()
+  const { session, setSession } = useTtgStore.useState.session()
+  
+  const [state, setState] = useState<PageState>(PageState.Init)
 
   const [showGameInformation, setShowGameInformation] = useState<boolean>(false)
   const [showDonationModal, setShowDonationModal] = useState<boolean>(false)
@@ -62,23 +67,16 @@ const IndexPage: React.FC<PageProps & IndexPageProps> = ({ gameInformationMarkdo
   }, [isWaiting])
 
   useEffect(() => {
+    // First client-side init
     setLoadingText(false)
-    // if (userIdentifier) {
-    //   // First client-side init
-    //   console.log(`First client-side init (StartPage) - userIdentifier ${userIdentifier}`)
-    // }
-  }, [userIdentifier])
+  }, [])
   useEffect(() => {
     const invitationCode = searchParams?.get("invitationCode") ?? null
-    if (invitationCode && userIdentifier && !isWaiting) {
+    if (invitationCode && !isWaiting) {
       console.log(`Trying to join session with invitation code ${invitationCode} ...`)
       submitEnterCode(invitationCode)
     }
-  }, [userIdentifier, searchParams])
-
-  const getSessionId = useCallback(() => {
-    return session?.id
-  }, [session])
+  }, [searchParams])
 
   const { scheduleAutoRefresh, clearAutoRefresh } = useAutoRefresh((sessionId: number | null) => {
       apiRequest(async () => {
@@ -95,7 +93,7 @@ const IndexPage: React.FC<PageProps & IndexPageProps> = ({ gameInformationMarkdo
     exec: () => Promise<any>,
     action: RequestAction
   ) {
-    if (!userIdentifier) {
+    if (!user) {
       return false
     }
     if (isWaiting) {
@@ -126,6 +124,7 @@ const IndexPage: React.FC<PageProps & IndexPageProps> = ({ gameInformationMarkdo
     setSession(data.session)
     if (data.user) {
       setUser(data.user)
+      setLocalStorage("tictacglobe:userId", data.user.id)
     }
     
     console.log("Session: " + JSON.stringify(data.session))
@@ -139,7 +138,7 @@ const IndexPage: React.FC<PageProps & IndexPageProps> = ({ gameInformationMarkdo
     if (action == RequestAction.InitSessionRandom) {
       // session not filled yet, waiting for opponent
       setState(PageState.WaitingForRandomOpponent)
-      scheduleAutoRefresh()
+      scheduleAutoRefresh(data.session.id)
     }
 
     if (action == RequestAction.InitSessionFriend) {
@@ -148,11 +147,11 @@ const IndexPage: React.FC<PageProps & IndexPageProps> = ({ gameInformationMarkdo
         return false
       }
       setState(PageState.WaitingForFriend)
-      scheduleAutoRefresh()
+      scheduleAutoRefresh(data.session.id)
     }
     
     if (action == RequestAction.RefreshSession) {
-      scheduleAutoRefresh()
+      scheduleAutoRefresh(data.session.id)
     }
 
     return true
@@ -170,23 +169,15 @@ const IndexPage: React.FC<PageProps & IndexPageProps> = ({ gameInformationMarkdo
   })
 
   const goToGame = (router: NextRouter) => {
-    router.push(getGameUrl())
-  }
-
-  const getGameUrl = (absolute: boolean = false) => {
-    let url = ""
-    if (absolute) {
-      url = isClient && window.location.origin ? window.location.origin : ""
-    }
-    return url + `/game/${isCustomUserIdentifier ? `?user=${userIdentifier}` : ""}`
+    router.push("/game")
   }
 
   const submitEnterCode = (invitationCode: string) => {
     if (isWaiting) {
       return false
     }
-    invitationCode = invitationCode.replaceAll(/[^A-Z0-9]/g, "")
-    if (invitationCode.length != 4) {
+    if (!invitationCode.match(/^[^A-Z0-9]{4}$/)) {
+      console.error(`Invalid invitation code format (${invitationCode})`)
       return false
     }
     apiRequest(
@@ -205,9 +196,13 @@ const IndexPage: React.FC<PageProps & IndexPageProps> = ({ gameInformationMarkdo
 
   return (<>
     
-    <h1>Welcome!</h1>
+    <h1>
+      {!user && <>Welcome!</>}
+      {!!user?.name && <>Welcome, {user.name}!</>}
+      {(user && !user.name) && <>Welcome, <span className="text-muted small">{user.id}</span>!</>}
+    </h1>
 
-    {isCustomUserIdentifier && (<p>User: {userIdentifier}</p>)}
+    {/* {isCustomUserIdentifier && (<p>User: {userIdentifier}</p>)} */}
 
     {state == PageState.Init && (<>
       <div style={{ display: "flex", flexDirection: "column", width: "250px", maxWidth: "90%", alignItems: "stretch" }}>

@@ -1,8 +1,11 @@
 
 import _ from "lodash";
 import { NextRouter } from "next/router";
-// var path = require('path');
-// var fs = require('fs');
+import { randomChoice } from "./util";
+import path from "path";
+var fs = require('fs').promises;
+import { Session, Game as DbGame } from "@/src/db.types";
+import { GameState, PlayingMode, User } from "@prisma/client";
 
 export const autoRefreshInterval = 2000  // interval [ms] for auto refresh
 
@@ -209,22 +212,17 @@ export interface GameSetup {
     [x: string]: any;
   }
 }
-export enum GameState {
-  Initialized = 0,
-  Running = 1,
-  Decided = 2,  // set as soon as a winner / draw is determined but the board is not full yet (might continue playing)
-  Finished = 3,  // only set if the board is fully marked
-  Ended = 4  // After having clicked "End game", then show solutions
-}
+// export enum GameState {
+//   Initialized = 0,
+//   Running = 1,
+//   Decided = 2,  // set as soon as a winner / draw is determined but the board is not full yet (might continue playing)
+//   Finished = 3,  // only set if the board is fully marked
+//   Ended = 4  // After having clicked "End game", then show solutions
+// }
 
 export type GameData = {
   // isNewGame: boolean;
   game: Game | null;
-}
-
-export enum PlayingMode {
-  Offline = 0,
-  Online = 1
 }
 
 type GamePropertyKeys = keyof Game;
@@ -237,7 +235,8 @@ export type NoPlayer = -1;
 
 export class Game {
   setup: GameSetup;
-  users: string[];  // userIdentifiers. index: 0 ~ O/blue, 1 ~ X/red
+  language: Language;
+  users: User[];  // index: 0 ~ O/blue, 1 ~ X/red
   marking: (PlayerIndex | NoPlayer)[][];  // 0 ~ O/blue, 1 ~ X/red, -1 ~ [empty]
   guesses: (Country["iso"] | null)[][];
   turn: PlayerIndex;   // whose turn is it? 0/1
@@ -246,28 +245,35 @@ export class Game {
   winCoords: number[][] | null;  // coords of the winning formation
   winner: (PlayerIndex | NoPlayer) | null;
   turnCounter: number;
-  turnStartTimestamp?: number;
+  turnStartTimestamp: Date
+  createdAt: Date
+  finishedAt: Date | null
 
-  constructor(setup: GameSetup, users: string[], playingMode: PlayingMode, turn: PlayerIndex) {
-    this.setup = setup
-    this.users = users
-    this.playingMode = playingMode
-    this.marking = [...Array(setup.size)].map(x => [...Array(setup.size)].map(y => -1))
-    this.guesses = [...Array(setup.size)].map(x => [...Array(setup.size)].map(y => null))
-    this.turn = turn
-    this.state = GameState.Running
-    this.winner = null
-    this.winCoords = null
-    this.turnCounter = 0
-  }
+  /**
+   * Creates a Game instance from db input
+   */
+  constructor(game: DbGame, session: Session) {
+    this.setup = JSON.parse(game.setup)
+    this.language = this.setup.language as Language
+    this.users = session.users
+    this.playingMode = session.playingMode
 
-  static fromApi(data: GameProperties): Game {
-    // need to call constructor to provide class methods
-    const game = new Game(data.setup, data.users, data.playingMode, data.turn)
-    Object.entries(data).forEach(([k, v]) => {
-      (game as any)[k as keyof GameProperties] = v
+    this.marking = [...Array(this.setup.size)].map(x => [...Array(this.setup.size)].map(y => -1))
+    this.guesses = [...Array(this.setup.size)].map(x => [...Array(this.setup.size)].map(y => null))
+    game.markings.forEach(m => {
+      const i = this.setup.size - m.y
+      const j = m.x - 1
+      this.marking[i][j] = m.player as PlayerIndex
+      this.guesses[i][j] = m.value
     })
-    return game
+    this.turn = game.turn as PlayerIndex
+    this.state = game.state
+    this.winCoords = game.markings.filter(m => m.isWinning).map(m => [m.x, m.y])
+    this.winner = game.winner as (PlayerIndex | NoPlayer) | null
+    this.turnCounter = game.turnCounter
+    this.turnStartTimestamp = game.turnStartTimestamp
+    this.createdAt = game.createdAt
+    this.finishedAt = game.finishedAt
   }
 
   isDecided() {
@@ -298,4 +304,44 @@ export const parseCountry = (c: any) => {
     ([k, v]) => [_.camelCase(k.substring(0, k.length - 4)), v]
   ))
   return country
+}
+
+
+export async function chooseGameSetup(
+  language: Language,
+  filter: ((gameSetup: GameSetup) => boolean) | null = null
+): Promise<GameSetup | null> {
+
+  // const allFiles = await fs.readdir("./data")
+  // console.log(`all files: ${allFiles.join(", ")}`)
+
+  const dir = path.join(process.cwd(), 'public', 'data', 'games', language)
+  // const dir = `./data/games/${language}`
+  // console.log(`Listing game files in directory "${dir}"`)
+  try {
+    const files = await fs.readdir(dir)
+    if (!files.length) {
+      return null
+    }
+    const file = path.join(dir, _.max(files) ?? "")
+    console.log(`Read games from file ${file}`);
+    const data = await fs.readFile(file)
+    let gameSetups = JSON.parse(data).map((props: Omit<GameSetup, "props">) => ({
+      ...props,
+      language: language
+    })) as GameSetup[]
+
+    if (filter) {
+      gameSetups = gameSetups.filter(filter)
+    }
+    // console.log(`Choose game setup (out of ${gameSetups.length})`)
+    const gameSetup = randomChoice(gameSetups)
+    if (!gameSetup) {
+      return null
+    }
+    return gameSetup
+
+  } catch (err) {
+    return null
+  }
 }
