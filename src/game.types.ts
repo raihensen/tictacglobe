@@ -108,6 +108,16 @@ export enum RequestAction {
   InitSessionOffline = 10,
 }
 
+export function isIngameAction(action: RequestAction) {
+  return action == RequestAction.MakeGuess || action == RequestAction.EndTurn || action == RequestAction.TimeElapsed || action == RequestAction.RefreshGame || action == RequestAction.EndGame
+}
+export function isGameInitAction(action: RequestAction) {
+  return action == RequestAction.NewGame || action == RequestAction.ExistingOrNewGame
+}
+export function isSessionInitAction(action: RequestAction) {
+  return action == RequestAction.JoinSession || action == RequestAction.InitSessionFriend || action == RequestAction.InitSessionRandom || action == RequestAction.RefreshSession || action == RequestAction.InitSessionOffline
+}
+
 export type ScalarQuery = {
   userIdentifier: string;
   playingMode?: PlayingMode;
@@ -289,4 +299,3 @@ export const parseCountry = (c: any) => {
   ))
   return country
 }
-

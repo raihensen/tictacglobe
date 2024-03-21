@@ -1,6 +1,6 @@
 
 import { IncomingMessage, ServerResponse } from 'http';
-import { Game, GameSetup, Country, RequestAction, Query, PlayingMode, GameState, Language, parseCountry, defaultLanguage, PlayerIndex, GameSession, DifficultyLevel, Settings, settingsFromQuery, defaultSettings } from "@/src/game.types"
+import { Game, GameSetup, Country, RequestAction, Query, PlayingMode, GameState, Language, parseCountry, defaultLanguage, PlayerIndex, GameSession, DifficultyLevel, Settings, settingsFromQuery, defaultSettings, isIngameAction, isSessionInitAction, isGameInitAction } from "@/src/game.types"
 import { randomChoice } from "@/src/util";
 import _ from "lodash";
 import { v4 as uuidv4 } from "uuid";
@@ -239,16 +239,6 @@ async function getCountryData(language: Language): Promise<Country[] | null> {
   }
 }
 
-function isIngameAction(action: RequestAction) {
-  return action == RequestAction.MakeGuess || action == RequestAction.EndTurn || action == RequestAction.TimeElapsed || action == RequestAction.RefreshGame || action == RequestAction.EndGame
-}
-function isGameInitAction(action: RequestAction) {
-  return action == RequestAction.NewGame || action == RequestAction.ExistingOrNewGame
-}
-function isSessionInitAction(action: RequestAction) {
-  return action == RequestAction.JoinSession || action == RequestAction.InitSessionFriend || action == RequestAction.InitSessionRandom || action == RequestAction.RefreshSession || action == RequestAction.InitSessionOffline
-}
-
 type Request = IncomingMessage & { query: Query }
 
 async function executeAndRespond(
@@ -446,7 +436,7 @@ function joinSession(
   return true
 }
 
-const gameApi = async (req: Request, res: ServerResponse<Request>) => {
+async function gameApi(req: Request, res: ServerResponse<Request>) {
 
   const { userIdentifier, playingMode, invitationCode, action, player, difficulty, language }: Query = req.query as Query
 
@@ -603,8 +593,6 @@ const gameApi = async (req: Request, res: ServerResponse<Request>) => {
         
       }
     }
-
-    
 
   })
 

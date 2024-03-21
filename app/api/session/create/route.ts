@@ -1,43 +1,46 @@
 import { NextRequest, NextResponse } from "next/server";
-// import { Session, SessionState, Player, PlayerState } from "@/src/types";
-import { error, respond, refreshState } from "@/src/api.utils";
-import { PrismaClient, Topic } from '@prisma/client'
-import { generateInvitationCode } from "@/src/utils";
-import { SessionState } from "@/src/types";
+import { error, findSessionWithCurrentGame, invitationCodeAlive, respond } from "@/src/api.utils";
+import { PlayingMode, PrismaClient } from '@prisma/client'
+import { generateInvitationCode } from "@/src/api.utils";
 import { db } from "@/src/db";
-
-
-async function generateNewInvitationCode(db: PrismaClient) {
-  for (let i = 0; i < 10; i++) {
-    let invitationCode = generateInvitationCode()
-    if (!await db.session.findFirst({
-      where: {
-        invitationCode: invitationCode,
-        state: { not: SessionState.CLOSED }
-      }
-    })) {
-      return invitationCode
-    }
-  }
-  return false
-}
+import { RequestAction, defaultSettings } from "@/src/game.types";
 
 
 export async function POST(
   req: NextRequest,
   { params }: { params: {} }
 ) {
-  // POST to avoid caching
+  // need POST also to avoid caching
+  const data = Object.fromEntries((await req.formData()).entries())
 
-  const invitationCode = await generateNewInvitationCode(db)
-  if (!invitationCode) return error("Internal Server Error", 500)
+  const action = data.action as unknown as RequestAction
+  const name = data.name as unknown as string | undefined
+  
+  const playingMode = (action == RequestAction.InitSessionOffline ? PlayingMode.Offline : PlayingMode.Online)
+  const settings = defaultSettings
+
+  // Generate invitation code (if InitSessionFriend)
+  let invitationCode = null
+  if (action == RequestAction.InitSessionFriend) {
+    invitationCode = await generateNewInvitationCode(db)
+    if (!invitationCode) return error("Internal Server Error", 500)
+  }
+
+  // Create session in db
   const newSession = await db.session.create({
     data: {
       invitationCode: invitationCode,
-      state: SessionState.INIT
+      isPublic: action == RequestAction.InitSessionRandom,
+      settings: JSON.stringify(settings),
+      playingMode: playingMode,
+      users: {
+        create: {
+          name: name
+        }
+      }
     }
   })
-  const session = await db.session.findUnique({ where: { id: newSession.id }, include: { players: { include: { topics: true } } } })
+  const session = await findSessionWithCurrentGame(newSession.id)
   if (!session) return error("Internal Server Error", 500)
 
   return NextResponse.json({
@@ -45,5 +48,23 @@ export async function POST(
     success: true
   })
 
+}
+
+
+async function generateNewInvitationCode(db: PrismaClient): Promise<string | false> {
+  for (let i = 0; i < 10; i++) {
+    let invitationCode = generateInvitationCode(4)
+    if (!await db.session.findFirst({
+      where: {
+        AND: {
+          invitationCode: invitationCode,
+          ...invitationCodeAlive()
+        }
+      }
+    })) {
+      return invitationCode
+    }
+  }
+  return false
 }
 

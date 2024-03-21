@@ -1,10 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
-import { v4 as uuidv4 } from "uuid";
 
-import { Session, SessionState, Player, PlayerState } from "@/src/types";
-import { error, respond, refreshState } from "@/src/api.utils";
-import { PrismaClient, Topic } from '@prisma/client'
+import { error, invitationCodeAlive, sessionIncludeCurrentGame } from "@/src/api.utils";
 import { db } from "@/src/db";
+import { RequestAction } from "@/src/game.types";
 
 
 export async function POST(
@@ -12,40 +10,37 @@ export async function POST(
   { params }: { params: { code: string } }
 ) {
 
-  const data = await req.formData()
+  // need POST also to avoid caching
+  const data = Object.fromEntries((await req.formData()).entries())
+
+  const action = data.action as unknown as RequestAction
+  const name = data.name as unknown as string | undefined
 
   if (!params.code) return error("Invalid request", 400)
-  const session = await await db.session.findFirst({
+  const sessionFromCode = await db.session.findFirst({
     where: {
       invitationCode: params.code,
-      state: { not: SessionState.CLOSED }
-    },
-    include: { players: { include: { topics: true } } }
-  })
-  if (!session) return error("Session not found", 404)
-
-  const firstName = data.get("firstName") as string
-  const lastName = data.get("lastName") as string
-  if (!firstName || firstName.length == 0) return error("Missing first name", 400)
-  if (!lastName || lastName.length == 0) return error("Missing last name", 400)
-
-  const name = `${firstName} ${lastName}`
-  if (session.players.some(p => p.name == name)) return error(`Pick another name, ${name} is already playing!`)
-
-  const newPlayer = await db.player.create({
-    data: {
-      name: name,
-      firstName: firstName,
-      lastName: lastName,
-      state: PlayerState.JOINED,
-      sessionId: session.id
+      ...invitationCodeAlive()
     }
   })
-  const player = await db.player.findUnique({ where: { id: newPlayer.id }, include: { topics: true } })
-  if (!player) return error("Internal Server Error", 500)
+  if (!sessionFromCode) return error("Session not found", 404)
+  
+  const session = await db.session.update({
+    where: { id: sessionFromCode.id },
+    data: {
+      users: {
+        create: {
+          name: name
+        }
+      }
+    },
+    include: sessionIncludeCurrentGame
+  })
 
-  await refreshState(session)
-  return respond(session, player)
+  return NextResponse.json({
+    session: session,
+    success: true
+  })
 
 }
 

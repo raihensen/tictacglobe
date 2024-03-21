@@ -67,11 +67,12 @@ const IndexPage: React.FC<PageProps & IndexPageProps> = ({ gameInformationMarkdo
   }, [userIdentifier, searchParams])
 
   const { scheduleAutoRefresh, clearAutoRefresh } = useAutoRefresh(() => {
+    // TODO db route
     apiRequest(PlayingMode.Online, { action: RequestAction.RefreshSession }) },
     autoRefreshInterval
   )
 
-  function apiRequest(playingMode: PlayingMode, params: FrontendQuery) {
+  async function apiRequest(playingMode: PlayingMode, params: FrontendQuery) {
     const action = params.action
     if (!userIdentifier) {
       return false
@@ -93,58 +94,54 @@ const IndexPage: React.FC<PageProps & IndexPageProps> = ({ gameInformationMarkdo
     })
     console.log(`API request: ${url}`)
 
-    fetch(url)
-      .then(response => response.json())
-      .then(data => {
+    const data = await fetch(url).then(response => response.json())
 
-        // const newGame = data.game ? Game.fromApi(data.game) : null
-        const newSession = data.session ? data.session as SessionWithoutGames : null
-        const error = data.error ? data.error as string : null
+    // const newGame = data.game ? Game.fromApi(data.game) : null
+    const newSession = data.session ? data.session as SessionWithoutGames : null
+    const error = data.error ? data.error as string : null
 
-        setIsWaiting(false)
-        setSession(newSession)
+    setIsWaiting(false)
+    setSession(newSession)
 
-        if (error) {
-          setErrorMessage(error)
-          return false
-        } else {
-          setErrorMessage(false)
-        }
+    if (error) {
+      setErrorMessage(error)
+      return false
+    } else {
+      setErrorMessage(false)
+    }
 
-        if (!newSession) {
-          setErrorMessage("Error loading or creating the session.")
-          return false
-        }
-        console.log("Session: " + JSON.stringify(newSession))
+    if (!newSession) {
+      setErrorMessage("Error loading or creating the session.")
+      return false
+    }
+    console.log("Session: " + JSON.stringify(newSession))
 
-        // session is filled: forward to game page
-        if (playingMode == PlayingMode.Offline || newSession.users.length == 2) {
-          goToGame(router)
-          return true
-        }
+    // session is filled: forward to game page
+    if (playingMode == PlayingMode.Offline || newSession.users.length == 2) {
+      goToGame(router)
+      return true
+    }
 
-        if (action == RequestAction.InitSessionRandom) {
-          // session not filled yet, waiting for opponent
-          setState(PageState.WaitingForRandomOpponent)
-          scheduleAutoRefresh()
-        }
+    if (action == RequestAction.InitSessionRandom) {
+      // session not filled yet, waiting for opponent
+      setState(PageState.WaitingForRandomOpponent)
+      scheduleAutoRefresh()
+    }
 
-        if (action == RequestAction.InitSessionFriend) {
-          if (!newSession.invitationCode) {
-            setErrorMessage("Error loading or creating the session.")
-            return false
-          }
-          setState(PageState.WaitingForFriend)
-          scheduleAutoRefresh()
-        }
-        
-        if (action == RequestAction.RefreshSession) {
-          scheduleAutoRefresh()
-        }
+    if (action == RequestAction.InitSessionFriend) {
+      if (!newSession.invitationCode) {
+        setErrorMessage("Error loading or creating the session.")
+        return false
+      }
+      setState(PageState.WaitingForFriend)
+      scheduleAutoRefresh()
+    }
+    
+    if (action == RequestAction.RefreshSession) {
+      scheduleAutoRefresh()
+    }
 
-        return true
-
-      })
+    return true
   }
 
   const invitationCodeInputRef = useRef<HTMLInputElement | null>(null)
@@ -174,6 +171,7 @@ const IndexPage: React.FC<PageProps & IndexPageProps> = ({ gameInformationMarkdo
     if (isWaiting) {
       return false
     }
+    invitationCode = invitationCode.replaceAll(/[^A-Z0-9]/g, "")
     if (invitationCode.length != 4) {
       return false
     }
@@ -183,6 +181,12 @@ const IndexPage: React.FC<PageProps & IndexPageProps> = ({ gameInformationMarkdo
         invitationCode: invitationCode
       }
     )
+    const formData = new FormData()
+    formData.set("action", RequestAction.JoinSession.toString())
+    fetch(`api/code/${invitationCode}/join`, {
+      body: formData,
+      method: "POST"
+    })
     return true
   }
 
@@ -196,9 +200,22 @@ const IndexPage: React.FC<PageProps & IndexPageProps> = ({ gameInformationMarkdo
       <div style={{ display: "flex", flexDirection: "column", width: "250px", maxWidth: "90%", alignItems: "stretch" }}>
         <Button variant="danger" size="lg" className="mb-2" onClick={() => {
           apiRequest(PlayingMode.Online, { action: RequestAction.InitSessionRandom })
+          // TODO
+          const formData = new FormData()
+          formData.set("action", RequestAction.InitSessionRandom.toString())
+          fetch(`api/session/create`, {
+            body: formData,
+            method: "POST"
+          })
         }}>Search opponent</Button>
         <Button variant="warning" size="lg" className="mb-2" onClick={() => {
           apiRequest(PlayingMode.Online, { action: RequestAction.InitSessionFriend })
+          const formData = new FormData()
+          formData.set("action", RequestAction.InitSessionFriend.toString())
+          fetch(`api/session/create`, {
+            body: formData,
+            method: "POST"
+          })
         }}>Invite a friend</Button>
         <Button variant="warning" size="lg" className="mb-2" onClick={() => {
           setState(PageState.EnterCode)
@@ -206,6 +223,12 @@ const IndexPage: React.FC<PageProps & IndexPageProps> = ({ gameInformationMarkdo
         {/* <Button size="lg" className="mb-2">Online opponent</Button> */}
         <Button variant="primary" size="lg" className="mb-2" onClick={() => {
           apiRequest(PlayingMode.Offline, { action: RequestAction.InitSessionOffline })
+          const formData = new FormData()
+          formData.set("action", RequestAction.InitSessionOffline.toString())
+          fetch(`api/session/create`, {
+            body: formData,
+            method: "POST"
+          })
         }}>Same screen</Button>
       </div>
     </>)}

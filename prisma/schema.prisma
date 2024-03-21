@@ -23,6 +23,7 @@ model Session {
   score1         Int         @default(0)
   score2         Int         @default(0)
   settings       String      @db.Text
+  createdAt      DateTime    @default(now())
 }
 
 model User {
