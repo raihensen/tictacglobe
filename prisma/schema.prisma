@@ -11,70 +11,45 @@ datasource db {
   shadowDatabaseUrl = env("SHADOW_DATABASE_URL")
 }
 
-enum ItemType {
-  Country
+model Session {
+  id             Int         @id @default(autoincrement())
+  isPublic       Boolean
+  invitationCode String?
+  playingMode    PlayingMode
+  games          Game[]      @relation("SessionGame")
+  // currentGame    Game?       @relation("CurrentSessionGame", fields: [currentGameId], references: [id])
+  // currentGameId  Int?        @unique
+  users          User[]
+  score1         Int         @default(0)
+  score2         Int         @default(0)
+  settings       String      @db.Text
 }
 
-model Item {
-  id          Int          @id @default(autoincrement())
-  type        ItemType
-  key         String // country ISO code
-  name        String
-  countryData CountryData?
-
-  markings Marking[]
-
-  @@index(fields: [type, key])
+model User {
+  id        String    @id @default(uuid())
+  name      String?
+  createdAt DateTime  @default(now())
+  session   Session?  @relation(fields: [sessionId], references: [id])
+  sessionId Int?
+  markings  Marking[]
 }
-
-model CountryData {
-  id     Int  @id @default(autoincrement())
-  item   Item @relation(fields: [itemId], references: [id])
-  itemId Int  @unique
-  
-  name String
-  capital String
-  population Int
-  area Int
-  flagColors String  // TODO comma-separated? JSON encoded?
-  maxElevation Int
-  maxElevationName String
-  minElevation Int
-  minElevationName String
-
-  // TODO
-    // alternative values
-    // multi-language
-
-}
-
-// model CityData {
-//   id     Int  @id @default(autoincrement())
-//   item   Item @relation(fields: [itemId], references: [id])
-//   itemId Int  @unique
-//   // ...
-// }
 
 model Game {
-  id                 Int         @id @default(autoincrement())
-  setup              Json
-  user1              String
-  user2              String?
+  id                 Int       @id @default(autoincrement())
+  setup              String    @db.Text
   turn               Int
-  playingMode        PlayingMode
-  state              GameState   @default(Initialized)
+  state              GameState @default(Initialized)
+  markings           Marking[]
   winner             Int?
-  turnCounter        Int         @default(0)
-  turnStartTimeStamp DateTime    @default(now())
-  createdAt          DateTime    @default(now())
+  turnCounter        Int       @default(0)
+  turnStartTimeStamp DateTime  @default(now())
+  createdAt          DateTime  @default(now())
   finishedAt         DateTime?
 
-  markings Marking[]
+  session   Session @relation(name: "SessionGame", fields: [sessionId], references: [id])
+  sessionId Int
+  // sessionCurrentGame Session? @relation(name: "CurrentSessionGame")
 }
-
-// model Session {
-
-// }
 
 enum PlayingMode {
   Offline
@@ -93,9 +68,55 @@ model Marking {
   id        Int      @id @default(autoincrement())
   game      Game     @relation(fields: [gameId], references: [id])
   gameId    Int
-  item      Item     @relation(fields: [itemId], references: [id])
-  itemId    Int
+  value     String
+  // item      Item     @relation(fields: [itemId], references: [id])
+  // itemId    Int
   player    Int
+  user      User     @relation(fields: [userId], references: [id])
+  userId    String
   isWinning Boolean  @default(false)
   createdAt DateTime @default(now())
 }
+
+// enum ItemType {
+//   Country
+// }
+
+// model Item {
+//   id   Int      @id @default(autoincrement())
+//   type ItemType
+//   key  String // country ISO code
+//   name String
+
+//   // countryData CountryData?
+//   // markings Marking[]
+
+//   @@index(fields: [type, key])
+// }
+
+// model CountryData {
+//   id     Int  @id @default(autoincrement())
+//   item   Item @relation(fields: [itemId], references: [id])
+//   itemId Int  @unique
+
+//   name             String
+//   capital          String
+//   population       Int
+//   area             Int
+//   flagColors       String // TODO comma-separated? JSON encoded?
+//   maxElevation     Int
+//   maxElevationName String
+//   minElevation     Int
+//   minElevationName String
+
+//   // TODO
+//   // alternative values
+//   // multi-language
+// }
+
+// model CityData {
+//   id     Int  @id @default(autoincrement())
+//   item   Item @relation(fields: [itemId], references: [id])
+//   itemId Int  @unique
+//   // ...
+// }
