@@ -8,7 +8,7 @@ import { useTranslation } from 'next-i18next'
 import { serverSideTranslations } from 'next-i18next/serverSideTranslations'
 
 import { Settings, defaultSettings, Game, Country, Category, RequestAction, FrontendQuery, Language, defaultLanguage, autoRefreshInterval, settingsChanged } from "@/src/game.types"
-import { GET, capitalize, readReadme, useAutoRefresh } from "@/src/util"
+import { GET, capitalize, getLocalStorage, readReadme, setLocalStorage, useAutoRefresh } from "@/src/util"
 import _ from "lodash";
 var fs = require('fs').promises;
 
@@ -51,12 +51,29 @@ const GamePage: React.FC<PageProps & GamePageProps> = ({
   const { game, setGame } = useTtgStore.useState.game()
 
   useEffect(() => {
-    if (user && session && !game) {
+    if (!user) return
+    
+    // TODO move to _app?
+    if (!session) {
+      const storedSessionId = getLocalStorage("tictacglobe:sessionId", null)
+      if (!storedSessionId) return
+      loadGame(storedSessionId)
+    } else if (session && !game) {
       // First client-side init with user set
-      console.log(`First client-side init (GamePage) - userId ${user.id}`)
-      apiRequest(`api/session/${session.id}/user/${user.id}/game`, { action: RequestAction.ExistingOrNewGame })
+      loadGame(session.id)
+    }
+    async function loadGame(sessionId: number) {
+      if (!user) return
+      console.log(`First client-side init (GamePage) - userId ${user.id} - sessionId ${sessionId}`)
+      apiRequest(`api/session/${sessionId}/user/${user.id}/game`, { action: RequestAction.ExistingOrNewGame })
     }
   }, [user, game, session])
+
+  useEffect(() => {
+    if (session) {
+      setLocalStorage("tictacglobe:sessionId", session.id)
+    }
+  }, [session])
 
   const router = useRouter()
   const { t, i18n } = useTranslation('common')
@@ -86,9 +103,9 @@ const GamePage: React.FC<PageProps & GamePageProps> = ({
   const { data: categories, mutate: mutateCategories, error: categoriesError, isLoading: isLoadingCategories } = useSWR<Category[]>(`/api/categories?language=${router.locale}`, GET)
 
   const { scheduleAutoRefresh, clearAutoRefresh } = useAutoRefresh(() => {
-
+    if (!game) return
     console.log("auto refresh disabled")
-    // apiRequest({ action: RequestAction.RefreshGame })
+    apiRequest(`api/game/${game.id}/refresh`, { action: RequestAction.RefreshGame })
   }, autoRefreshInterval)
 
   useEffect(() => {
