@@ -1,13 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
 import { error, sessionIncludeCurrentGame } from "@/src/api.utils";
 import { db } from "@/src/db";
-import { GameSetup, Language, Settings, chooseGameSetup } from "@/src/game.types";
+import { GameSetup, Language, Settings } from "@/src/game.types";
+import { chooseGameSetup } from "@/src/backend.util";
 
 /**
  * For the given session and user, returns the currently running game.
  * If the session has no running game, or it is forced (?newGame), a new game is created.
  */
-export async function GET(
+export async function POST(
   req: NextRequest,
   { params }: { params: { session: string, user: string } }
 ) {

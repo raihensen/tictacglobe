@@ -1,4 +1,4 @@
-
+"use client"
 import Button from "react-bootstrap/Button";
 import Alert from 'react-bootstrap/Alert';
 
@@ -7,7 +7,7 @@ import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'next-i18next'
 import { serverSideTranslations } from 'next-i18next/serverSideTranslations'
 
-import { Settings, defaultSettings, Game, Country, Category, RequestAction, FrontendQuery, PlayingMode, GameState, Language, SessionWithoutGames, defaultLanguage, PlayerIndex, autoRefreshInterval, Query, settingsToQuery, settingsChanged, getApiUrl } from "@/src/game.types"
+import { Settings, defaultSettings, Game, Country, Category, RequestAction, FrontendQuery, Language, defaultLanguage, autoRefreshInterval, settingsChanged } from "@/src/game.types"
 import { GET, capitalize, readReadme, useAutoRefresh } from "@/src/util"
 import _ from "lodash";
 var fs = require('fs').promises;
@@ -15,21 +15,20 @@ var fs = require('fs').promises;
 import RemoteTimer from "@/components/Timer";
 import Field from "@/components/Field";
 import { TableHeading } from '@/components/TableHeading';
-import { FaArrowsRotate, FaBars, FaCircleInfo, FaEllipsis, FaGear, FaMoon, FaPause, FaPaypal, FaPersonCircleXmark, FaPlay, FaXmark } from "react-icons/fa6";
+import { FaArrowsRotate, FaEllipsis, FaPersonCircleXmark, FaXmark } from "react-icons/fa6";
 import { useRouter } from "next/router";
 import type { GetServerSideProps } from 'next'
 import { PageProps } from "./_app";
-import { SettingsModal, useSettings, LanguageSelector, changeLanguage } from "@/components/Settings";
-import { ButtonToolbar, IconButton, PlayerBadge, GameTable, HeaderStyle } from "@/components/styles";
+import { SettingsModal, changeLanguage } from "@/components/Settings";
+import { ButtonToolbar, IconButton, PlayerBadge, GameTable } from "@/components/styles";
 import { MarkdownModal } from "@/components/MarkdownModal";
 import Header from "@/components/Header";
 import { DonationModal, ShareButtonProps } from "@/components/Share";
 import useSWR from "swr";
-import axios from "axios";
 import { useConfirmation } from "@/components/common/Confirmation";
 import { useTtgStore } from "@/src/zustand";
 import { Session, Game as DbGame } from "@/src/db.types";
-import { User } from "@prisma/client";
+import { GameState, PlayingMode, User } from "@prisma/client";
 
 export type ApiResponse = {
   session: Session
@@ -48,14 +47,16 @@ const GamePage: React.FC<PageProps & GamePageProps> = ({
 }) => {
   const confirm = useConfirmation()
   const user = useTtgStore.use.user()
+  const { session, setSession } = useTtgStore.useState.session()
+  const { game, setGame } = useTtgStore.useState.game()
 
   useEffect(() => {
-    if (user) {
+    if (user && session && !game) {
       // First client-side init with user set
       console.log(`First client-side init (GamePage) - userId ${user.id}`)
-      apiRequest({ action: RequestAction.ExistingOrNewGame })
+      apiRequest(`api/session/${session.id}/user/${user.id}/game`, { action: RequestAction.ExistingOrNewGame })
     }
-  }, [user])
+  }, [user, game, session])
 
   const router = useRouter()
   const { t, i18n } = useTranslation('common')
@@ -71,8 +72,6 @@ const GamePage: React.FC<PageProps & GamePageProps> = ({
     onShare: () => setShowDonationModal(true)
   }
 
-  const { session, setSession } = useTtgStore.useState.session()
-  const { game, setGame } = useTtgStore.useState.game()
   const opponentUser = session?.users.filter(u => u.id != user?.id)[0]
 
   const [notifyDecided, setNotifyDecided] = useState<boolean>(false)
@@ -87,7 +86,9 @@ const GamePage: React.FC<PageProps & GamePageProps> = ({
   const { data: categories, mutate: mutateCategories, error: categoriesError, isLoading: isLoadingCategories } = useSWR<Category[]>(`/api/categories?language=${router.locale}`, GET)
 
   const { scheduleAutoRefresh, clearAutoRefresh } = useAutoRefresh(() => {
-    apiRequest({ action: RequestAction.RefreshGame })
+
+    console.log("auto refresh disabled")
+    // apiRequest({ action: RequestAction.RefreshGame })
   }, autoRefreshInterval)
 
   useEffect(() => {
@@ -95,35 +96,33 @@ const GamePage: React.FC<PageProps & GamePageProps> = ({
   }, [settings])
 
   async function apiRequest(
-    exec: false | (() => Promise<any>),
+    url: string,
     params: FrontendQuery
   ) {
+    const { action } = params
     if (!user) {
       return false
     }
     clearAutoRefresh()
 
-    if (params.action != RequestAction.RefreshGame) {
-      setLoadingText(params.action == RequestAction.MakeGuess ? "Submitting guess" : "Loading")
+    if (action != RequestAction.RefreshGame) {
+      setLoadingText(action == RequestAction.MakeGuess ? "Submitting guess" : "Loading")
       if (timerRef.current) {
         (timerRef.current as any).stop()
       }
     }
-
-    // Fetch the game data from the server
-    // const url = getApiUrl({
-    //   userIdentifier: userIdentifier,
-    //   ...params
-    // }, {
-    //   settings: settings,
-    //   router: router
-    // })
-    // console.log(`API request: ${url}`)
-    if (!exec) {
-      console.warn("Change to new apiRequest!")
-      return
+    
+    const formData = new FormData()
+    formData.set("action", action.toString())
+    formData.set("user", user.id.toString())
+    if (game) {
+      formData.set("turn", game?.turnCounter.toString())
     }
-    const res = await exec()
+    if (!url.startsWith("/")) url = "/" + url
+    const res = await fetch(url, {
+      body: formData,
+      method: "POST"
+    })
     const data = await res.json() as ApiResponse
     
     if ("error" in data || !data.session || !data.game) {
@@ -141,7 +140,8 @@ const GamePage: React.FC<PageProps & GamePageProps> = ({
     setGame(newGameInstance)
 
     setTurnStartTimestamp(oldValue => {
-      const newValue = data.game.turnStartTimestamp.getTime()
+      
+      const newValue = newGameInstance.turnStartTimestamp.getTime()
       if (newValue != oldValue) {
         console.log(`turnStartTimestamp changed by a difference of ${newValue - oldValue}`)
       }
@@ -245,7 +245,7 @@ const GamePage: React.FC<PageProps & GamePageProps> = ({
     />
     {/* {(isClient && isCustomUserIdentifier) && (<h3>User: {userIdentifier}</h3>)} */}
     <p>You: {user?.name ?? <span className="text-muted small">{user?.id ?? "null"}</span>}</p>
-    <p>You: {opponentUser?.name ?? <span className="text-muted small">{opponentUser?.id ?? "null"}</span>}</p>
+    <p>Your opponent: {opponentUser?.name ?? <span className="text-muted small">{opponentUser?.id ?? "null"}</span>}</p>
     {(hasError && errorMessage) && <Alert variant="danger">Error: {errorMessage}</Alert>}
     {hasError && (<>
       <p>
@@ -281,7 +281,9 @@ const GamePage: React.FC<PageProps & GamePageProps> = ({
             )}
             {canEndTurn(game, notifyDecided) && (<>
               <IconButton label={t("endTurn")} variant="warning" onClick={() => {
-                apiRequest({ action: RequestAction.EndTurn, player: game.turn })
+                apiRequest(`api/game/${game?.id}/endTurn`, {
+                  action: RequestAction.EndTurn,
+                })
               }}><FaPersonCircleXmark /></IconButton>
             </>)}
           </>)}
@@ -321,14 +323,17 @@ const GamePage: React.FC<PageProps & GamePageProps> = ({
                       initialTime={settings.timeLimit * 1000}
                       onElapsed={() => {
                         console.log(`Timer elapsed --- ${hasTurn ? "hasTurn = true" : "hasTurn = false"}`)
-                        if (hasTurn) {
-                          apiRequest({
-                            action: RequestAction.TimeElapsed,
-                            player: game.turn
-                          })
-                        } else {
-                          apiRequest({ action: RequestAction.RefreshGame })
-                        }
+                        
+                        // TODO
+                        
+                        // if (hasTurn) {
+                        //   apiRequest({
+                        //     action: RequestAction.TimeElapsed,
+                        //     player: game.turn
+                        //   })
+                        // } else {
+                        //   apiRequest({ action: RequestAction.RefreshGame })
+                        // }
                       }}
                     />
                   </>)}

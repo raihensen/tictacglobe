@@ -17,14 +17,29 @@ export function error(msg: string, status: number = 400) {
   })
 }
 
-export function respond(session: Session, game?: Game) {
-
-  return NextResponse.json({
-    success: true,
-    session,
-    game
+export async function switchTurns(game: Game) {
+  return db.game.update({
+    where: {
+      id: game.id
+    },
+    data: {
+      turn: 1 - game.turn,
+      turnCounter: {
+        increment: 1
+      },
+      turnStartTimestamp: new Date()
+    },
+    include: gameIncludeIngameData
   })
+}
 
+export const gameIncludeIngameData = {
+  markings: true,
+  session: {
+    include: {
+      users: true
+    }
+  }
 }
 
 export async function joinSession(sessionId: number, name?: string) {

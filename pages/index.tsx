@@ -1,4 +1,4 @@
-
+"use client"
 
 import { NextRouter, useRouter } from "next/router";
 import { useSearchParams } from 'next/navigation';
@@ -81,7 +81,7 @@ const IndexPage: React.FC<PageProps & IndexPageProps> = ({
   const { scheduleAutoRefresh, clearAutoRefresh } = useAutoRefresh((sessionId: number | null) => {
       apiRequest(async () => {
         if (!sessionId) return false
-        return fetch(`api/session/${sessionId}/refresh`, {
+        return fetch(`/api/session/${sessionId}/refresh`, {
           method: "GET"
         })
       }, RequestAction.RefreshSession)
@@ -93,9 +93,6 @@ const IndexPage: React.FC<PageProps & IndexPageProps> = ({
     exec: () => Promise<any>,
     action: RequestAction
   ) {
-    if (!user) {
-      return false
-    }
     if (isWaiting) {
       return false
     }
@@ -184,7 +181,7 @@ const IndexPage: React.FC<PageProps & IndexPageProps> = ({
       () => {
         const formData = new FormData()
         formData.set("action", RequestAction.JoinSession.toString())
-        return fetch(`api/code/${invitationCode}/join`, {
+        return fetch(`/api/code/${invitationCode}/join`, {
           body: formData,
           method: "POST"
         })
@@ -211,7 +208,7 @@ const IndexPage: React.FC<PageProps & IndexPageProps> = ({
             () => {
               const formData = new FormData()
               formData.set("action", RequestAction.InitSessionRandom.toString())
-              return fetch(`api/session/create`, {
+              return fetch(`/api/session/create`, {
                 body: formData,
                 method: "POST"
               })
@@ -224,7 +221,7 @@ const IndexPage: React.FC<PageProps & IndexPageProps> = ({
             () => {
               const formData = new FormData()
               formData.set("action", RequestAction.InitSessionFriend.toString())
-              return fetch(`api/session/create`, {
+              return fetch(`/api/session/create`, {
                 body: formData,
                 method: "POST"
               })
@@ -241,7 +238,7 @@ const IndexPage: React.FC<PageProps & IndexPageProps> = ({
             () => {
               const formData = new FormData()
               formData.set("action", RequestAction.InitSessionOffline.toString())
-              return fetch(`api/session/create`, {
+              return fetch(`/api/session/create`, {
                 body: formData,
                 method: "POST"
               })

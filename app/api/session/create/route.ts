@@ -46,7 +46,7 @@ export async function POST(
     if (availableSessions.length) {
       const sessionToJoin = availableSessions[0]
       const { session, user } = await joinSession(sessionToJoin.id, name)
-      console.log("Joined", session)
+      
       if (!session) return error("Internal Server Error", 500)
       return NextResponse.json({
         user: user,

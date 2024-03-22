@@ -1,3 +1,4 @@
+"use client"
 
 import type { AppProps } from 'next/app'
 import { appWithTranslation } from 'next-i18next'
@@ -48,7 +49,7 @@ const MyApp: React.FC<AppProps<InitialPageProps>> = ({ Component, pageProps }) =
     async function effect() {
       const storedUserId = getLocalStorage("tictacglobe:userId", null)
       if (storedUserId && !user) {
-        const data = await fetch(`api/user/${storedUserId}`).then(res => res.json())
+        const data = await fetch(`/api/user/${storedUserId}`).then(res => res.json())
         if ("user" in data) {
           setUser(data.user)
         }

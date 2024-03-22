@@ -1,9 +1,6 @@
 
 import _ from "lodash";
 import { NextRouter } from "next/router";
-import { randomChoice } from "./util";
-import path from "path";
-var fs = require('fs').promises;
 import { Session, Game as DbGame } from "@/src/db.types";
 import { GameState, PlayingMode, User } from "@prisma/client";
 
@@ -234,6 +231,7 @@ export type PlayerIndex = 0 | 1;
 export type NoPlayer = -1;
 
 export class Game {
+  id: number
   setup: GameSetup;
   language: Language;
   users: User[];  // index: 0 ~ O/blue, 1 ~ X/red
@@ -253,6 +251,7 @@ export class Game {
    * Creates a Game instance from db input
    */
   constructor(game: DbGame, session: Session) {
+    this.id = game.id
     this.setup = JSON.parse(game.setup)
     this.language = this.setup.language as Language
     this.users = session.users
@@ -261,8 +260,7 @@ export class Game {
     this.marking = [...Array(this.setup.size)].map(x => [...Array(this.setup.size)].map(y => -1))
     this.guesses = [...Array(this.setup.size)].map(x => [...Array(this.setup.size)].map(y => null))
     game.markings.forEach(m => {
-      const i = this.setup.size - m.y
-      const j = m.x - 1
+      const { i, j } = this.getIJ(m.x, m.y)
       this.marking[i][j] = m.player as PlayerIndex
       this.guesses[i][j] = m.value
     })
@@ -271,17 +269,27 @@ export class Game {
     this.winCoords = game.markings.filter(m => m.isWinning).map(m => [m.x, m.y])
     this.winner = game.winner as (PlayerIndex | NoPlayer) | null
     this.turnCounter = game.turnCounter
-    this.turnStartTimestamp = game.turnStartTimestamp
-    this.createdAt = game.createdAt
-    this.finishedAt = game.finishedAt
+  
+    this.turnStartTimestamp = new Date(game.turnStartTimestamp)
+    this.createdAt = new Date(game.createdAt)
+    this.finishedAt = game.finishedAt ? new Date(game.finishedAt) : null
   }
 
   isDecided() {
     return this.state == GameState.Decided || this.state == GameState.Finished || this.state == GameState.Ended
   }
 
-  isValidGuess(i: number, j: number, country: Country) {
+  isValidGuess(x: number, y: number, country: Country) {
+    const { i, j } = this.getIJ(x, y)
     return this.setup.solutions[i][j].concat(this.setup.alternativeSolutions[i][j]).includes(country.iso)
+  }
+
+  getIJ(x: number, y: number) {
+    return { i: this.setup.size - y , j: x - 1 }
+  }
+
+  getXY(i: number, j: number) {
+    return { x: j + 1, y: this.setup.size - i }
   }
 
 }
@@ -304,44 +312,4 @@ export const parseCountry = (c: any) => {
     ([k, v]) => [_.camelCase(k.substring(0, k.length - 4)), v]
   ))
   return country
-}
-
-
-export async function chooseGameSetup(
-  language: Language,
-  filter: ((gameSetup: GameSetup) => boolean) | null = null
-): Promise<GameSetup | null> {
-
-  // const allFiles = await fs.readdir("./data")
-  // console.log(`all files: ${allFiles.join(", ")}`)
-
-  const dir = path.join(process.cwd(), 'public', 'data', 'games', language)
-  // const dir = `./data/games/${language}`
-  // console.log(`Listing game files in directory "${dir}"`)
-  try {
-    const files = await fs.readdir(dir)
-    if (!files.length) {
-      return null
-    }
-    const file = path.join(dir, _.max(files) ?? "")
-    console.log(`Read games from file ${file}`);
-    const data = await fs.readFile(file)
-    let gameSetups = JSON.parse(data).map((props: Omit<GameSetup, "props">) => ({
-      ...props,
-      language: language
-    })) as GameSetup[]
-
-    if (filter) {
-      gameSetups = gameSetups.filter(filter)
-    }
-    // console.log(`Choose game setup (out of ${gameSetups.length})`)
-    const gameSetup = randomChoice(gameSetups)
-    if (!gameSetup) {
-      return null
-    }
-    return gameSetup
-
-  } catch (err) {
-    return null
-  }
 }

@@ -9,7 +9,6 @@ import { Button, Col, ColProps, Modal, OverlayTrigger, Row, RowProps, Tooltip } 
 import { CircleFlag } from 'react-circle-flags'
 import { useTranslation } from "next-i18next";
 import _ from "lodash";
-import { randomChoice } from "@/src/util";
 import { TableCellInner, MarkingBackground } from "@/components/styles";
 import CountryAutoComplete from "./Autocomplete";
 import { getCategoryInfo, translateCategory, ContinentIcon } from "./TableHeading";
@@ -48,7 +47,7 @@ const Field = ({ pos, setActive, setIsSearching, game, row, col, apiRequest, has
   const { t, i18n } = useTranslation('common')
   const [i, j] = pos
   const solutions = countries.filter(c => game.setup.solutions[i][j].includes(c.iso))
-  const [exampleSolution, setExampleSolution] = useState<Country>(randomChoice(solutions) as Country)
+  const [exampleSolution, setExampleSolution] = useState<Country>(_.sample(solutions) as Country)
   const alternativeSolutions = countries.filter(c => game.setup.alternativeSolutions[i][j].includes(c.iso))
   const initFieldState = (game: Game) => ({
     guess: countries.find(c => c.iso == game.guesses[i][j]) ?? null,

@@ -13,6 +13,10 @@ export async function POST(
   const userId = data.user as string
   if (!userId) return error("Invalid request")
 
+  if (!data.turn) return error("Invalid request")
+  const turnCounter = Number.parseInt(data.turn as string)
+  if (!turnCounter && turnCounter !== 0) return error("Invalid request")
+
   let game = await db.game.findUnique({
     where: {
       id: gameId
@@ -21,7 +25,10 @@ export async function POST(
   })
 
   if (!game) return error("Game not found", 404)
-  if (!game.session.users.map(u => u.id).includes(userId)) return error("User not part of the session", 403)
+  if (game.session.users[game.turn].id != userId) return error("It's not your turn", 403)
+  if (game.turnCounter != turnCounter) return error("Invalid turn counter", 420)
+
+  game = await switchTurns(game)
 
   const session = await db.session.findUnique({
     where: { id: game.sessionId },

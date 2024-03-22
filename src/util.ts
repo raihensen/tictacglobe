@@ -14,13 +14,6 @@ export async function GET<T>(url: string): Promise<T> {
 
 export const capitalize = <T extends string>(s: T) => (s[0].toUpperCase() + s.slice(1)) as Capitalize<typeof s>;
 
-export function randomChoice<T>(arr: Array<T>): T | undefined {
-  if (!arr.length) {
-    return undefined
-  }
-  return arr[Math.floor(arr.length * Math.random())];
-}
-
 /**
  * localStorage.getItem() wrapper, using JSON encoding
  * @param key 
