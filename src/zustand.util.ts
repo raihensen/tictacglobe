@@ -1,6 +1,6 @@
-import { StoreApi, UseBoundStore } from "zustand";
-import { Dispatch, SetStateAction, useState } from "react";
 import _ from "lodash";
+import { Dispatch, SetStateAction } from "react";
+import { StoreApi, UseBoundStore } from "zustand";
 
 
 type CapitalizeStr<S extends string> = S extends `${infer First}${infer Rest}` ? `${Uppercase<First>}${Rest}` : S

@@ -1,17 +1,16 @@
 
 import 'bootstrap/dist/css/bootstrap.min.css';
+import { useTranslation } from 'next-i18next';
 import { useState } from 'react';
-import { useTranslation } from 'next-i18next'
 
-import { Game, defaultLanguage, ApiHandler } from "@/src/game.types"
-import _ from "lodash";
+import { ApiHandler, Game, defaultLanguage } from "@/src/game.types";
 
-import { FaBars, FaCircleInfo, FaGear, FaMoon, FaXmark } from "react-icons/fa6";
-import { useRouter } from "next/router";
 import { LanguageSelector, changeLanguage } from "@/components/Settings";
-import { ButtonToolbar, IconButton, HeaderStyle } from "@/components/styles";
-import Image from "next/image";
 import ShareButton, { ShareButtonProps } from "@/components/Share";
+import { ButtonToolbar, HeaderStyle, IconButton } from "@/components/styles";
+import Image from "next/image";
+import { useRouter } from "next/router";
+import { FaBars, FaCircleInfo, FaGear, FaMoon, FaXmark } from "react-icons/fa6";
 import { useConfirmation } from './common/Confirmation';
 
 

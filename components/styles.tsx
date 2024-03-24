@@ -1,11 +1,10 @@
 
+import { Modal } from "react-bootstrap";
 import Button, { ButtonProps } from "react-bootstrap/Button";
+import BsButtonToolbar from "react-bootstrap/ButtonToolbar";
 import Dropdown from "react-bootstrap/Dropdown";
 import Tooltip from "react-bootstrap/Tooltip";
-import BsButtonToolbar from "react-bootstrap/ButtonToolbar";
 import styled from "styled-components";
-import { Modal, ModalDialog } from "react-bootstrap";
-import { PropsWithRef } from "react";
 
 const breakpointsMin = {
   xs: 0,

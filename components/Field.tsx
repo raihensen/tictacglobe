@@ -1,18 +1,19 @@
 
-import styled from "styled-components";
+import { ApiHandler, Category, CategoryValue, Country, FieldSettings, Game } from "@/src/game.types";
 import { ReactNode, forwardRef, useEffect, useId, useState } from 'react';
-import { Game, Country, CategoryValue, FieldSettings, Category, ApiHandler } from "@/src/game.types"
+import styled from "styled-components";
 
+import { MarkingBackground, TableCellInner } from "@/components/styles";
+import { GameState } from "@prisma/client";
+import _ from "lodash";
+import { useTranslation } from "next-i18next";
+import { Button, Col, ColProps, Modal, OverlayTrigger, Row, RowProps, Tooltip } from "react-bootstrap";
 import { PlusCircleFill } from 'react-bootstrap-icons';
 import Badge, { BadgeProps } from 'react-bootstrap/Badge';
-import { Button, Col, ColProps, Modal, OverlayTrigger, Row, RowProps, Tooltip } from "react-bootstrap";
-import { CircleFlag } from 'react-circle-flags'
-import { useTranslation } from "next-i18next";
-import _ from "lodash";
-import { TableCellInner, MarkingBackground } from "@/components/styles";
-import CountryAutoComplete from "./Autocomplete";
-import { getCategoryInfo, translateCategory, ContinentIcon } from "./TableHeading";
+import { CircleFlag } from 'react-circle-flags';
 import { FaMountain } from "react-icons/fa6";
+import CountryAutoComplete from "./Autocomplete";
+import { ContinentIcon, getCategoryInfo, translateCategory } from "./TableHeading";
 
 enum FieldMode {
   INITIAL = 0,

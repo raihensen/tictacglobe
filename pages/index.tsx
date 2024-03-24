@@ -1,30 +1,28 @@
 "use client"
 
-import { NextRouter, useRouter } from "next/router";
-import { useSearchParams } from 'next/navigation';
-import { useEffect, useRef, useState } from 'react';
-import { useTranslation } from 'next-i18next'
+import { useTranslation } from 'next-i18next';
 import { serverSideTranslations } from "next-i18next/serverSideTranslations";
+import { useSearchParams } from 'next/navigation';
+import { NextRouter, useRouter } from "next/router";
+import { useEffect, useRef, useState } from 'react';
 
-import { RequestAction, autoRefreshInterval, defaultLanguage } from "@/src/game.types"
-import { readReadme, setLocalStorage, useAutoRefresh } from "@/src/util"
-import type { GetServerSideProps } from 'next'
+import { RequestAction, autoRefreshInterval, defaultLanguage } from "@/src/game.types";
+import { readReadme, setLocalStorage, useAutoRefresh } from "@/src/util";
+import type { GetServerSideProps } from 'next';
 import { PageProps } from "./_app";
-import _ from "lodash";
 var fs = require('fs').promises;
 
-import 'bootstrap/dist/css/bootstrap.min.css';
-import styled from "styled-components";
-import { FaCircleInfo } from "react-icons/fa6";
 import { MarkdownModal } from "@/components/MarkdownModal";
+import ShareButton, { DonationModal, ShareButtonProps } from "@/components/Share";
+import { ButtonToolbar, IconButton } from "@/components/styles";
+import { Session } from "@/src/db.types";
+import { useTtgStore } from "@/src/zustand";
+import { PlayingMode, User } from "@prisma/client";
+import 'bootstrap/dist/css/bootstrap.min.css';
 import Button from "react-bootstrap/Button";
 import Form from 'react-bootstrap/Form';
 import InputGroup from 'react-bootstrap/InputGroup';
-import { ButtonToolbar, IconButton } from "@/components/styles";
-import ShareButton, { DonationModal, ShareButtonProps } from "@/components/Share";
-import { Session } from "@/src/db.types";
-import { PlayingMode, User } from "@prisma/client";
-import { useTtgStore } from "@/src/zustand";
+import { FaCircleInfo } from "react-icons/fa6";
 
 export type ApiResponse = {
   session: Session

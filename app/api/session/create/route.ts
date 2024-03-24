@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { error, findSessionWithCurrentGame, invitationCodeAlive, joinSession, respond } from "@/src/api.utils";
+import { error, findSessionWithCurrentGame, invitationCodeAlive, joinSession } from "@/src/api.utils";
 import { PlayingMode, PrismaClient } from '@prisma/client'
 import { generateInvitationCode } from "@/src/api.utils";
 import { db } from "@/src/db";

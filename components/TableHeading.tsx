@@ -1,13 +1,13 @@
 
-import { FaBuildingColumns, FaFlag, FaEarthAmericas, FaEarthAfrica, FaEarthAsia, FaEarthEurope, FaEarthOceania, FaWater, FaSlash, FaCircle, FaPeopleGroup, FaMinimize, FaMaximize, FaUsersSlash, FaUsers, FaMountain } from "react-icons/fa6";
-import { OverlayTrigger, Tooltip } from "react-bootstrap";
-import styled from "styled-components";
-import { forwardRef, useId } from "react";
 import { CategoryValue } from "@/src/game.types";
 import { TFunction, useTranslation } from "next-i18next";
+import { forwardRef, useId } from "react";
+import { OverlayTrigger, Tooltip } from "react-bootstrap";
+import { FaBuildingColumns, FaCircle, FaEarthAfrica, FaEarthAmericas, FaEarthAsia, FaEarthEurope, FaEarthOceania, FaFlag, FaMaximize, FaMinimize, FaMountain, FaUsers, FaWater } from "react-icons/fa6";
+import styled from "styled-components";
 
-import _ from "lodash";
 import { addClassName } from "@/src/util";
+import _ from "lodash";
 import { IconBaseProps, IconType } from "react-icons";
 
 const simpleCategoryIcons: { [category: string]: React.FC<IconBaseProps> } = {

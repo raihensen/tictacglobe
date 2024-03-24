@@ -1,15 +1,13 @@
 "use client"
 
-import type { AppProps } from 'next/app'
-import { appWithTranslation } from 'next-i18next'
-import { getLocalStorage, useDarkMode, useIsClient } from '@/src/util'
-import { NextComponentType } from 'next'
 import Layout from '@/components/Layout'
-import { useEffect, useState } from 'react'
-import { useSearchParams } from 'next/navigation'
-import Alert from 'react-bootstrap/Alert'
 import ConfirmationModalProvider from '@/components/common/Confirmation'
+import { getLocalStorage, useDarkMode, useIsClient } from '@/src/util'
 import { useTtgStore } from '@/src/zustand'
+import { appWithTranslation } from 'next-i18next'
+import type { AppProps } from 'next/app'
+import { useSearchParams } from 'next/navigation'
+import { useEffect, useState } from 'react'
 
 type InitialPageProps = {
   [x: string]: any;

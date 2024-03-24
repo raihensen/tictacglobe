@@ -1,12 +1,8 @@
 
-import _ from "lodash";
+import { Ripple } from "@/components/common/Loading";
+import Head from 'next/head';
 import { ReactNode } from "react";
 import Container from "react-bootstrap/Container";
-import { HeaderStyle, IconButton } from "@/components/styles"
-import Alert from "react-bootstrap/Alert";
-import Head from 'next/head';
-import { Ripple, Spinner } from "@/components/common/Loading";
-import styled from "styled-components";
 
 
 type LayoutProps = {

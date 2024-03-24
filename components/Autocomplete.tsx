@@ -1,12 +1,9 @@
-
-
-import styled from "styled-components";
-import { useEffect, useRef, useState } from 'react';
-import { Country } from "@/src/game.types"
-import Select from "react-select";
-import { useTranslation } from "next-i18next";
-const NodeCache = require("node-cache");
+import { Country } from "@/src/game.types";
 import _ from "lodash";
+import { useTranslation } from "next-i18next";
+import { useEffect, useState } from 'react';
+import Select from "react-select";
+const NodeCache = require("node-cache");
 
 
 type CountryAutoCompleteProps = {

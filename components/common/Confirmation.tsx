@@ -1,6 +1,6 @@
-import React, { useState, useContext, useCallback } from 'react';
-import Modal from 'react-bootstrap/Modal';
+import React, { useCallback, useContext, useState } from 'react';
 import Button from 'react-bootstrap/Button';
+import Modal from 'react-bootstrap/Modal';
 
 export type ConfirmationOptions = {
   title?: string

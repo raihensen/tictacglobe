@@ -1,9 +1,8 @@
-import { create } from "zustand";
-import _ from "lodash";
-import { DispatchSetStateActionStateSetters, withSetters, createSelectors, createStateSelectors } from "./zustand.util";
 import { User } from "@prisma/client";
+import { create } from "zustand";
 import { Session } from "./db.types";
 import { Game } from "./game.types";
+import { DispatchSetStateActionStateSetters, createSelectors, createStateSelectors, withSetters } from "./zustand.util";
 
 export type State = {
   // General

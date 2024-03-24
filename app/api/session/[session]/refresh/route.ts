@@ -1,8 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-
-import { error, invitationCodeAlive, joinSession, sessionIncludeCurrentGame } from "@/src/api.utils";
+import { error, sessionIncludeCurrentGame } from "@/src/api.utils";
 import { db } from "@/src/db";
-import { RequestAction } from "@/src/game.types";
 
 
 export async function POST(

@@ -1,35 +1,34 @@
 "use client"
-import Button from "react-bootstrap/Button";
 import Alert from 'react-bootstrap/Alert';
+import Button from "react-bootstrap/Button";
 
 import 'bootstrap/dist/css/bootstrap.min.css';
+import { useTranslation } from 'next-i18next';
+import { serverSideTranslations } from 'next-i18next/serverSideTranslations';
 import React, { useEffect, useRef, useState } from 'react';
-import { useTranslation } from 'next-i18next'
-import { serverSideTranslations } from 'next-i18next/serverSideTranslations'
 
-import { Settings, defaultSettings, Game, Country, Category, defaultLanguage, autoRefreshInterval, settingsChanged, NewApiQuery, ApiResponse } from "@/src/game.types"
-import { GET, capitalize, getLocalStorage, readReadme, setLocalStorage, useAutoRefresh } from "@/src/util"
-import _ from "lodash";
+import { ApiResponse, Category, Country, Game, NewApiQuery, Settings, autoRefreshInterval, defaultLanguage, defaultSettings, settingsChanged } from "@/src/game.types";
+import { GET, capitalize, getLocalStorage, readReadme, setLocalStorage, useAutoRefresh } from "@/src/util";
 var fs = require('fs').promises;
 
-import RemoteTimer from "@/components/Timer";
 import Field from "@/components/Field";
-import { TableHeading } from '@/components/TableHeading';
-import { FaArrowsRotate, FaEllipsis, FaPersonCircleXmark, FaXmark } from "react-icons/fa6";
-import { useRouter } from "next/router";
-import type { GetServerSideProps } from 'next'
-import { PageProps } from "./_app";
-import { SettingsModal, changeLanguage } from "@/components/Settings";
-import { ButtonToolbar, IconButton, PlayerBadge, GameTable } from "@/components/styles";
-import { MarkdownModal } from "@/components/MarkdownModal";
 import Header from "@/components/Header";
+import { MarkdownModal } from "@/components/MarkdownModal";
+import { SettingsModal, changeLanguage } from "@/components/Settings";
 import { DonationModal, ShareButtonProps } from "@/components/Share";
-import useSWR from "swr";
+import { TableHeading } from '@/components/TableHeading';
+import RemoteTimer from "@/components/Timer";
 import { useConfirmation } from "@/components/common/Confirmation";
+import { ButtonToolbar, GameTable, IconButton, PlayerBadge } from "@/components/styles";
+import { Session } from "@/src/db.types";
 import { useTtgStore } from "@/src/zustand";
-import { Session, Game as DbGame } from "@/src/db.types";
 import { GameState, PlayingMode, User } from "@prisma/client";
+import type { GetServerSideProps } from 'next';
+import { useRouter } from "next/router";
+import { FaArrowsRotate, FaEllipsis, FaPersonCircleXmark, FaXmark } from "react-icons/fa6";
 import styled from "styled-components";
+import useSWR from "swr";
+import { PageProps } from "./_app";
 
 const GamePage: React.FC<PageProps & GamePageProps> = ({
   isClient,

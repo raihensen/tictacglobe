@@ -1,7 +1,7 @@
-import { Mutex } from "async-mutex";
-import { useEffect, useRef, useState } from "react";
-import path from "path";
 import { defaultLanguage } from "@/src/game.types";
+import { Mutex } from "async-mutex";
+import path from "path";
+import { useEffect, useRef, useState } from "react";
 
 
 export async function GET<T>(url: string): Promise<T> {

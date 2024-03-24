@@ -1,12 +1,12 @@
 
-import Modal from "react-bootstrap/Modal"
-import Button from "react-bootstrap/Button"
 import { CustomModal } from "@/components/styles"
-import ReactMarkdown from "react-markdown"
-import rehypeRaw from 'rehype-raw'
-import { useTranslation } from "next-i18next"
-import { PluggableList } from "react-markdown/lib/react-markdown"
 import { addClassName } from "@/src/util"
+import { useTranslation } from "next-i18next"
+import Button from "react-bootstrap/Button"
+import Modal from "react-bootstrap/Modal"
+import ReactMarkdown from "react-markdown"
+import { PluggableList } from "react-markdown/lib/react-markdown"
+import rehypeRaw from 'rehype-raw'
 
 
 export const MarkdownModal: React.FC<{

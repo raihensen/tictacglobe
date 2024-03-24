@@ -1,6 +1,6 @@
 
-import React from 'react';
 import _ from "lodash";
+import React from 'react';
 import styled, { keyframes } from "styled-components";
 
 export type SpinnerVariant = "spinner" | "ripple" | "heart";

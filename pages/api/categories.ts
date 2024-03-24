@@ -1,9 +1,9 @@
 
 import { Category, Language } from '@/src/game.types';
 import { IncomingMessage, ServerResponse } from 'http';
-var fs = require('fs').promises;
-import path from 'path';
 import _ from "lodash";
+import path from 'path';
+var fs = require('fs').promises;
 
 var categoryData: Record<string, Category[]> = {}  // key: language
 

@@ -1,12 +1,12 @@
 
-import { forwardRef, useEffect, useRef, useState, useId, SetStateAction, Dispatch } from "react";
 import { useTranslation } from "next-i18next";
-import { FaArrowUpFromBracket, FaPaypal, FaShare } from "react-icons/fa6"
-import { IconButton } from "./styles"
-import { Button, Modal, Overlay, OverlayTrigger, Tooltip } from "react-bootstrap";
-import { Placement } from "react-bootstrap/esm/types";
+import { Dispatch, SetStateAction, forwardRef, useEffect, useId, useRef, useState } from "react";
+import { Modal, OverlayTrigger, Tooltip } from "react-bootstrap";
+import { Placement } from "react-bootstrap/types";
+import { FaArrowUpFromBracket, FaPaypal } from "react-icons/fa6";
 import styled from "styled-components";
-import donationModalHeroBackgroundImage from "../public/world-map-hero-bg.jpg"
+import donationModalHeroBackgroundImage from "../public/world-map-hero-bg.jpg";
+import { IconButton } from "./styles";
 
 const IconButtonWithRef = forwardRef<HTMLButtonElement, React.ComponentProps<typeof IconButton>>(({ children, ...props }, ref) => (
   <IconButton ref={ref} {...props}>

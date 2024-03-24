@@ -1,21 +1,19 @@
 
-import Form from 'react-bootstrap/Form';
-import Modal from 'react-bootstrap/Modal';
-import { useEffect, useRef, useState } from 'react';
 import { capitalize } from '@/src/util';
-import { Button } from 'react-bootstrap';
+import { useTranslation } from 'next-i18next';
 import Slider from 'rc-slider';
 import 'rc-slider/assets/index.css';
-import { useTranslation } from 'next-i18next';
+import { useState } from 'react';
+import { Button } from 'react-bootstrap';
+import Form from 'react-bootstrap/Form';
+import Modal from 'react-bootstrap/Modal';
 
+import { LanguageSelectorItem, LanguageSelectorToggle } from "@/components/styles";
+import { ApiHandler, Game, Language, Settings, defaultLanguage } from "@/src/game.types";
+import _ from "lodash";
 import { NextRouter, useRouter } from "next/router";
-import { Settings, Language, defaultLanguage, Game, ApiHandler } from "@/src/game.types";
 import { Dropdown } from "react-bootstrap";
 import { CircleFlag } from "react-circle-flags";
-import styles from '@/pages/Game.module.css'
-import styled from "styled-components";
-import { LanguageSelectorToggle, LanguageSelectorItem } from "@/components/styles"
-import _ from "lodash";
 
 
 export function useSettings(defaultSettings: Settings): [Settings, (value: Settings) => void] {
