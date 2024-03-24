@@ -4,7 +4,7 @@ import { NextRouter } from "next/router";
 import { Session, Game as DbGame } from "@/src/db.types";
 import { GameState, PlayingMode, User } from "@prisma/client";
 
-export const autoRefreshInterval = 2000  // interval [ms] for auto refresh
+export const autoRefreshInterval = 1000  // interval [ms] for auto refresh
 
 export type FieldSettings = {  // also game-level, but passed to the Field component
   showNumSolutions: boolean;

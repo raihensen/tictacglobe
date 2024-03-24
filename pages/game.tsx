@@ -87,7 +87,9 @@ const GamePage: React.FC<PageProps & GamePageProps> = ({
   const [notifyDecided, setNotifyDecided] = useState<boolean>(false)
 
   const userIndex = session?.users.findIndex(u => u.id == user?.id)
-  const [hasTurn, setHasTurn] = useState<boolean>(true)
+  const isSessionAdmin = userIndex === 0 || session?.playingMode == PlayingMode.Offline
+  const hasTurn = userIndex == game?.turn || session?.playingMode == PlayingMode.Offline
+  // const [hasTurn, setHasTurn] = useState<boolean>(session?.playingMode == PlayingMode.Offline)
   const [turnStartTimestamp, setTurnStartTimestamp] = useState<number>(Date.now() - 60000)
 
   const [countries, setCountries] = useState<Country[]>([])
@@ -150,7 +152,6 @@ const GamePage: React.FC<PageProps & GamePageProps> = ({
     setGame(newGameInstance)
 
     setTurnStartTimestamp(oldValue => {
-      
       const newValue = newGameInstance.turnStartTimestamp.getTime()
       if (newValue != oldValue) {
         console.log(`turnStartTimestamp changed by a difference of ${newValue - oldValue}`)
@@ -158,21 +159,18 @@ const GamePage: React.FC<PageProps & GamePageProps> = ({
       return newValue
     })
 
-    if (data.session.playingMode == PlayingMode.Offline) {
-      setHasTurn(true)
-
-    } else if (data.session.playingMode == PlayingMode.Online) {
+    if (data.session.playingMode == PlayingMode.Online) {
 
       const willHaveTurn = userIndex == data.game.turn
-      setHasTurn(willHaveTurn)
+      // setHasTurn(willHaveTurn)
 
-      // synchronize language (TODO TTG-43 synchronize all settings)
+      // synchronize language
       if (router.locale != newGameInstance.language.toString()) {
         console.log(`Game language: ${newGameInstance.language}, Frontend language: ${router.locale} - changing frontend to ${newGameInstance.language}`)
         changeLanguage(router, i18n, newGameInstance.language)
       }
 
-      if (!willHaveTurn) {
+      if (!willHaveTurn || newGameInstance.isDecided()) {
         scheduleAutoRefresh(newGameInstance)
       }
 
@@ -181,7 +179,7 @@ const GamePage: React.FC<PageProps & GamePageProps> = ({
     let showNotifyDecided = false
     if (game) {  // game had been loaded before
       if (data.game.markings.length) {  // No new game
-        if (newGameInstance !== null && !gameHadBeenDecided) {  // There's a new winner (or a draw)
+        if (newGameInstance.winner !== null && !gameHadBeenDecided) {  // There's a new winner (or a draw)
           showNotifyDecided = true
         }
       }
@@ -237,10 +235,10 @@ const GamePage: React.FC<PageProps & GamePageProps> = ({
   const [activeField, setActiveField] = useState<number[]>([-1, -1])
   const [isSearching, setIsSearching] = useState<boolean>(false)
 
-  const canControlGame = (game: Game) => !(game.state == GameState.Running && !hasTurn)
-  const canEndGame = (game: Game) => canControlGame(game) && !(game.state == GameState.Ended || game.state == GameState.Finished)
-  const canRequestNewGame = (game: Game) => canControlGame(game) && (game.state == GameState.Ended || game.state == GameState.Finished)
-  const canEndTurn = (game: Game, notifyDecided: boolean) => !notifyDecided && !(game.state == GameState.Ended || game.state == GameState.Finished)
+  const canControlGame = game && (!(game.state == GameState.Running && !hasTurn))
+  const canEndTurn = game && (hasTurn && !notifyDecided && !(game.state == GameState.Ended || game.state == GameState.Finished))
+  const canEndGame = game && (isSessionAdmin && !(game.state == GameState.Ended || game.state == GameState.Finished))
+  const canRequestNewGame = !game || (isSessionAdmin && (game.state == GameState.Ended || game.state == GameState.Finished))
 
   return (<>
     <Header
@@ -268,37 +266,36 @@ const GamePage: React.FC<PageProps & GamePageProps> = ({
       </p>
     </>)}
 
-    {game && (<>
-      {/* <p>{gameData.isNewGame ? "New Game" : "Existing Game"}</p> */}
-      {/* <p>loading categories: {isLoadingCategories}</p>
-      {categories && (<p>categories: {categories.map(cat => cat.name).join(", ")}</p>)} */}
+    {(session && game && user) && (<>
       <ButtonToolbar className="mb-2">
         <div className="left">
-          {canControlGame(game) && (<>
 
-            {canEndGame(game) && (
-              <IconButton label={t("endGame.action")} variant="danger" onClick={async () => {
-                if (await confirm(t("endGame.confirm.question"), {
-                  title: t("endGame.confirm.title"),
-                  confirmText: t("endGame.action"),
-                  cancelText: t("cancel")
-                })) {
-                  apiRequest({ action: "EndGame" })
-                }
-              }}><FaXmark /></IconButton>
-            )}
-            {canRequestNewGame(game) && (
-              <IconButton label={t("newGame")} variant="danger" onClick={() => {
-                apiRequest({ action: "NewGame" })
-              }}><FaArrowsRotate /></IconButton>
-            )}
-            {canEndTurn(game, notifyDecided) && (<>
-              <IconButton label={t("endTurn")} variant="warning" onClick={() => {
-                apiRequest(`api/game/${game?.id}/guess?guess=SKIP`, {
-                  action: "EndTurn",
+          {canEndGame && (
+            <IconButton label={t("endGame.action")} variant="danger" onClick={async () => {
+              if (await confirm(t("endGame.confirm.question"), {
+                title: t("endGame.confirm.title"),
+                confirmText: t("endGame.action"),
+                cancelText: t("cancel")
+              })) {
+                apiRequest(`api/game/${game?.id}/guess`, {
+                  action: "EndGame",
                 })
-              }}><FaPersonCircleXmark /></IconButton>
-            </>)}
+              }
+            }}><FaXmark /></IconButton>
+          )}
+          {canRequestNewGame && (
+            <IconButton label={t("newGame")} variant="danger" onClick={() => {
+              apiRequest(`api/session/${session.id}/user/${user.id}/game?newGame=true`, {
+                action: "NewGame"
+              })
+            }}><FaArrowsRotate /></IconButton>
+          )}
+          {canEndTurn && (<>
+            <IconButton label={t("endTurn")} variant="warning" onClick={() => {
+              apiRequest(`api/game/${game?.id}/guess?guess=SKIP`, {
+                action: "EndTurn",
+              })
+            }}><FaPersonCircleXmark /></IconButton>
           </>)}
 
           {(notifyDecided && game.state != GameState.Finished && hasTurn) && (<>

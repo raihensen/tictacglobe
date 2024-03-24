@@ -54,7 +54,7 @@ const Field = ({ pos, setActive, setIsSearching, game, row, col, apiRequest, has
     guess: countries.find(c => c.iso == game.guesses[i][j]) ?? null,
     // exampleSolution: randomChoice(solutions),
     markedBy: game.marking[i][j] ?? -1,
-    isWinning: game.winCoords !== null && game.winCoords.some(([i1, j1]) => i1 == i && j1 == j),
+    isWinning: game.winCoords !== null && game.winCoords.some(([x1, y1]) => x1 == x && y1 == y),
     mode: (countries.find(c => c.iso == game.guesses[i][j]) || game.state == GameState.Ended) ? FieldMode.FILLED : FieldMode.INITIAL
   } as FieldState)
 

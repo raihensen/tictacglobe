@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { error, gameIncludeIngameData, sessionIncludeCurrentGame, switchTurnsAndUpdateState as switchTurnsAndUpdateState } from "@/src/api.utils";
 import { db } from "@/src/db";
-import { Country, Game, Language, parseCountry } from "@/src/game.types";
+import { Country, Game, Language, RequestAction, parseCountry } from "@/src/game.types";
 var fs = require('fs').promises;
 import path from 'path';
 import { GameState } from "@prisma/client";
@@ -17,6 +17,9 @@ export async function POST(
   const data = Object.fromEntries((await req.formData()).entries())
   const searchParams = req.nextUrl.searchParams
 
+  const action = data.action as RequestAction
+  if (!action) return error("Invalid request")
+
   const gameId = Number.parseInt(params.game)
   if (!gameId) return error("Invalid request")
   const userId = data.user as string
@@ -25,25 +28,24 @@ export async function POST(
   if (!data.turn) return error("Invalid request")
   const turnCounter = Number.parseInt(data.turn as string)
   if (!turnCounter && turnCounter !== 0) return error("Invalid request")
-
+  
   let game = await db.game.findUnique({
     where: {
       id: gameId
     },
     include: gameIncludeIngameData
   })
-
+  
   if (!game) return error("Game not found", 404)
-  if (game.session.users[game.turn].id != userId) return error("It's not your turn", 403)
-  const playerIndex = game.turn
   if (game.turnCounter != turnCounter) return error("Invalid turn counter", 420)
-
+  
   let session = await db.session.findUnique({
     where: { id: game.session.id },
     include: sessionIncludeCurrentGame
   })
   
   if (!session) return error("Session not found", 404)
+  
   const g = new Game(game, session as unknown as Session)
   if (g.state == GameState.Finished || g.state == GameState.Ended) return error("Game has finished", 400)
 
@@ -51,70 +53,78 @@ export async function POST(
   if (nextState == GameState.Initialized) {
     nextState = GameState.Running
   }
-
   let successfulGuess = false
-  const guess = searchParams.get("guess")
-  if (!guess) return error("No guess specified", 400)
 
-  if (guess == "SKIP") {
-
+  if (action == "EndGame") {
+    nextState = GameState.Ended
   } else {
 
-  
-    const countryId = guess
+    if (game.session.users[game.turn].id != userId) return error("It's not your turn", 403)
+    const playerIndex = game.turn
 
-    const x = Number.parseInt(searchParams.get("x") ?? "")
-    const y = Number.parseInt(searchParams.get("y") ?? "")
-    if (!x || !y) return error("Invalid coordinates", 400)
+    const guess = searchParams.get("guess")
+    if (!guess) return error("No guess specified", 400)
 
-    if (x < 1 || y > g.setup.size || y < 1 || y > g.setup.size) {
-      return error(`Invalid coords argument`, 400)
-    }
-    const countries = await getCountryData(g.setup.language)
-    if (!countries) {
-      return error(`Country data not found`, 400)
-    }
-    const country = countries.find(c => c.iso == countryId)
-    if (!country) {
-      return error(`Country "${countryId}" not found`, 400)
-    }
-    const { i, j } = g.getIJ(x, y)
-    if (g.marking[i][j] != -1 || g.guesses[i][j]) {
-      return error(`Cell (${x}|${y}) already occupied`, 400)
-    }
-
-    // check correct solution
-    if (g.isValidGuess(x, y, country)) {
-      // execute
-      const gameUpdatedAt = Math.max(game.createdAt.getTime(), ...game.markings.map(m => m.createdAt.getTime()))
-      await db.marking.create({
-        data: {
-          x: x,
-          y: y,
-          gameId: g.id,
-          player: playerIndex,
-          userId: userId,
-          value: countryId,
-          thinkingTime: (new Date().getTime() - gameUpdatedAt) / 1000
-        }
-      })
-      console.log(`Set (${x}|${y}) to ${country.iso} (player ${playerIndex} / ${userId})`)
-      successfulGuess = true
-
-      // Check win
-      if (g.state != GameState.Decided) {
-        const winner = checkWinner(g)
-        if (winner !== null) {
-          console.log(`WINNER: Player ${winner}`)
-          nextState = GameState.Decided
-        }
-      }
-      if (g.marking.flat(1).every(m => m != -1)) {
-        nextState = GameState.Finished
-      }
+    if (guess == "SKIP") {
 
     } else {
-      console.log(`Wrong guess ((${x}|${y}), ${country.name})`)
+    
+      const countryId = guess
+
+      const x = Number.parseInt(searchParams.get("x") ?? "")
+      const y = Number.parseInt(searchParams.get("y") ?? "")
+      if (!x || !y) return error("Invalid coordinates", 400)
+
+      if (x < 1 || y > g.setup.size || y < 1 || y > g.setup.size) {
+        return error(`Invalid coords argument`, 400)
+      }
+      const countries = await getCountryData(g.setup.language)
+      if (!countries) {
+        return error(`Country data not found`, 400)
+      }
+      const country = countries.find(c => c.iso == countryId)
+      if (!country) {
+        return error(`Country "${countryId}" not found`, 400)
+      }
+      const { i, j } = g.getIJ(x, y)
+      if (g.marking[i][j] != -1 || g.guesses[i][j]) {
+        return error(`Cell (${x}|${y}) already occupied`, 400)
+      }
+
+      // check correct solution
+      if (g.isValidGuess(x, y, country)) {
+        // execute
+        const gameUpdatedAt = Math.max(game.createdAt.getTime(), ...game.markings.map(m => m.createdAt.getTime()))
+        await db.marking.create({
+          data: {
+            x: x,
+            y: y,
+            gameId: g.id,
+            player: playerIndex,
+            userId: userId,
+            value: countryId,
+            thinkingTime: (new Date().getTime() - gameUpdatedAt) / 1000
+          }
+        })
+        console.log(`Set (${x}|${y}) to ${country.iso} (player ${playerIndex} / ${userId})`)
+        successfulGuess = true
+
+        // Check win
+        if (g.state != GameState.Decided) {
+          const winner = await checkWinner(g)
+          if (winner !== null) {
+            console.log(`WINNER: Player ${winner}`)
+            nextState = GameState.Decided
+          }
+        }
+        if (g.marking.flat(1).every(m => m != -1)) {
+          nextState = GameState.Finished
+        }
+
+      } else {
+        console.log(`Wrong guess ((${x}|${y}), ${country.name})`)
+      }
+
     }
 
   }
@@ -135,7 +145,10 @@ export async function POST(
 }
 
 
-const _winningFormations: Record<string, number[][][]> = {}  // saves all combinations of coords leading to a win (axes: combination, coord pair, coord)
+const _winningFormations: Record<string, {
+  i: number,
+  j: number
+}[][]> = {}  // saves all combinations of coords leading to a win (axes: combination, coord pair, coord)
 function getWinningFormations(size: number) {
   if (size < 2) {
     return []
@@ -144,12 +157,12 @@ function getWinningFormations(size: number) {
   if (sizeKey in _winningFormations) {
     return _winningFormations[sizeKey]
   }
-  const eachCoord = _.range(size) as number[]
+  const eachCoord = _.range(size)
   const formations = [
-    ...eachCoord.map(i => eachCoord.map(j => [i, j])),  // rows
-    ...eachCoord.map(j => eachCoord.map(i => [i, j])),  // columns
-    eachCoord.map(i => [i, i]),  // diagonal 1
-    eachCoord.map(i => [i, size - i - 1])  // diagonal 2
+    ...eachCoord.map(i => eachCoord.map(j => ({ i, j }))),  // rows
+    ...eachCoord.map(j => eachCoord.map(i => ({ i, j }))),  // columns
+    eachCoord.map(i => ({ i: i, j: i })),  // diagonal 1
+    eachCoord.map(i => ({ i: i, j: size - i - 1 }))  // diagonal 2
   ]
   _winningFormations[sizeKey] = formations
   return formations
@@ -163,11 +176,13 @@ function getWinningFormations(size: number) {
 async function checkWinner(game: Game) {
   const winningFormations = getWinningFormations(game.setup.size)
   const playerIndices = [0, 1]
-  const wins = winningFormations.filter(formation => playerIndices.some(
-    playerIndex => formation.every(([i, j]) => game.marking[i][j] == playerIndex)
+  const formationMarkings = winningFormations.map(formation => formation.map(({ i, j }) => ({ i, j, player: game.marking[i][j] })))
+  const wins = formationMarkings.filter(formation => playerIndices.some(
+    p => formation.every(({ i, j, player }) => player == p)
   ))
+  
   if (wins.length > 0) {
-    const winners = [...new Set(wins.map(win => game.marking[win[0][0]][win[0][1]]))]
+    const winners = [...new Set(wins.map(win => win[0].player))]
     if (winners.length == 1) {
       await db.game.update({
         where: { id: game.id },
@@ -177,12 +192,12 @@ async function checkWinner(game: Game) {
       })
       await db.marking.updateMany({
         where: {
-          OR: wins[0].map(c => ({
+          OR: wins.flatMap(formation => formation.map(({ i, j }) => ({
             AND: {
               gameId: game.id,
-              ...game.getXY(c[0], c[1]),
+              ...game.getXY(i, j),
             }
-          }))
+          })))
         },
         data: {
           isWinning: true
@@ -197,8 +212,8 @@ async function checkWinner(game: Game) {
   // No winner. Check draw
   if (
     game.marking.flat(1).every(player => player != -1) ||  // board is full
-    winningFormations.every(formation => playerIndices.every(  // all wins blocked
-      playerIndex => formation.some(([i, j]) => game.marking[i][j] == playerIndex)
+    formationMarkings.every(formation => playerIndices.every(  // all wins blocked
+      playerIndex => formation.some(({ i, j, player }) => player == playerIndex)
     ))
   ) {
     await db.game.update({
