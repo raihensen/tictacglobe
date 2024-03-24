@@ -9,7 +9,7 @@ import 'rc-slider/assets/index.css';
 import { useTranslation } from 'next-i18next';
 
 import { NextRouter, useRouter } from "next/router";
-import { Settings, Language, defaultLanguage, DifficultyLevel, FrontendQuery, RequestAction, settingsToQuery, Game } from "@/src/game.types";
+import { Settings, Language, defaultLanguage, Game, ApiHandler } from "@/src/game.types";
 import { Dropdown } from "react-bootstrap";
 import { CircleFlag } from "react-circle-flags";
 import styles from '@/pages/Game.module.css'
@@ -35,7 +35,7 @@ export const SettingsModal: React.FC<{
   setSettings: (value: Settings) => void;
   show: boolean;
   setShow: (value: boolean) => void;
-  apiRequest: (query: FrontendQuery) => any;
+  apiRequest: ApiHandler;
 }> = ({ settings, setSettings, game, show, setShow, apiRequest }) => {
   const { t, i18n } = useTranslation()
 
@@ -45,9 +45,10 @@ export const SettingsModal: React.FC<{
     const newSettings = assignSettings(settings, e)
     console.log(`New settings: ${JSON.stringify(newSettings)}`)
 
-    apiRequest({
+    apiRequest(`api/game/${game.id}/refresh`, {
       action: "RefreshGame",
-      ...settingsToQuery(newSettings)
+      settings: newSettings
+      // ...settingsToQuery(newSettings)
     })
 
     setSettings(newSettings)

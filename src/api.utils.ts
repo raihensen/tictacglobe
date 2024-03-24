@@ -3,7 +3,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { Session, Game } from "./db.types";
 import { db } from "@/src/db";
 import _ from "lodash";
-import { Prisma } from "@prisma/client";
+import { GameState, Prisma } from "@prisma/client";
 import { DefaultArgs } from "@prisma/client/runtime/library";
 
 
@@ -17,17 +17,23 @@ export function error(msg: string, status: number = 400) {
   })
 }
 
-export async function switchTurns(game: Game) {
+export async function switchTurnsAndUpdateState(game: Game, state: GameState, changeUpdatedAt: boolean) {
+  const currentTimestamp = new Date()
+  const switchTurns = state != GameState.Finished && state != GameState.Ended
   return db.game.update({
     where: {
       id: game.id
     },
     data: {
-      turn: 1 - game.turn,
-      turnCounter: {
-        increment: 1
-      },
-      turnStartTimestamp: new Date()
+      ...(switchTurns ? {
+        turn: 1 - game.turn,
+        turnCounter: {
+          increment: 1
+        },
+        turnStartTimestamp: currentTimestamp,
+      } : {}),
+      updatedAt: changeUpdatedAt ? currentTimestamp : undefined,
+      state: state
     },
     include: gameIncludeIngameData
   })

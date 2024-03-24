@@ -7,7 +7,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'next-i18next'
 import { serverSideTranslations } from 'next-i18next/serverSideTranslations'
 
-import { Settings, defaultSettings, Game, Country, Category, RequestAction, FrontendQuery, Language, defaultLanguage, autoRefreshInterval, settingsChanged, ApiResponse } from "@/src/game.types"
+import { Settings, defaultSettings, Game, Country, Category, RequestAction, FrontendQuery, Language, defaultLanguage, autoRefreshInterval, settingsChanged, NewApiQuery, ApiResponse } from "@/src/game.types"
 import { GET, capitalize, getLocalStorage, readReadme, setLocalStorage, useAutoRefresh } from "@/src/util"
 import _ from "lodash";
 var fs = require('fs').promises;
@@ -104,9 +104,9 @@ const GamePage: React.FC<PageProps & GamePageProps> = ({
 
   async function apiRequest(
     url: string,
-    params: FrontendQuery
+    params: NewApiQuery
   ) {
-    const { action } = params
+    const { action, settings: newSettings } = params
     if (!user) {
       return false
     }
@@ -120,10 +120,13 @@ const GamePage: React.FC<PageProps & GamePageProps> = ({
     }
     
     const formData = new FormData()
-    formData.set("action", action.toString())
+    formData.set("action", action)
     formData.set("user", user.id)
     if (game) {
       formData.set("turn", game?.turnCounter.toString())
+    }
+    if (newSettings) {
+      formData.set("settings", JSON.stringify(newSettings))
     }
     if (!url.startsWith("/")) url = "/" + url
     const res = await fetch(url, {
@@ -280,7 +283,7 @@ const GamePage: React.FC<PageProps & GamePageProps> = ({
                   confirmText: t("endGame.action"),
                   cancelText: t("cancel")
                 })) {
-                  apiRequest({ action: "EndGame", player: game.turn })
+                  apiRequest({ action: "EndGame" })
                 }
               }}><FaXmark /></IconButton>
             )}
@@ -291,7 +294,7 @@ const GamePage: React.FC<PageProps & GamePageProps> = ({
             )}
             {canEndTurn(game, notifyDecided) && (<>
               <IconButton label={t("endTurn")} variant="warning" onClick={() => {
-                apiRequest(`api/game/${game?.id}/endTurn`, {
+                apiRequest(`api/game/${game?.id}/guess?guess=SKIP`, {
                   action: "EndTurn",
                 })
               }}><FaPersonCircleXmark /></IconButton>
@@ -332,18 +335,13 @@ const GamePage: React.FC<PageProps & GamePageProps> = ({
                       initialTimestamp={turnStartTimestamp}
                       initialTime={settings.timeLimit * 1000}
                       onElapsed={() => {
-                        console.log(`Timer elapsed --- ${hasTurn ? "hasTurn = true" : "hasTurn = false"}`)
-                        
-                        // TODO
-                        
-                        // if (hasTurn) {
-                        //   apiRequest({
-                        //     action: "TimeElapsed",
-                        //     player: game.turn
-                        //   })
-                        // } else {
-                        //   apiRequest({ action: "RefreshGame" })
-                        // }
+                        if (hasTurn) {
+                          apiRequest(`api/game/${game?.id}/guess?guess=SKIP`, {
+                            action: "TimeElapsed",
+                          })
+                        } else {
+                          setTimeout(() => apiRequest(`api/game/${game.id}/refresh`, { action: "RefreshGame" }), 500)
+                        }
                       }}
                     />
                   </>)}

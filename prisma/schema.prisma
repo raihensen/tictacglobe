@@ -48,6 +48,7 @@ model Game {
   turnCounter        Int       @default(0)
   turnStartTimestamp DateTime  @default(now())
   createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @default(now())
   finishedAt         DateTime?
 
   session   Session @relation(name: "SessionGame", fields: [sessionId], references: [id])
@@ -69,19 +70,20 @@ enum GameState {
 }
 
 model Marking {
-  id        Int      @id @default(autoincrement())
-  game      Game     @relation(fields: [gameId], references: [id])
-  gameId    Int
-  x         Int
-  y         Int
-  value     String
+  id           Int      @id @default(autoincrement())
+  game         Game     @relation(fields: [gameId], references: [id])
+  gameId       Int
+  x            Int
+  y            Int
+  value        String
   // item      Item     @relation(fields: [itemId], references: [id])
   // itemId    Int
-  player    Int
-  user      User     @relation(fields: [userId], references: [id])
-  userId    String
-  isWinning Boolean  @default(false)
-  createdAt DateTime @default(now())
+  player       Int
+  user         User     @relation(fields: [userId], references: [id])
+  userId       String
+  isWinning    Boolean  @default(false)
+  thinkingTime Float?
+  createdAt    DateTime @default(now())
 }
 
 // enum ItemType {

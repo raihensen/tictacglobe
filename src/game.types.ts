@@ -56,10 +56,10 @@ type RemoveSettingsPrefix<T> = {
 
 export type PrefixedSettings = CamelCaseWithPrefix<Settings, "settings">
 
-export const settingsToQuery = (settings: Partial<Settings>): Partial<PrefixedSettings> => {
-  // return settings as PrefixedSettings
-  return Object.fromEntries(Object.entries(settings).map(([k, v]) => [_.camelCase("settings" + k), v])) as Partial<PrefixedSettings>
-}
+// export const settingsToQuery = (settings: Partial<Settings>): Partial<PrefixedSettings> => {
+//   // return settings as PrefixedSettings
+//   // return Object.fromEntries(Object.entries(settings).map(([k, v]) => [_.camelCase("settings" + k), v])) as Partial<PrefixedSettings>
+// }
 export const settingsFromQuery = (query: Query): Partial<Settings> => {
   // return query as RemoveSettingsPrefix<FilteredObject<Query, PrefixedSettings>>
   return Object.fromEntries((Object.entries(query).filter(([k, v]) => k.startsWith("settings")) as [keyof Settings, any][]).map(([k, v]) => [
@@ -140,6 +140,12 @@ export type ScalarQuery = {
 };
 export type Query = ScalarQuery & Partial<PrefixedSettings>;
 export type FrontendQuery = Omit<ScalarQuery, "userIdentifier" | "playingMode"> & { settings?: Settings }
+
+export type NewApiQuery = {
+  action: RequestAction
+  settings?: Settings
+
+}
 
 
 export type GameSession = {
