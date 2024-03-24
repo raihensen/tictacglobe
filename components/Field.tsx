@@ -96,7 +96,7 @@ const Field = ({ pos, setActive, setIsSearching, game, row, col, apiRequest, can
 
   const makeGuess = (country: Country) => {
     const correct = game.isValidGuess(x, y, country)
-    apiRequest(`api/game/${game?.id}/guess?x=${x}&y=${y}&guess=${country.iso}`, {
+    apiRequest(`api/game/${game?.id}/turn?x=${x}&y=${y}&guess=${country.iso}`, {
       action: "MakeGuess",
     })
     setIsSearching(false)

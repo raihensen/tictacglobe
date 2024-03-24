@@ -96,14 +96,14 @@ const GamePage: React.FC<PageProps & GamePageProps> = ({
   const [countries, setCountries] = useState<Country[]>([])
   const { data: categories, mutate: mutateCategories, error: categoriesError, isLoading: isLoadingCategories } = useSWR<Category[]>(`/api/categories?language=${router.locale}`, GET)
 
-  const { scheduleAutoRefresh, clearAutoRefresh } = useAutoRefresh((game: Game) => {
-    if (!game) return
-    refresh(game)
+  const { scheduleAutoRefresh, clearAutoRefresh } = useAutoRefresh((session: Session) => {
+    if (!session) return
+    refresh(session)
   }, autoRefreshInterval)
 
-  const refresh = (game: Game) => {
-    apiRequest(`api/game/${game.id}/refresh`, {
-      action: "RefreshGame"
+  const refresh = (session: Session) => {
+    apiRequest(`api/session/${session?.id}/refresh`, {
+      action: "RefreshSession"
     })
   }
 
@@ -121,7 +121,7 @@ const GamePage: React.FC<PageProps & GamePageProps> = ({
     }
     clearAutoRefresh()
 
-    if (action != "RefreshGame") {
+    if (action != "RefreshSession") {
       setLoadingText(action == "MakeGuess" ? "Submitting guess" : "Loading")
       if (timerRef.current) {
         (timerRef.current as any).stop()
@@ -180,7 +180,7 @@ const GamePage: React.FC<PageProps & GamePageProps> = ({
         (newGameInstance.isRunning() && !willHaveTurn) ||
         ((newGameInstance.hasEnded() || newGameInstance.state == GameState.Decided) && !isSessionAdmin)
       ) {
-        scheduleAutoRefresh(newGameInstance)
+        scheduleAutoRefresh(data.session)
       }
 
     }
@@ -277,7 +277,7 @@ const GamePage: React.FC<PageProps & GamePageProps> = ({
                 confirmText: t("endGame.action"),
                 cancelText: t("cancel")
               })) {
-                apiRequest(`api/game/${game?.id}/guess`, {
+                apiRequest(`api/game/${game?.id}/turn`, {
                   action: "EndGame",
                 })
               }
@@ -292,7 +292,7 @@ const GamePage: React.FC<PageProps & GamePageProps> = ({
           )}
           {canEndTurn && (<>
             <IconButton label={t("endTurn")} variant="warning" onClick={() => {
-              apiRequest(`api/game/${game?.id}/guess?guess=SKIP`, {
+              apiRequest(`api/game/${game?.id}/turn?guess=SKIP`, {
                 action: "EndTurn",
               })
             }}><FaPersonCircleXmark /></IconButton>
@@ -301,7 +301,7 @@ const GamePage: React.FC<PageProps & GamePageProps> = ({
           {canDecideToPlayOn && (<>
             <IconButton label={t("continuePlaying")} variant="secondary" onClick={() => {
               // setNotifyDecided(false)
-              apiRequest(`api/game/${game.id}/guess`, {
+              apiRequest(`api/game/${game.id}/turn`, {
                 action: "PlayOn"
               })
             }}><FaEllipsis /></IconButton>
@@ -338,11 +338,11 @@ const GamePage: React.FC<PageProps & GamePageProps> = ({
                       initialTime={settings.timeLimit * 1000}
                       onElapsed={() => {
                         if (hasTurn) {
-                          apiRequest(`api/game/${game?.id}/guess?guess=SKIP`, {
+                          apiRequest(`api/game/${game?.id}/turn?guess=SKIP`, {
                             action: "TimeElapsed",
                           })
                         } else {
-                          setTimeout(() => refresh(game), 500)
+                          setTimeout(() => refresh(session), 500)
                         }
                       }}
                     />

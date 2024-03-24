@@ -99,7 +99,7 @@ export type RequestAction = "ExistingOrNewGame" |
   "EndTurn" |
   "EndGame" |
   "TimeElapsed" |
-  "RefreshGame" |
+  "RefreshSession" |
   "PlayOn" |
   "InitSessionFriend" |
   "InitSessionRandom" |
@@ -108,7 +108,7 @@ export type RequestAction = "ExistingOrNewGame" |
   "InitSessionOffline"
 
 export function isIngameAction(action: RequestAction) {
-  return action == "MakeGuess" || action == "EndTurn" || action == "TimeElapsed" || action == "RefreshGame" || action == "EndGame"
+  return action == "MakeGuess" || action == "EndTurn" || action == "TimeElapsed" || action == "RefreshSession" || action == "EndGame"
 }
 export function isGameInitAction(action: RequestAction) {
   return action == "NewGame" || action == "ExistingOrNewGame"

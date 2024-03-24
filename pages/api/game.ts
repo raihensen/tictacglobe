@@ -196,7 +196,7 @@ async function executeAndRespond(
     additionalResponseData.countries = countries
   }
 
-  if (action == "ExistingOrNewGame" || action == "NewGame" || action == "RefreshGame") {
+  if (action == "ExistingOrNewGame" || action == "NewGame" || action == "RefreshSession") {
 
     // Just load / initialize game
     success = !!game
