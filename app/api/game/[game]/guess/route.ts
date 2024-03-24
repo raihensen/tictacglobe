@@ -71,7 +71,7 @@ export async function POST(
   }
 
   // check correct solution
-  if (g.isValidGuess(i, j, country)) {
+  if (g.isValidGuess(x, y, country)) {
     // execute
     await db.marking.create({
       data: {

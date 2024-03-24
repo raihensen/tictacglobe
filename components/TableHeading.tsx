@@ -101,14 +101,14 @@ function crossed(Icon: IconType): React.FC<IconBaseProps> {
       {/* Slash */}
       <svg fill="currentColor" stroke="var(--bs-secondary)" width="1em" height="1em" viewBox="0 0 140.14 140.14" version="1.1" xmlns="http://www.w3.org/2000/svg">
         <g transform="translate(119.25 -36.39)">
-          <path stroke-width="10" stroke-linecap="round" d="m10.675 36.395a10.001 10.001 0 0 0-6.873 3.0254l-120 120a10.001 10.001 0 1 0 14.141 14.143l120-120a10.001 10.001 0 0 0-7.2676-17.168z" />
+          <path strokeWidth="10" strokeLinecap="round" d="m10.675 36.395a10.001 10.001 0 0 0-6.873 3.0254l-120 120a10.001 10.001 0 1 0 14.141 14.143l120-120a10.001 10.001 0 0 0-7.2676-17.168z" />
         </g>
       </svg>
     </span>
   )
 }
 
-export const getCategoryInfo = ({ category, value, badge = true, ...props }: CategoryValue & { badge?: boolean } & React.ComponentProps<typeof CategoryBadge>): {
+export const getCategoryInfo = ({ category, value, badge = true, key, ...props }: CategoryValue & { badge?: boolean } & React.ComponentProps<typeof CategoryBadge>): {
   description?: string | TranslationArgsType,
   badge?: JSX.Element
 } => {
@@ -118,7 +118,7 @@ export const getCategoryInfo = ({ category, value, badge = true, ...props }: Cat
     const Icon = simpleCategoryIcons[category]
     return {
       description: `category.${category}.tooltip`,
-      badge: badge ? (<CategoryBadgeSimple icon={<Icon color="white" />} label={`category.${category}.label`} {...props} />) : undefined
+      badge: badge ? (<CategoryBadgeSimple key={key} icon={<Icon color="white" />} label={`category.${category}.label`} {...props} />) : undefined
     }
   }
 
@@ -130,7 +130,7 @@ export const getCategoryInfo = ({ category, value, badge = true, ...props }: Cat
     const letter = (value as string).toUpperCase()
     return {
       description: [`category.${_.camelCase(category)}.tooltip`, { letter }],
-      badge: badge ? (<CategoryBadgeLetters letter={letter} isCapital={isCapital} isStartsWith={isStartsWith} isEndsWith={isEndsWith} {...props} />) : undefined
+      badge: badge ? (<CategoryBadgeLetters key={key} letter={letter} isCapital={isCapital} isStartsWith={isStartsWith} isEndsWith={isEndsWith} {...props} />) : undefined
     }
   }
 
@@ -140,7 +140,7 @@ export const getCategoryInfo = ({ category, value, badge = true, ...props }: Cat
     const i18Key = "category.flagColor.values." + _.get({ "Yellow/Gold": "YellowOrGold" }, colorName, colorName)
     return {
       description: ["category.flagColor.tooltip", { color: i18Key }],
-      badge: badge ? (<CategoryBadgeSimple className="flagColorBadge" style={style} icon={<FaFlag />} label={i18Key} {...props} labelFormatter={s => s.toUpperCase()} />) : undefined
+      badge: badge ? (<CategoryBadgeSimple key={key} className="flagColorBadge" style={style} icon={<FaFlag />} label={i18Key} {...props} labelFormatter={s => s.toUpperCase()} />) : undefined
     }
   }
 
@@ -148,7 +148,7 @@ export const getCategoryInfo = ({ category, value, badge = true, ...props }: Cat
     const continent = value as string
     return {
       description: ["category.continent.tooltip", { continent: `category.continent.values.${continent}` }],
-      badge: badge ?(<CategoryBadgeSimple icon={<ContinentIcon continent={continent} />} label={`category.continent.values.${continent}`} {...props} />) : undefined
+      badge: badge ? (<CategoryBadgeSimple key={key} icon={<ContinentIcon continent={continent} />} label={`category.continent.values.${continent}`} {...props} />) : undefined
     }
   }
   

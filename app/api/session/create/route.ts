@@ -16,18 +16,18 @@ export async function POST(
   const action = data.action as unknown as RequestAction
   const name = data.name as unknown as string | undefined
   
-  const playingMode = (action == RequestAction.InitSessionOffline ? PlayingMode.Offline : PlayingMode.Online)
+  const playingMode = (action == "InitSessionOffline" ? PlayingMode.Offline : PlayingMode.Online)
   const settings = defaultSettings
 
   // Generate invitation code (if InitSessionFriend)
   let invitationCode = null
-  if (action == RequestAction.InitSessionFriend) {
+  if (action == "InitSessionFriend") {
     invitationCode = await generateNewInvitationCode(db)
     if (!invitationCode) return error("Internal Server Error", 500)
   }
 
   // Join existing random session?
-  if (action == RequestAction.InitSessionRandom) {
+  if (action == "InitSessionRandom") {
     // TODO TTG-31 filter for sessions with matching settings (difficulty, language)
     const availableSessions = await db.session.findMany({
       where: {
@@ -60,7 +60,7 @@ export async function POST(
   const newSession = await db.session.create({
     data: {
       invitationCode: invitationCode,
-      isPublic: action == RequestAction.InitSessionRandom,
+      isPublic: action == "InitSessionRandom",
       settings: JSON.stringify(settings),
       playingMode: playingMode,
       users: {

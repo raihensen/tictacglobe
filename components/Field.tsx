@@ -1,7 +1,7 @@
 
 import styled from "styled-components";
 import { ReactNode, forwardRef, useEffect, useId, useState } from 'react';
-import { Game, Country, CategoryValue, RequestAction, FrontendQuery, FieldSettings, Category } from "@/src/game.types"
+import { Game, Country, CategoryValue, RequestAction, FrontendQuery, FieldSettings, Category, ApiHandler } from "@/src/game.types"
 
 import { PlusCircleFill } from 'react-bootstrap-icons';
 import Badge, { BadgeProps } from 'react-bootstrap/Badge';
@@ -37,7 +37,7 @@ const Field = ({ pos, setActive, setIsSearching, game, row, col, apiRequest, has
   game: Game,
   row: CategoryValue,
   col: CategoryValue,
-  apiRequest: (query: FrontendQuery) => any,
+  apiRequest: ApiHandler,
   hasTurn: boolean,
   notifyDecided: boolean,
   countries: Country[],
@@ -46,6 +46,7 @@ const Field = ({ pos, setActive, setIsSearching, game, row, col, apiRequest, has
 }) => {
   const { t, i18n } = useTranslation('common')
   const [i, j] = pos
+  const { x, y } = game.getXY(i, j)
   const solutions = countries.filter(c => game.setup.solutions[i][j].includes(c.iso))
   const [exampleSolution, setExampleSolution] = useState<Country>(_.sample(solutions) as Country)
   const alternativeSolutions = countries.filter(c => game.setup.alternativeSolutions[i][j].includes(c.iso))
@@ -94,12 +95,9 @@ const Field = ({ pos, setActive, setIsSearching, game, row, col, apiRequest, has
   }, [fieldState])
 
   const makeGuess = (country: Country) => {
-    const correct = game.isValidGuess(i, j, country)
-    apiRequest({
-      action: RequestAction.MakeGuess,
-      player: game.turn,  // offline only
-      countryId: country.iso,
-      pos: pos.join(",")
+    const correct = game.isValidGuess(x, y, country)
+    apiRequest(`api/game/${game?.id}/guess?x=${x}&y=${y}&guess=${country.iso}`, {
+      action: "MakeGuess",
     })
     setIsSearching(false)
     return correct

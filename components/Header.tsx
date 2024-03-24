@@ -3,7 +3,7 @@ import 'bootstrap/dist/css/bootstrap.min.css';
 import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'next-i18next'
 
-import { Settings, defaultSettings, Game, Country, RequestAction, FrontendQuery, PlayingMode, GameState, Language, SessionWithoutGames, defaultLanguage, PlayerIndex, autoRefreshInterval, Query, settingsToQuery, settingsChanged, getApiUrl } from "@/src/game.types"
+import { Settings, defaultSettings, Game, Country, RequestAction, FrontendQuery, PlayingMode, GameState, Language, SessionWithoutGames, defaultLanguage, PlayerIndex, autoRefreshInterval, Query, settingsToQuery, settingsChanged, getApiUrl, ApiHandler } from "@/src/game.types"
 import { capitalize, readReadme, useAutoRefresh } from "@/src/util"
 import _ from "lodash";
 
@@ -26,7 +26,7 @@ const Header: React.FC<{
   triggerShowSettings: () => void,
   shareButtonProps: ShareButtonProps,
   hasTurn: boolean,
-  apiRequest: (query: FrontendQuery) => any,
+  apiRequest: ApiHandler,
 }> = ({ isGame, game, darkMode, toggleDarkMode, triggerShowGameInformation, triggerShowSettings, shareButtonProps, hasTurn, apiRequest }) => {
   const { t, i18n } = useTranslation("common")
   const router = useRouter()
@@ -65,7 +65,7 @@ const Header: React.FC<{
                 confirmText: t("newGame"),
                 cancelText: t("cancel")
               })) {
-                apiRequest({ action: RequestAction.NewGame, language: newLanguage as Language })  // TODO if language change does not work, have to pass newLanguage here
+                apiRequest({ action: "NewGame", language: newLanguage as Language })  // TODO if language change does not work, have to pass newLanguage here
                 return true
               } else {
                 // undo change

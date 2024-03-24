@@ -84,7 +84,7 @@ const IndexPage: React.FC<PageProps & IndexPageProps> = ({
         return fetch(`/api/session/${sessionId}/refresh`, {
           method: "GET"
         })
-      }, RequestAction.RefreshSession)
+      }, "RefreshSession")
     },
     autoRefreshInterval
   )
@@ -100,7 +100,7 @@ const IndexPage: React.FC<PageProps & IndexPageProps> = ({
     clearAutoRefresh()
 
 
-    if (action != RequestAction.RefreshSession) {
+    if (action != "RefreshSession") {
       setIsWaiting(true)
     }
 
@@ -132,13 +132,13 @@ const IndexPage: React.FC<PageProps & IndexPageProps> = ({
       return true
     }
 
-    if (action == RequestAction.InitSessionRandom) {
+    if (action == "InitSessionRandom") {
       // session not filled yet, waiting for opponent
       setState(PageState.WaitingForRandomOpponent)
       scheduleAutoRefresh(data.session.id)
     }
 
-    if (action == RequestAction.InitSessionFriend) {
+    if (action == "InitSessionFriend") {
       if (!data.session.invitationCode) {
         setErrorMessage("Error loading or creating the session.")
         return false
@@ -147,7 +147,7 @@ const IndexPage: React.FC<PageProps & IndexPageProps> = ({
       scheduleAutoRefresh(data.session.id)
     }
     
-    if (action == RequestAction.RefreshSession) {
+    if (action == "RefreshSession") {
       scheduleAutoRefresh(data.session.id)
     }
 
@@ -180,13 +180,13 @@ const IndexPage: React.FC<PageProps & IndexPageProps> = ({
     apiRequest(
       () => {
         const formData = new FormData()
-        formData.set("action", RequestAction.JoinSession.toString())
+        formData.set("action", "JoinSession".toString())
         return fetch(`/api/code/${invitationCode}/join`, {
           body: formData,
           method: "POST"
         })
       },
-      RequestAction.JoinSession
+      "JoinSession"
     )
     return true
   }
@@ -207,26 +207,26 @@ const IndexPage: React.FC<PageProps & IndexPageProps> = ({
           apiRequest(
             () => {
               const formData = new FormData()
-              formData.set("action", RequestAction.InitSessionRandom.toString())
+              formData.set("action", "InitSessionRandom".toString())
               return fetch(`/api/session/create`, {
                 body: formData,
                 method: "POST"
               })
             },
-            RequestAction.InitSessionRandom
+            "InitSessionRandom"
           )
         }}>Search opponent</Button>
         <Button variant="warning" size="lg" className="mb-2" onClick={() => {
           apiRequest(
             () => {
               const formData = new FormData()
-              formData.set("action", RequestAction.InitSessionFriend.toString())
+              formData.set("action", "InitSessionFriend".toString())
               return fetch(`/api/session/create`, {
                 body: formData,
                 method: "POST"
               })
             },
-            RequestAction.InitSessionFriend
+            "InitSessionFriend"
           )
         }}>Invite a friend</Button>
         <Button variant="warning" size="lg" className="mb-2" onClick={() => {
@@ -237,13 +237,13 @@ const IndexPage: React.FC<PageProps & IndexPageProps> = ({
           apiRequest(
             () => {
               const formData = new FormData()
-              formData.set("action", RequestAction.InitSessionOffline.toString())
+              formData.set("action", "InitSessionOffline".toString())
               return fetch(`/api/session/create`, {
                 body: formData,
                 method: "POST"
               })
             },
-            RequestAction.InitSessionOffline
+            "InitSessionOffline"
           )
         }}>Same screen</Button>
       </div>

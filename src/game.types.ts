@@ -65,14 +65,14 @@ export const settingsFromQuery = (query: Query): Partial<Settings> => {
   return Object.fromEntries((Object.entries(query).filter(([k, v]) => k.startsWith("settings")) as [keyof Settings, any][]).map(([k, v]) => [
     k.charAt("settings".length).toLowerCase() + k.substring("settings".length + 1), v
   ]).map(([k, v]) => [k, parseSetting(k, v)])) as Partial<Settings>
-  
+
 }
 
 export const getApiUrl = (query: ScalarQuery, { settings, router }: {
   settings?: Settings,
   router?: NextRouter
 } = {}): string => {
-  if (query.action == RequestAction.NewGame || query.action == RequestAction.ExistingOrNewGame) {
+  if (query.action == "NewGame" || query.action == "ExistingOrNewGame") {
     if (settings && router) {
       query.difficulty = settings.difficulty
       query.language = query.language ?? (router.locale ?? defaultLanguage) as Language
@@ -93,30 +93,39 @@ export enum Language {
 
 export const defaultLanguage = Language.English
 
-export enum RequestAction {
-  ExistingOrNewGame = 0,
-  NewGame = 1,
-  MakeGuess = 2,
-  EndTurn = 3,
-  EndGame = 11,
-  TimeElapsed = 4,
-  RefreshGame = 5,
-  InitSessionFriend = 6,
-  InitSessionRandom = 7,
-  RefreshSession = 8,
-  JoinSession = 9,
-  InitSessionOffline = 10,
-}
+export type RequestAction = "ExistingOrNewGame" |
+  "NewGame" |
+  "MakeGuess" |
+  "EndTurn" |
+  "EndGame" |
+  "TimeElapsed" |
+  "RefreshGame" |
+  "InitSessionFriend" |
+  "InitSessionRandom" |
+  "RefreshSession" |
+  "JoinSession" |
+  "InitSessionOffline"
 
 export function isIngameAction(action: RequestAction) {
-  return action == RequestAction.MakeGuess || action == RequestAction.EndTurn || action == RequestAction.TimeElapsed || action == RequestAction.RefreshGame || action == RequestAction.EndGame
+  return action == "MakeGuess" || action == "EndTurn" || action == "TimeElapsed" || action == "RefreshGame" || action == "EndGame"
 }
 export function isGameInitAction(action: RequestAction) {
-  return action == RequestAction.NewGame || action == RequestAction.ExistingOrNewGame
+  return action == "NewGame" || action == "ExistingOrNewGame"
 }
 export function isSessionInitAction(action: RequestAction) {
-  return action == RequestAction.JoinSession || action == RequestAction.InitSessionFriend || action == RequestAction.InitSessionRandom || action == RequestAction.RefreshSession || action == RequestAction.InitSessionOffline
+  return action == "JoinSession" || action == "InitSessionFriend" || action == "InitSessionRandom" || action == "RefreshSession" || action == "InitSessionOffline"
 }
+
+
+export type ApiResponse = {
+  session: Session
+  game: DbGame
+  user?: User
+  countries?: Country[]
+} | {
+  error: string
+}
+export type ApiHandler = (url: string, query: FrontendQuery) => any
 
 export type ScalarQuery = {
   userIdentifier: string;
@@ -269,7 +278,7 @@ export class Game {
     this.winCoords = game.markings.filter(m => m.isWinning).map(m => [m.x, m.y])
     this.winner = game.winner as (PlayerIndex | NoPlayer) | null
     this.turnCounter = game.turnCounter
-  
+
     this.turnStartTimestamp = new Date(game.turnStartTimestamp)
     this.createdAt = new Date(game.createdAt)
     this.finishedAt = game.finishedAt ? new Date(game.finishedAt) : null
@@ -285,7 +294,7 @@ export class Game {
   }
 
   getIJ(x: number, y: number) {
-    return { i: this.setup.size - y , j: x - 1 }
+    return { i: this.setup.size - y, j: x - 1 }
   }
 
   getXY(i: number, j: number) {

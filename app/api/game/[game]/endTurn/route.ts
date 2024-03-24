@@ -25,7 +25,7 @@ export async function POST(
   })
 
   if (!game) return error("Game not found", 404)
-  if (game.session.users[game.turn].id != userId) return error("It's not your turn", 403)
+  if (game.session.users[game.turn].id != userId) return error("It's not your turn", 403)  // TODO offline
   if (game.turnCounter != turnCounter) return error("Invalid turn counter", 420)
 
   game = await switchTurns(game)

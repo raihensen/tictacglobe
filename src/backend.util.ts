@@ -1,5 +1,5 @@
 import _ from "lodash";
-import { GameSetup, Language } from "./game.types";
+import { Country, GameSetup, Language, parseCountry } from "./game.types";
 import path from "path";
 var fs = require('fs').promises;
 
@@ -8,6 +8,25 @@ export function randomChoice<T>(arr: Array<T>): T | undefined {
     return undefined
   }
   return arr[Math.floor(arr.length * Math.random())];
+}
+
+var countryData: Record<string, Country[]> = {}
+
+export async function getCountryData(language: Language): Promise<Country[] | null> {
+
+  if (language.toString() in countryData) {
+    return countryData[language.toString()]
+  }
+  const file = path.join(process.cwd(), 'public', 'data', 'countries', `countries-${language}.json`)
+  console.log(`Read countries from file ${file}...`)
+  try {
+    const data: any = await fs.readFile(file)
+    let countries = JSON.parse(data).map(parseCountry) as Country[]
+    countryData[language.toString()] = countries
+    return countries
+  } catch (err) {
+    return null
+  }
 }
 
 

@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { error, sessionIncludeCurrentGame } from "@/src/api.utils";
 import { db } from "@/src/db";
 import { GameSetup, Language, Settings } from "@/src/game.types";
-import { chooseGameSetup } from "@/src/backend.util";
+import { chooseGameSetup, getCountryData } from "@/src/backend.util";
 
 /**
  * For the given session and user, returns the currently running game.
@@ -53,6 +53,10 @@ export async function POST(
     })
   }
 
+  // Get country data
+  const countries = await getCountryData(session.language as Language)
+  if (!countries) return error("Country data could not be read", 500)
+
   // Get session with latest game (including if it's the one just created)
   session = await db.session.findUnique({
     where: { id: sessionId },
@@ -63,6 +67,7 @@ export async function POST(
   return NextResponse.json({
     session: session,
     game: session.games[0],
+    countries: countries,
     success: true
   })
 

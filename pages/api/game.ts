@@ -7,6 +7,7 @@ import { v4 as uuidv4 } from "uuid";
 var fs = require('fs').promises;
 import path from 'path';
 import { Mutex } from 'async-mutex';
+import { getCountryData } from '@/src/backend.util';
 
 // var userSessionMap: Record<string, GameSession> = { "debug": sessions[0] }
 var userSessionMap: Record<string, GameSession> = {}
@@ -14,7 +15,6 @@ var sessions: GameSession[] = []
 
 var sessionIndex = 1
 var allSessionsMutex = new Mutex()
-var countryData: Record<string, Country[]> = {}
 
 
 const _winningFormations: Record<string, number[][][]> = {}  // saves all combinations of coords leading to a win (axes: combination, coord pair, coord)
@@ -78,7 +78,7 @@ async function makeGuess(
   }
 
   // check correct solution
-  if (!game.isValidGuess(i, j, country)) {
+  if (!game.isValidGuess(x, y, country)) {
     console.log(`Wrong guess ((${i},${j}), ${country.name})`)
     switchTurns(game)
     return true  // might return false?
@@ -146,23 +146,6 @@ function checkWinner(game: Game) {
   return null
 }
 
-async function getCountryData(language: Language): Promise<Country[] | null> {
-
-  if (language.toString() in countryData) {
-    return countryData[language.toString()]
-  }
-  const file = path.join(process.cwd(), 'public', 'data', 'countries', `countries-${language}.json`)
-  console.log(`Read countries from file ${file}...`)
-  try {
-    const data: any = await fs.readFile(file)
-    let countries = JSON.parse(data).map(parseCountry) as Country[]
-    countryData[language.toString()] = countries
-    return countries
-  } catch (err) {
-    return null
-  }
-}
-
 type Request = IncomingMessage & { query: Query }
 
 async function executeAndRespond(
@@ -213,7 +196,7 @@ async function executeAndRespond(
     additionalResponseData.countries = countries
   }
 
-  if (action == RequestAction.ExistingOrNewGame || action == RequestAction.NewGame || action == RequestAction.RefreshGame) {
+  if (action == "ExistingOrNewGame" || action == "NewGame" || action == "RefreshGame") {
 
     // Just load / initialize game
     success = !!game
@@ -221,7 +204,7 @@ async function executeAndRespond(
   } else if (game && isIngameAction(action) && game.state != GameState.Finished && playerIndex !== undefined) {
 
     // in-game actions
-    if (action == RequestAction.MakeGuess && countryId && pos && game.state != GameState.Ended) {
+    if (action == "MakeGuess" && countryId && pos && game.state != GameState.Ended) {
       
       success = await makeGuess(game, playerIndex, query)
 
@@ -239,11 +222,11 @@ async function executeAndRespond(
 
     }
 
-    if (action == RequestAction.EndTurn || action == RequestAction.TimeElapsed) {
+    if (action == "EndTurn" || action == "TimeElapsed") {
       success = endTurn(game, playerIndex, query)
     }
 
-    if (action == RequestAction.EndGame) {
+    if (action == "EndGame") {
       if (game.state != GameState.Finished) {
         game.state = GameState.Ended
         success = true
@@ -253,7 +236,7 @@ async function executeAndRespond(
   } else if (isSessionInitAction(action)) {
 
     success = !!session
-    if (action == RequestAction.InitSessionFriend) {
+    if (action == "InitSessionFriend") {
       success = success && !!session.invitationCode
     }
 
@@ -372,7 +355,7 @@ async function gameApi(req: Request, res: ServerResponse<Request>) {
     // isSessionInitAction: only create or join sessions. do not create games
     // isGameInitAction: only create games or return active games. do not create sessions
 
-    if (isSessionInitAction(action) && action != RequestAction.RefreshSession) {
+    if (isSessionInitAction(action) && action != "RefreshSession") {
       // remove user from all existing sessions
       console.log(`Remove user ${userIdentifier} from all sessions`)
       sessions.forEach(session => {
@@ -413,7 +396,7 @@ async function gameApi(req: Request, res: ServerResponse<Request>) {
         return respondWithError(res, "Your opponent has left the game.")
       }
 
-      if (session && game && action != RequestAction.NewGame && (isIngameAction(action) || action == RequestAction.ExistingOrNewGame)) {
+      if (session && game && action != "NewGame" && (isIngameAction(action) || action == "ExistingOrNewGame")) {
         // Return existing game
         // It might still be a new game to the user (when the other one started a new game)
         const gameHasChanged = false  // TODO detect if the user had a different game before (add some ID to the query?)
@@ -437,7 +420,7 @@ async function gameApi(req: Request, res: ServerResponse<Request>) {
     if (isSessionInitAction(action)) {
 
       // RefreshSession: Only action that uses an old session instance
-      if (action == RequestAction.RefreshSession && playingMode == PlayingMode.Online) {
+      if (action == "RefreshSession" && playingMode == PlayingMode.Online) {
         // This is called to wait on the other opponent (random or friend). Session already exists
         if (!session) {
           return respondWithError(res, "Game session not found.")
@@ -453,7 +436,7 @@ async function gameApi(req: Request, res: ServerResponse<Request>) {
       
       // Find/create a new session for the user
       
-      if (playingMode == PlayingMode.Offline && action == RequestAction.InitSessionOffline) {
+      if (playingMode == PlayingMode.Offline && action == "InitSessionOffline") {
         // console.log("playingMode Offline");
         
         // TODO TTG-35 re-integrate offline mode
@@ -468,7 +451,7 @@ async function gameApi(req: Request, res: ServerResponse<Request>) {
       if (playingMode == PlayingMode.Online) {
         // console.log("playingMode Online");
 
-        if (action == RequestAction.InitSessionFriend) {
+        if (action == "InitSessionFriend") {
           // create invitation code
           const characters = 'ABCDEFGHJKLPQRSTUVWXYZ456789'
           const invitationCode = _.range(4).map(() => characters.charAt(Math.floor(Math.random() * characters.length))).join("")
@@ -477,7 +460,7 @@ async function gameApi(req: Request, res: ServerResponse<Request>) {
 
         }
 
-        if (action == RequestAction.InitSessionRandom) {  // init or join. might rename
+        if (action == "InitSessionRandom") {  // init or join. might rename
           // find session with free spots
           // TODO TTG-31 filter for sessions with matching settings (difficulty, language)
           const availableSessions = sessions.filter(session => session.users.length < 2 && session.isPublic)
@@ -495,7 +478,7 @@ async function gameApi(req: Request, res: ServerResponse<Request>) {
           
         }
 
-        if (action == RequestAction.JoinSession) {
+        if (action == "JoinSession") {
           if (!invitationCode) {
             return respondWithError(res, "Invitation code not specified.")
           }

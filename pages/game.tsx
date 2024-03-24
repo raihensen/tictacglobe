@@ -3,11 +3,11 @@ import Button from "react-bootstrap/Button";
 import Alert from 'react-bootstrap/Alert';
 
 import 'bootstrap/dist/css/bootstrap.min.css';
-import { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'next-i18next'
 import { serverSideTranslations } from 'next-i18next/serverSideTranslations'
 
-import { Settings, defaultSettings, Game, Country, Category, RequestAction, FrontendQuery, Language, defaultLanguage, autoRefreshInterval, settingsChanged } from "@/src/game.types"
+import { Settings, defaultSettings, Game, Country, Category, RequestAction, FrontendQuery, Language, defaultLanguage, autoRefreshInterval, settingsChanged, ApiResponse } from "@/src/game.types"
 import { GET, capitalize, getLocalStorage, readReadme, setLocalStorage, useAutoRefresh } from "@/src/util"
 import _ from "lodash";
 var fs = require('fs').promises;
@@ -29,14 +29,7 @@ import { useConfirmation } from "@/components/common/Confirmation";
 import { useTtgStore } from "@/src/zustand";
 import { Session, Game as DbGame } from "@/src/db.types";
 import { GameState, PlayingMode, User } from "@prisma/client";
-
-export type ApiResponse = {
-  session: Session
-  game: DbGame
-  user?: User
-} | {
-  error: string
-}
+import styled from "styled-components";
 
 const GamePage: React.FC<PageProps & GamePageProps> = ({
   isClient,
@@ -65,7 +58,7 @@ const GamePage: React.FC<PageProps & GamePageProps> = ({
     async function loadGame(sessionId: number) {
       if (!user) return
       console.log(`First client-side init (GamePage) - userId ${user.id} - sessionId ${sessionId}`)
-      apiRequest(`api/session/${sessionId}/user/${user.id}/game`, { action: RequestAction.ExistingOrNewGame })
+      apiRequest(`api/session/${sessionId}/user/${user.id}/game`, { action: "ExistingOrNewGame" })
     }
   }, [user, game, session])
 
@@ -89,12 +82,10 @@ const GamePage: React.FC<PageProps & GamePageProps> = ({
     onShare: () => setShowDonationModal(true)
   }
 
-  const opponentUser = session?.users.filter(u => u.id != user?.id)[0]
+  const opponentUser = session?.users.filter(u => u.id != user?.id)[0] ?? null
 
   const [notifyDecided, setNotifyDecided] = useState<boolean>(false)
 
-  // const [userIndex, setUserIndex] = useState<PlayerIndex>(0)  // who am i? 0/1
-  // const userIndex = game.startingUser.id == user.id ? 0 : 1
   const userIndex = session?.users.findIndex(u => u.id == user?.id)
   const [hasTurn, setHasTurn] = useState<boolean>(true)
   const [turnStartTimestamp, setTurnStartTimestamp] = useState<number>(Date.now() - 60000)
@@ -102,10 +93,9 @@ const GamePage: React.FC<PageProps & GamePageProps> = ({
   const [countries, setCountries] = useState<Country[]>([])
   const { data: categories, mutate: mutateCategories, error: categoriesError, isLoading: isLoadingCategories } = useSWR<Category[]>(`/api/categories?language=${router.locale}`, GET)
 
-  const { scheduleAutoRefresh, clearAutoRefresh } = useAutoRefresh(() => {
+  const { scheduleAutoRefresh, clearAutoRefresh } = useAutoRefresh((game: Game) => {
     if (!game) return
-    console.log("auto refresh disabled")
-    apiRequest(`api/game/${game.id}/refresh`, { action: RequestAction.RefreshGame })
+    apiRequest(`api/game/${game.id}/refresh`, { action: "RefreshGame" })
   }, autoRefreshInterval)
 
   useEffect(() => {
@@ -122,8 +112,8 @@ const GamePage: React.FC<PageProps & GamePageProps> = ({
     }
     clearAutoRefresh()
 
-    if (action != RequestAction.RefreshGame) {
-      setLoadingText(action == RequestAction.MakeGuess ? "Submitting guess" : "Loading")
+    if (action != "RefreshGame") {
+      setLoadingText(action == "MakeGuess" ? "Submitting guess" : "Loading")
       if (timerRef.current) {
         (timerRef.current as any).stop()
       }
@@ -131,7 +121,7 @@ const GamePage: React.FC<PageProps & GamePageProps> = ({
     
     const formData = new FormData()
     formData.set("action", action.toString())
-    formData.set("user", user.id.toString())
+    formData.set("user", user.id)
     if (game) {
       formData.set("turn", game?.turnCounter.toString())
     }
@@ -180,7 +170,7 @@ const GamePage: React.FC<PageProps & GamePageProps> = ({
       }
 
       if (!willHaveTurn) {
-        scheduleAutoRefresh()
+        scheduleAutoRefresh(newGameInstance)
       }
 
     }
@@ -195,10 +185,9 @@ const GamePage: React.FC<PageProps & GamePageProps> = ({
     }
 
     setNotifyDecided(showNotifyDecided)
-    // TODO countries
-    // if (data.countries) {
-    //   setCountries(data.countries)
-    // }
+    if (data.countries) {
+      setCountries(data.countries)
+    }
     setSettings(settings => {
       const sessionSettings = JSON.parse(data.session.settings) as Settings
       if (settingsChanged(settings, sessionSettings)) {
@@ -261,8 +250,12 @@ const GamePage: React.FC<PageProps & GamePageProps> = ({
       hasTurn={hasTurn}
     />
     {/* {(isClient && isCustomUserIdentifier) && (<h3>User: {userIdentifier}</h3>)} */}
-    <p>You: {user?.name ?? <span className="text-muted small">{user?.id ?? "null"}</span>}</p>
-    <p>Your opponent: {opponentUser?.name ?? <span className="text-muted small">{opponentUser?.id ?? "null"}</span>}</p>
+    <p className="d-flex align-items-center gap-2">
+      <UserAvatar user={user} />
+      @{userIndex}
+      <SessionScore perspective={user} />
+      <UserAvatar user={opponentUser} />
+    </p>
     {(hasError && errorMessage) && <Alert variant="danger">Error: {errorMessage}</Alert>}
     {hasError && (<>
       <p>
@@ -287,19 +280,19 @@ const GamePage: React.FC<PageProps & GamePageProps> = ({
                   confirmText: t("endGame.action"),
                   cancelText: t("cancel")
                 })) {
-                  apiRequest({ action: RequestAction.EndGame, player: game.turn })
+                  apiRequest({ action: "EndGame", player: game.turn })
                 }
               }}><FaXmark /></IconButton>
             )}
             {canRequestNewGame(game) && (
               <IconButton label={t("newGame")} variant="danger" onClick={() => {
-                apiRequest({ action: RequestAction.NewGame })
+                apiRequest({ action: "NewGame" })
               }}><FaArrowsRotate /></IconButton>
             )}
             {canEndTurn(game, notifyDecided) && (<>
               <IconButton label={t("endTurn")} variant="warning" onClick={() => {
                 apiRequest(`api/game/${game?.id}/endTurn`, {
-                  action: RequestAction.EndTurn,
+                  action: "EndTurn",
                 })
               }}><FaPersonCircleXmark /></IconButton>
             </>)}
@@ -345,11 +338,11 @@ const GamePage: React.FC<PageProps & GamePageProps> = ({
                         
                         // if (hasTurn) {
                         //   apiRequest({
-                        //     action: RequestAction.TimeElapsed,
+                        //     action: "TimeElapsed",
                         //     player: game.turn
                         //   })
                         // } else {
-                        //   apiRequest({ action: RequestAction.RefreshGame })
+                        //   apiRequest({ action: "RefreshGame" })
                         // }
                       }}
                     />
@@ -488,3 +481,42 @@ export const getServerSideProps: GetServerSideProps<GamePageProps> = (async ({ l
     }
   }
 })
+
+const UnstyledUserAvatar: React.FC<React.HTMLProps<HTMLSpanElement> & {
+  user: User | null
+}> = ({ user, className, ...props }) => {
+
+  const text = user?.name?.substring(0, 1).toUpperCase()
+
+  return (
+    <span className={className}>
+      {text}
+    </span>
+  )
+
+}
+
+export const UserAvatar = styled(UnstyledUserAvatar)`
+
+  background: ${({ user }) => user ? `#${user.id.substring(0, 6)}` : "var(--bs-secondary)"};
+  color: ${({ user }) => user ? `#${user.id.substring(0, 6)}` : "var(--bs-secondary)"};
+  display: inline-flex;
+  width: 30px;
+  height: 30px;
+  border-radius: 15px;
+
+`
+
+export const SessionScore: React.FC<React.HTMLProps<HTMLSpanElement> & {
+  perspective: User | null
+}> = ({ perspective: user, className, ...props }) => {
+  const session = useTtgStore.use.session()
+  if (!session) return false
+  const userIndex = user ? session.users.map(u => u.id).indexOf(user.id) : -1
+  const score = userIndex != 1 ? [session.score1, session.score2] : [session.score2, session.score1]
+  return (
+    <span className={className}>
+      {score[0]}:{score[1]}
+    </span>
+  )
+}

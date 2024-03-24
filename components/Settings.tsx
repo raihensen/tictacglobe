@@ -46,7 +46,7 @@ export const SettingsModal: React.FC<{
     console.log(`New settings: ${JSON.stringify(newSettings)}`)
 
     apiRequest({
-      action: RequestAction.RefreshGame,
+      action: "RefreshGame",
       ...settingsToQuery(newSettings)
     })
 
