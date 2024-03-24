@@ -56,7 +56,11 @@ export async function POST(
   let successfulGuess = false
 
   if (action == "EndGame") {
+    // TODO check sessionAdmin rights
     nextState = GameState.Ended
+  } else if (action == "PlayOn") {
+    // TODO check sessionAdmin rights
+    nextState = GameState.PlayingOn
   } else {
 
     if (game.session.users[game.turn].id != userId) return error("It's not your turn", 403)
@@ -129,7 +133,7 @@ export async function POST(
 
   }
 
-  game = await switchTurnsAndUpdateState(game, nextState, successfulGuess)
+  game = await switchTurnsAndUpdateState(game, action, nextState, successfulGuess)
 
   session = await db.session.findUnique({
     where: { id: game.sessionId },
@@ -180,7 +184,10 @@ async function checkWinner(game: Game) {
   const wins = formationMarkings.filter(formation => playerIndices.some(
     p => formation.every(({ i, j, player }) => player == p)
   ))
-  
+  // console.log("formationMarkings")
+  // formationMarkings.forEach(f => console.log(JSON.stringify(f)))
+  // console.log("wins")
+  // wins.forEach(f => console.log(JSON.stringify(f)))
   if (wins.length > 0) {
     const winners = [...new Set(wins.map(win => win[0].player))]
     if (winners.length == 1) {

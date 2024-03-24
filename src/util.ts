@@ -134,7 +134,7 @@ export function useAutoRefresh(action: (...args: any[]) => void, interval: numbe
 
   const clearAutoRefresh = () => {
     autoRefreshIntervalMutex.runExclusive(() => {
-      if (typeof autoRefreshIntervalHandle !== 'undefined') {
+      if (autoRefreshIntervalHandle !== undefined) {
         clearTimeout(autoRefreshIntervalHandle)
       }
     })
@@ -142,7 +142,7 @@ export function useAutoRefresh(action: (...args: any[]) => void, interval: numbe
 
   const scheduleAutoRefresh = (...args: any[]) => {
     autoRefreshIntervalMutex.runExclusive(() => {
-      if (typeof autoRefreshIntervalHandle !== 'undefined') {
+      if (autoRefreshIntervalHandle !== undefined) {
         clearTimeout(autoRefreshIntervalHandle)
       }
       setAutoRefreshIntervalHandle(setTimeout(() => {

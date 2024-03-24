@@ -65,6 +65,7 @@ enum GameState {
   Initialized
   Running
   Decided // set as soon as a winner / draw is determined but the board is not full yet (might continue playing)
+  PlayingOn // after game has been Decided and selecting "play on"
   Finished // only set if the board is fully marked
   Ended // After having clicked "End game", then show solutions
 }

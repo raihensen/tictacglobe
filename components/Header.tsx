@@ -25,9 +25,9 @@ const Header: React.FC<{
   triggerShowGameInformation: () => void,
   triggerShowSettings: () => void,
   shareButtonProps: ShareButtonProps,
-  hasTurn: boolean,
+  isSessionAdmin: boolean,
   apiRequest: ApiHandler,
-}> = ({ isGame, game, darkMode, toggleDarkMode, triggerShowGameInformation, triggerShowSettings, shareButtonProps, hasTurn, apiRequest }) => {
+}> = ({ isGame, game, darkMode, toggleDarkMode, triggerShowGameInformation, triggerShowSettings, shareButtonProps, isSessionAdmin, apiRequest }) => {
   const { t, i18n } = useTranslation("common")
   const router = useRouter()
   const confirm = useConfirmation()
@@ -59,7 +59,7 @@ const Header: React.FC<{
             <ShareButton {...shareButtonProps} tooltipPlacement='bottom' />
             <IconButton variant="secondary" onClick={triggerShowGameInformation}><FaCircleInfo /></IconButton>
             <IconButton variant="secondary" onClick={toggleDarkMode}><FaMoon /></IconButton>
-            <LanguageSelector value={router.locale ?? defaultLanguage} disabled={!hasTurn} onChange={async (oldLanguage, newLanguage) => {
+            <LanguageSelector value={router.locale ?? defaultLanguage} disabled={!isSessionAdmin} onChange={async (oldLanguage, newLanguage) => {
               if (await confirm(t("changeLanguage.confirm.question"), {
                 title: t("changeLanguage.confirm.title"),
                 confirmText: t("newGame"),
@@ -73,7 +73,7 @@ const Header: React.FC<{
                 return false
               }
             }} />
-            <IconButton variant="secondary" disabled={!hasTurn || !game} onClick={triggerShowSettings}><FaGear /></IconButton>
+            <IconButton variant="secondary" disabled={!isSessionAdmin || !game} onClick={triggerShowSettings}><FaGear /></IconButton>
 
           </ButtonToolbar>
           <IconButton className="d-md-none" variant={expanded ? "secondary" : "outline-secondary"}>

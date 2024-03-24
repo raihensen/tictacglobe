@@ -29,7 +29,7 @@ type FieldState = {
   mode: FieldMode;
 }
 
-const Field = ({ pos, setActive, setIsSearching, game, row, col, apiRequest, hasTurn, notifyDecided, countries, categories, settings }: {
+const Field = ({ pos, setActive, setIsSearching, game, row, col, apiRequest, canControlGame, notifyDecided, countries, categories, settings }: {
   pos: number[],
   active: boolean,
   setActive: (active: boolean) => void,
@@ -38,7 +38,7 @@ const Field = ({ pos, setActive, setIsSearching, game, row, col, apiRequest, has
   row: CategoryValue,
   col: CategoryValue,
   apiRequest: ApiHandler,
-  hasTurn: boolean,
+  canControlGame: boolean,
   notifyDecided: boolean,
   countries: Country[],
   categories: Category[],
@@ -109,20 +109,20 @@ const Field = ({ pos, setActive, setIsSearching, game, row, col, apiRequest, has
   const getAllValues = (key: string, country: Country) => [country[key], ..._.get(country.alternativeValues, key, [])]
 
   const tooltipCountryInfoIds = [useId(), useId()]
-  const canShowFieldInfo = (game: Game) => game.state == GameState.Ended || game.state == GameState.Finished || (game.state == GameState.Decided && notifyDecided)
+  const canShowFieldInfo = game.hasEnded()
 
   return (<>
     <TableCellInner
       onMouseEnter={() => { setActive(true) }}
       onMouseLeave={() => { setActive(false) }}
-      onClick={() => { if (canShowFieldInfo(game)) { openFieldInfoModal() } }}
-      style={canShowFieldInfo(game) ? { cursor: "pointer" } : undefined}
+      onClick={() => { if (canShowFieldInfo) { openFieldInfoModal() } }}
+      style={canShowFieldInfo ? { cursor: "pointer" } : undefined}
     >
       {/* <span>{mode}</span> */}
       {fieldState.mode == FieldMode.INITIAL && <>
         {/* Field is still free */}
         {!notifyDecided && <>
-          {hasTurn && <><div className="field-center-50">
+          {canControlGame && <><div className="field-center-50">
             <PlusCircleFill
               size={50}
               style={{ cursor: "pointer", opacity: .5 }}
@@ -137,7 +137,7 @@ const Field = ({ pos, setActive, setIsSearching, game, row, col, apiRequest, has
         {/* Game just became a tie: grey out */}
         {notifyDecided && (<MarkingBackground $player={-1} $isWinning={false} />)}
       </>}
-      {(fieldState.mode == FieldMode.SEARCH && hasTurn) && (
+      {(fieldState.mode == FieldMode.SEARCH && canControlGame) && (
         <>
           <div className="field-flex">
             <div style={{ width: "100%" }}>
@@ -371,12 +371,11 @@ type CountryInfoTooltipContentProps = {
 }
 const CountryInfoTooltipContents = ({ context, game, country, isNameRelevant, isCapitalRelevant }: CountryInfoTooltipContentProps) => {
   const { t } = useTranslation("common")
-  const isGameFinished = (game: Game) => game.state == GameState.Finished || game.state == GameState.Ended
 
   const texts = country ? [
     t("countryInfo.name", { value: country.name }),
     (isNameRelevant && country.alternativeValues.name !== undefined ? t("countryInfo.alternativeNames", { count: country.alternativeValues.name.length, values: country.alternativeValues.name.join(", ") }) : undefined),
-    (isCapitalRelevant || isGameFinished(game) ? t("countryInfo.capital", { value: country.capital }) : undefined),
+    (isCapitalRelevant || game.hasEnded() ? t("countryInfo.capital", { value: country.capital }) : undefined),
     (isCapitalRelevant && country.alternativeValues.capital !== undefined ? t("countryInfo.alternativeCapitals", { count: country.alternativeValues.capital.length, values: country.alternativeValues.capital.join(", ") }) : undefined)
   ].filter(s => s) as string[] : []
   return (<>

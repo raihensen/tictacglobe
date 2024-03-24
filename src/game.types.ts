@@ -4,7 +4,7 @@ import { NextRouter } from "next/router";
 import { Session, Game as DbGame } from "@/src/db.types";
 import { GameState, PlayingMode, User } from "@prisma/client";
 
-export const autoRefreshInterval = 1000  // interval [ms] for auto refresh
+export const autoRefreshInterval = 1500  // interval [ms] for auto refresh
 
 export type FieldSettings = {  // also game-level, but passed to the Field component
   showNumSolutions: boolean;
@@ -100,6 +100,7 @@ export type RequestAction = "ExistingOrNewGame" |
   "EndGame" |
   "TimeElapsed" |
   "RefreshGame" |
+  "PlayOn" |
   "InitSessionFriend" |
   "InitSessionRandom" |
   "RefreshSession" |
@@ -290,8 +291,16 @@ export class Game {
     this.finishedAt = game.finishedAt ? new Date(game.finishedAt) : null
   }
 
+  isRunning() {
+    return this.state == GameState.Initialized || this.state == GameState.Running || this.state == GameState.PlayingOn
+  }
+
   isDecided() {
-    return this.state == GameState.Decided || this.state == GameState.Finished || this.state == GameState.Ended
+    return this.state == GameState.Decided || this.state == GameState.PlayingOn || this.state == GameState.Finished || this.state == GameState.Ended
+  }
+
+  hasEnded() {
+    return this.state == GameState.Finished || this.state == GameState.Ended
   }
 
   isValidGuess(x: number, y: number, country: Country) {

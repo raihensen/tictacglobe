@@ -84,7 +84,8 @@ const GamePage: React.FC<PageProps & GamePageProps> = ({
 
   const opponentUser = session?.users.filter(u => u.id != user?.id)[0] ?? null
 
-  const [notifyDecided, setNotifyDecided] = useState<boolean>(false)
+  // const [notifyDecided, setNotifyDecided] = useState<boolean>(false)
+  const notifyDecided = game?.state == GameState.Decided
 
   const userIndex = session?.users.findIndex(u => u.id == user?.id)
   const isSessionAdmin = userIndex === 0 || session?.playingMode == PlayingMode.Offline
@@ -97,8 +98,14 @@ const GamePage: React.FC<PageProps & GamePageProps> = ({
 
   const { scheduleAutoRefresh, clearAutoRefresh } = useAutoRefresh((game: Game) => {
     if (!game) return
-    apiRequest(`api/game/${game.id}/refresh`, { action: "RefreshGame" })
+    refresh(game)
   }, autoRefreshInterval)
+
+  const refresh = (game: Game) => {
+    apiRequest(`api/game/${game.id}/refresh`, {
+      action: "RefreshGame"
+    })
+  }
 
   useEffect(() => {
     console.log(`settings after update: ${JSON.stringify(settings)}`)
@@ -162,7 +169,6 @@ const GamePage: React.FC<PageProps & GamePageProps> = ({
     if (data.session.playingMode == PlayingMode.Online) {
 
       const willHaveTurn = userIndex == data.game.turn
-      // setHasTurn(willHaveTurn)
 
       // synchronize language
       if (router.locale != newGameInstance.language.toString()) {
@@ -170,22 +176,15 @@ const GamePage: React.FC<PageProps & GamePageProps> = ({
         changeLanguage(router, i18n, newGameInstance.language)
       }
 
-      if (!willHaveTurn || newGameInstance.isDecided()) {
+      if (
+        (newGameInstance.isRunning() && !willHaveTurn) ||
+        ((newGameInstance.hasEnded() || newGameInstance.state == GameState.Decided) && !isSessionAdmin)
+      ) {
         scheduleAutoRefresh(newGameInstance)
       }
 
     }
 
-    let showNotifyDecided = false
-    if (game) {  // game had been loaded before
-      if (data.game.markings.length) {  // No new game
-        if (newGameInstance.winner !== null && !gameHadBeenDecided) {  // There's a new winner (or a draw)
-          showNotifyDecided = true
-        }
-      }
-    }
-
-    setNotifyDecided(showNotifyDecided)
     if (data.countries) {
       setCountries(data.countries)
     }
@@ -221,7 +220,7 @@ const GamePage: React.FC<PageProps & GamePageProps> = ({
     if (!game) {
       setShowTurnInfo(false)
     } else {
-      if (game.state == GameState.Finished || game.state == GameState.Ended) {
+      if (game.hasEnded()) {
         setShowTurnInfo(false)
       } else if (game.state == GameState.Decided) {
         setShowTurnInfo(!notifyDecided)
@@ -235,10 +234,11 @@ const GamePage: React.FC<PageProps & GamePageProps> = ({
   const [activeField, setActiveField] = useState<number[]>([-1, -1])
   const [isSearching, setIsSearching] = useState<boolean>(false)
 
-  const canControlGame = game && (!(game.state == GameState.Running && !hasTurn))
-  const canEndTurn = game && (hasTurn && !notifyDecided && !(game.state == GameState.Ended || game.state == GameState.Finished))
-  const canEndGame = game && (isSessionAdmin && !(game.state == GameState.Ended || game.state == GameState.Finished))
-  const canRequestNewGame = !game || (isSessionAdmin && (game.state == GameState.Ended || game.state == GameState.Finished))
+  const canControlGame = !!game && (hasTurn && !notifyDecided && !game.hasEnded())
+  const canEndTurn = canControlGame
+  const canDecideToPlayOn = !!game && (isSessionAdmin && game.state == GameState.Decided)
+  const canEndGame = !!game && (isSessionAdmin && !game.hasEnded())
+  const canRequestNewGame = !game || (isSessionAdmin && game.hasEnded())
 
   return (<>
     <Header
@@ -248,7 +248,7 @@ const GamePage: React.FC<PageProps & GamePageProps> = ({
       triggerShowSettings={triggerShowSettings}
       shareButtonProps={shareButtonProps}
       apiRequest={apiRequest}
-      hasTurn={hasTurn}
+      isSessionAdmin={isSessionAdmin}
     />
     {/* {(isClient && isCustomUserIdentifier) && (<h3>User: {userIdentifier}</h3>)} */}
     <p className="d-flex align-items-center gap-2">
@@ -298,8 +298,13 @@ const GamePage: React.FC<PageProps & GamePageProps> = ({
             }}><FaPersonCircleXmark /></IconButton>
           </>)}
 
-          {(notifyDecided && game.state != GameState.Finished && hasTurn) && (<>
-            <IconButton label={t("continuePlaying")} variant="secondary" onClick={() => { setNotifyDecided(false) }}><FaEllipsis /></IconButton>
+          {canDecideToPlayOn && (<>
+            <IconButton label={t("continuePlaying")} variant="secondary" onClick={() => {
+              // setNotifyDecided(false)
+              apiRequest(`api/game/${game.id}/guess`, {
+                action: "PlayOn"
+              })
+            }}><FaEllipsis /></IconButton>
           </>)}
 
         </div>
@@ -337,7 +342,7 @@ const GamePage: React.FC<PageProps & GamePageProps> = ({
                             action: "TimeElapsed",
                           })
                         } else {
-                          setTimeout(() => apiRequest(`api/game/${game.id}/refresh`, { action: "RefreshGame" }), 500)
+                          setTimeout(() => refresh(game), 500)
                         }
                       }}
                     />
@@ -375,7 +380,7 @@ const GamePage: React.FC<PageProps & GamePageProps> = ({
                     row={game.setup.rows[i]}
                     col={game.setup.cols[j]}
                     apiRequest={apiRequest}
-                    hasTurn={hasTurn}
+                    canControlGame={canControlGame}
                     notifyDecided={notifyDecided}
                     countries={countries}
                     categories={categories ?? []}
