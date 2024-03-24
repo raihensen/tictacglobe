@@ -1,18 +1,16 @@
 
 import 'bootstrap/dist/css/bootstrap.min.css';
-import { useEffect, useRef, useState } from 'react';
+import { useState } from 'react';
 import { useTranslation } from 'next-i18next'
 
-import { Settings, defaultSettings, Game, Country, RequestAction, FrontendQuery, PlayingMode, GameState, Language, SessionWithoutGames, defaultLanguage, PlayerIndex, autoRefreshInterval, Query, settingsToQuery, settingsChanged, getApiUrl, ApiHandler } from "@/src/game.types"
-import { capitalize, readReadme, useAutoRefresh } from "@/src/util"
+import { Game, defaultLanguage, ApiHandler } from "@/src/game.types"
 import _ from "lodash";
 
-import { FaBars, FaCircleInfo, FaEllipsis, FaGear, FaMoon, FaXmark } from "react-icons/fa6";
+import { FaBars, FaCircleInfo, FaGear, FaMoon, FaXmark } from "react-icons/fa6";
 import { useRouter } from "next/router";
 import { LanguageSelector, changeLanguage } from "@/components/Settings";
 import { ButtonToolbar, IconButton, HeaderStyle } from "@/components/styles";
 import Image from "next/image";
-import Link from "next/link";
 import ShareButton, { ShareButtonProps } from "@/components/Share";
 import { useConfirmation } from './common/Confirmation';
 
@@ -59,13 +57,15 @@ const Header: React.FC<{
             <ShareButton {...shareButtonProps} tooltipPlacement='bottom' />
             <IconButton variant="secondary" onClick={triggerShowGameInformation}><FaCircleInfo /></IconButton>
             <IconButton variant="secondary" onClick={toggleDarkMode}><FaMoon /></IconButton>
-            <LanguageSelector value={router.locale ?? defaultLanguage} disabled={!isSessionAdmin} onChange={async (oldLanguage, newLanguage) => {
+            {/* <LanguageSelector value={router.locale ?? defaultLanguage} disabled={!isSessionAdmin} onChange={async (oldLanguage, newLanguage) => { */}
+            <LanguageSelector value={router.locale ?? defaultLanguage} disabled={true} onChange={async (oldLanguage, newLanguage) => {
               if (await confirm(t("changeLanguage.confirm.question"), {
                 title: t("changeLanguage.confirm.title"),
                 confirmText: t("newGame"),
                 cancelText: t("cancel")
               })) {
-                apiRequest({ action: "NewGame", language: newLanguage as Language })  // TODO if language change does not work, have to pass newLanguage here
+                // TODO new route
+                // apiRequest({ action: "NewGame", language: newLanguage as Language })  // TODO if language change does not work, have to pass newLanguage here
                 return true
               } else {
                 // undo change

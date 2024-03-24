@@ -1,7 +1,7 @@
 
 import styled from "styled-components";
 import { ReactNode, forwardRef, useEffect, useId, useState } from 'react';
-import { Game, Country, CategoryValue, RequestAction, FrontendQuery, FieldSettings, Category, ApiHandler } from "@/src/game.types"
+import { Game, Country, CategoryValue, FieldSettings, Category, ApiHandler } from "@/src/game.types"
 
 import { PlusCircleFill } from 'react-bootstrap-icons';
 import Badge, { BadgeProps } from 'react-bootstrap/Badge';
@@ -12,9 +12,7 @@ import _ from "lodash";
 import { TableCellInner, MarkingBackground } from "@/components/styles";
 import CountryAutoComplete from "./Autocomplete";
 import { getCategoryInfo, translateCategory, ContinentIcon } from "./TableHeading";
-import { FaCircleInfo, FaMountain } from "react-icons/fa6";
-import { useTtgStore } from "@/src/zustand";
-import { GameState } from "@prisma/client";
+import { FaMountain } from "react-icons/fa6";
 
 enum FieldMode {
   INITIAL = 0,

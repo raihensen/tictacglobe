@@ -7,7 +7,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'next-i18next'
 import { serverSideTranslations } from 'next-i18next/serverSideTranslations'
 
-import { Settings, defaultSettings, Game, Country, Category, RequestAction, FrontendQuery, Language, defaultLanguage, autoRefreshInterval, settingsChanged, NewApiQuery, ApiResponse } from "@/src/game.types"
+import { Settings, defaultSettings, Game, Country, Category, defaultLanguage, autoRefreshInterval, settingsChanged, NewApiQuery, ApiResponse } from "@/src/game.types"
 import { GET, capitalize, getLocalStorage, readReadme, setLocalStorage, useAutoRefresh } from "@/src/util"
 import _ from "lodash";
 var fs = require('fs').promises;
