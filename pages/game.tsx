@@ -7,7 +7,7 @@ import { useTranslation } from 'next-i18next';
 import { serverSideTranslations } from 'next-i18next/serverSideTranslations';
 import React, { useEffect, useRef, useState } from 'react';
 
-import { ApiResponse, Category, Country, Game, NewApiQuery, Settings, autoRefreshInterval, defaultLanguage, defaultSettings, settingsChanged } from "@/src/game.types";
+import { ApiBody, ApiResponse, Category, Country, Game, ApiQuery, Settings, autoRefreshInterval, defaultLanguage, defaultSettings, settingsChanged } from "@/src/game.types";
 import { GET, capitalize, getLocalStorage, readReadme, setLocalStorage, useAutoRefresh } from "@/src/util";
 var fs = require('fs').promises;
 
@@ -44,7 +44,7 @@ const GamePage: React.FC<PageProps & GamePageProps> = ({
 
   useEffect(() => {
     if (!user) return
-    
+
     // TODO move to _app?
     if (!session) {
       const storedSessionId = getLocalStorage("tictacglobe:sessionId", null)
@@ -112,7 +112,7 @@ const GamePage: React.FC<PageProps & GamePageProps> = ({
 
   async function apiRequest(
     url: string,
-    params: NewApiQuery
+    params: ApiQuery
   ) {
     const { action, settings: newSettings } = params
     if (!user) {
@@ -126,23 +126,34 @@ const GamePage: React.FC<PageProps & GamePageProps> = ({
         (timerRef.current as any).stop()
       }
     }
-    
-    const formData = new FormData()
-    formData.set("action", action)
-    formData.set("user", user.id)
+
+    const reqData: ApiBody = {
+      action: action,
+      user: user.id,
+    }
     if (game) {
-      formData.set("turn", game?.turnCounter.toString())
+      reqData.turn = game?.turnCounter
     }
     if (newSettings) {
-      formData.set("settings", JSON.stringify(newSettings))
+      reqData.settings = newSettings
     }
+    // const formData = new FormData()
+    // formData.set("action", action)
+    // formData.set("user", user.id)
+    // if (game) {
+    //   formData.set("turn", game?.turnCounter.toString())
+    // }
+    // if (newSettings) {
+    //   formData.set("settings", JSON.stringify(newSettings))
+    // }
     if (!url.startsWith("/")) url = "/" + url
     const res = await fetch(url, {
-      body: formData,
+      body: JSON.stringify(reqData),
+      // body: formData,
       method: "POST"
     })
     const data = await res.json() as ApiResponse
-    
+
     if ("error" in data || !data.session || !data.game) {
       setErrorMessage("error" in data ? data.error : "Error loading the game.")
       setGame(null)
@@ -204,7 +215,7 @@ const GamePage: React.FC<PageProps & GamePageProps> = ({
     }
 
     return true
-      
+
   }
 
   const getPlayerColor = (player: number | null) => {
@@ -301,7 +312,7 @@ const GamePage: React.FC<PageProps & GamePageProps> = ({
             <IconButton label={t("continuePlaying")} variant="secondary" onClick={() => {
               // setNotifyDecided(false)
               apiRequest(`api/game/${game.id}/turn`, {
-                action: "PlayOn"
+                action: "PlayOn",
               })
             }}><FaEllipsis /></IconButton>
           </>)}

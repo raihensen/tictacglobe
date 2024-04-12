@@ -35,7 +35,7 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 
-.vscode
+# .vscode
 .ipynb_checkpoints
 *.pyc
 

@@ -1,12 +1,12 @@
-import { NextRequest, NextResponse } from "next/server";
-import { error, gameIncludeIngameData, sessionIncludeCurrentGame, switchTurnsAndUpdateState as switchTurnsAndUpdateState } from "@/src/api.utils";
+import { error, gameIncludeIngameData, sessionIncludeCurrentGame, switchTurnsAndUpdateState } from "@/src/api.utils";
 import { db } from "@/src/db";
-import { Country, Game, Language, RequestAction, parseCountry } from "@/src/game.types";
-var fs = require('fs').promises;
-import path from 'path';
-import { GameState } from "@prisma/client";
 import { Session } from "@/src/db.types";
+import { ApiBody, Country, Game, Language, RequestAction, parseCountry } from "@/src/game.types";
+import { GameState } from "@prisma/client";
 import _ from "lodash";
+import { NextRequest, NextResponse } from "next/server";
+import path from 'path';
+var fs = require('fs').promises;
 
 var countryData: Record<string, Country[]> = {}
 
@@ -14,39 +14,39 @@ export async function POST(
   req: NextRequest,
   { params }: { params: { game: string } }
 ) {
-  const data = Object.fromEntries((await req.formData()).entries())
+  // const data = Object.fromEntries((await req.formData()).entries())
+  const data = (await req.json()) as unknown as ApiBody
   const searchParams = req.nextUrl.searchParams
 
   const action = data.action as RequestAction
-  if (!action) return error("Invalid request")
+  if (!action) return error("Invalid request: No action specified")
 
   const gameId = Number.parseInt(params.game)
-  if (!gameId) return error("Invalid request")
+  if (!gameId) return error("Invalid request: No game ID specified")
   const userId = data.user as string
-  if (!userId) return error("Invalid request")
+  if (!userId) return error("Invalid request: No user ID specified")
 
-  if (!data.turn) return error("Invalid request")
-  const turnCounter = Number.parseInt(data.turn as string)
-  if (!turnCounter && turnCounter !== 0) return error("Invalid request")
-  
+  const turnCounter = data.turn
+  if (!turnCounter && turnCounter !== 0) return error("Invalid request: No turn counter specified")
+
   let game = await db.game.findUnique({
     where: {
       id: gameId
     },
     include: gameIncludeIngameData
   })
-  
+
   if (!game) return error("Game not found", 404)
   if (game.turnCounter != turnCounter) return error("Invalid turn counter", 420)
-  
+
   let session = await db.session.findUnique({
     where: { id: game.session.id },
     include: sessionIncludeCurrentGame
   })
-  
+
   if (!session) return error("Session not found", 404)
-  
-  const g = new Game(game, session as unknown as Session)
+
+  let g = new Game(game, session as unknown as Session)
   if (g.state == GameState.Finished || g.state == GameState.Ended) return error("Game has finished", 400)
 
   let nextState: GameState = g.state
@@ -62,8 +62,8 @@ export async function POST(
     // TODO check sessionAdmin rights
     nextState = GameState.PlayingOn
   } else {
-
-    if (game.session.users[game.turn].id != userId) return error("It's not your turn", 403)
+    if (game.session.playingMode == "Online")
+      if (game.session.users[game.turn].id != userId) return error("It's not your turn", 403)
     const playerIndex = game.turn
 
     const guess = searchParams.get("guess")
@@ -72,7 +72,7 @@ export async function POST(
     if (guess == "SKIP") {
 
     } else {
-    
+
       const countryId = guess
 
       const x = Number.parseInt(searchParams.get("x") ?? "")
@@ -112,6 +112,16 @@ export async function POST(
         })
         console.log(`Set (${x}|${y}) to ${country.iso} (player ${playerIndex} / ${userId})`)
         successfulGuess = true
+
+        // Fetch game object again
+        game = await db.game.findUnique({
+          where: {
+            id: gameId
+          },
+          include: gameIncludeIngameData
+        })
+        if (!game) return error("Internal server error", 500)
+        g = new Game(game, session as unknown as Session)
 
         // Check win
         if (g.state != GameState.Decided) {
@@ -178,6 +188,9 @@ function getWinningFormations(size: number) {
  * @returns The winner (0, 1), -1 for a draw, or null
  */
 async function checkWinner(game: Game) {
+  if (game.state != "Initialized" && game.state != "Running") {
+    return null
+  }
   const winningFormations = getWinningFormations(game.setup.size)
   const playerIndices = [0, 1]
   const formationMarkings = winningFormations.map(formation => formation.map(({ i, j }) => ({ i, j, player: game.marking[i][j] })))

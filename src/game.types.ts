@@ -142,12 +142,15 @@ export type ScalarQuery = {
 export type Query = ScalarQuery & Partial<PrefixedSettings>;
 export type FrontendQuery = Omit<ScalarQuery, "userIdentifier" | "playingMode"> & { settings?: Settings }
 
-export type NewApiQuery = {
+export type ApiQuery = {
   action: RequestAction
   settings?: Settings
-
 }
 
+export type ApiBody = ApiQuery & {
+  user: User["id"]
+  turn?: number  // turnCounter
+}
 
 export type GameSession = {
   index: number
