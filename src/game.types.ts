@@ -251,6 +251,7 @@ export type NoPlayer = -1;
 
 export class Game {
   id: number
+  session: Session
   setup: GameSetup;
   language: Language;
   users: User[];  // index: 0 ~ O/blue, 1 ~ X/red
@@ -271,6 +272,7 @@ export class Game {
    */
   constructor(game: DbGame, session: Session) {
     this.id = game.id
+    this.session = session
     this.setup = JSON.parse(game.setup)
     this.language = this.setup.language as Language
     this.users = session.users

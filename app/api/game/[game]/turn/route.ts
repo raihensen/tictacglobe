@@ -204,10 +204,11 @@ async function checkWinner(game: Game) {
   if (wins.length > 0) {
     const winners = [...new Set(wins.map(win => win[0].player))]
     if (winners.length == 1) {
+      const winner = winners[0]
       await db.game.update({
         where: { id: game.id },
         data: {
-          winner: winners[0],
+          winner: winner,
         }
       })
       await db.marking.updateMany({
@@ -223,7 +224,18 @@ async function checkWinner(game: Game) {
           isWinning: true
         }
       })
-      return winners[0]
+      await db.session.update({
+        where: { id: game.session.id },
+        data: {
+          score1: {
+            increment: winner == 0 ? 1 : 0
+          },
+          score2: {
+            increment: winner == 1 ? 1 : 0
+          }
+        }
+      })
+      return winner
     }
     // Both players can have winning formations if after a win the players decide to continue playing
     // If this happens, this function should not be called though
