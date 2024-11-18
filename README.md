@@ -1,6 +1,8 @@
 
 # TicTacGlobe
 
+**Play: [tictacglo.be](https://tictacglo.be)**
+
 ## Game information
 
 TicTacGlobe is just like Tic Tac Toe --
