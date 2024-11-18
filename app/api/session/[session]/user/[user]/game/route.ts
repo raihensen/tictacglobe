@@ -1,8 +1,8 @@
-import { NextRequest, NextResponse } from "next/server";
 import { error, sessionIncludeCurrentGame } from "@/src/api.utils";
-import { db } from "@/src/db";
-import { GameSetup, Language, Settings } from "@/src/game.types";
 import { chooseGameSetup, getCountryData } from "@/src/backend.util";
+import { db } from "@/src/db";
+import { Language, Settings } from "@/src/game.types";
+import { NextRequest, NextResponse } from "next/server";
 
 /**
  * For the given session and user, returns the currently running game.
@@ -15,8 +15,8 @@ export async function POST(
 
   const searchParams = req.nextUrl.searchParams
 
-  const sessionId = Number.parseInt(params.session)
-  const userId = params.user
+  const sessionId = Number.parseInt((await params).session)
+  const userId = (await params).user
   const newGame = !!searchParams.get("newGame")
 
   if (!sessionId) return error("Invalid request", 400)

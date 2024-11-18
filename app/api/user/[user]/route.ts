@@ -1,6 +1,6 @@
-import { NextRequest, NextResponse } from "next/server";
 import { error } from "@/src/api.utils";
 import { db } from "@/src/db";
+import { NextRequest, NextResponse } from "next/server";
 
 
 export async function GET(
@@ -8,7 +8,7 @@ export async function GET(
   { params }: { params: { user: string } }
 ) {
 
-  const userId = params.user
+  const { user: userId } = await params
   if (!userId) return error("Invalid request")
 
   const user = await db.user.findUnique({

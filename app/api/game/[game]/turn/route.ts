@@ -21,7 +21,7 @@ export async function POST(
   const action = data.action as RequestAction
   if (!action) return error("Invalid request: No action specified")
 
-  const gameId = Number.parseInt(params.game)
+  const gameId = Number.parseInt((await params).game)
   if (!gameId) return error("Invalid request: No game ID specified")
   const userId = data.user as string
   if (!userId) return error("Invalid request: No user ID specified")

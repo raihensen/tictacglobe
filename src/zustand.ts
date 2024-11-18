@@ -1,8 +1,9 @@
+import { initialPageState, PageState } from "@/components/Layout";
 import { User } from "@prisma/client";
 import { create } from "zustand";
 import { Session } from "./db.types";
 import { Game } from "./game.types";
-import { DispatchSetStateActionStateSetters, createSelectors, createStateSelectors, withSetters } from "./zustand.util";
+import { createSelectors, createStateSelectors, DispatchSetStateActionStateSetters, withSetters } from "./zustand.util";
 
 export type State = {
   // General
@@ -10,7 +11,7 @@ export type State = {
   session: Session | null
   game: Game | null
 
-}
+} & PageState
 
 export type Action = DispatchSetStateActionStateSetters<State>
 type Store = State & Action
@@ -20,7 +21,8 @@ const useTtgStoreBase = create<Store>((set) => withSetters<State, Action>(set, {
   // General
   user: null,
   session: null,
-  game: null
+  game: null,
+  ...initialPageState,
 }))
 
 

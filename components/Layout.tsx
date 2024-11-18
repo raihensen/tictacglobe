@@ -1,8 +1,26 @@
 
 import { Ripple } from "@/components/common/Loading";
+// import { useTtgStore } from "@/src/zustand";
 import Head from 'next/head';
 import { ReactNode } from "react";
 import Container from "react-bootstrap/Container";
+
+export type PageState = {
+  errorMessage: JSX.Element | string | null
+  hasError: boolean
+  loadingText: string | true | null
+}
+
+export const initialPageState = {
+  errorMessage: null,
+  hasError: false,
+  toasts: [],
+  loadingText: null,
+}
+
+// export function useLoadingText() {
+//   return useTtgStore.use.setLoadingText()
+// }
 
 
 type LayoutProps = {

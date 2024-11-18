@@ -1,6 +1,6 @@
-import { NextRequest, NextResponse } from "next/server";
 import { error, sessionIncludeCurrentGame } from "@/src/api.utils";
 import { db } from "@/src/db";
+import { NextRequest, NextResponse } from "next/server";
 
 
 export async function POST(
@@ -9,7 +9,7 @@ export async function POST(
 ) {
   const data = Object.fromEntries((await req.formData()).entries())
 
-  const sessionId = Number.parseInt(params.session)
+  const sessionId = Number.parseInt((await params).session)
   if (!sessionId) return error("Invalid request", 400)
   const userId = data.user as string | undefined
 
