@@ -5,7 +5,7 @@ import { NextRequest, NextResponse } from "next/server";
 
 export async function POST(
   req: NextRequest,
-  { params }: { params: { session: string } }
+  { params }: { params: Promise<{ session: string }> }
 ) {
   const data = Object.fromEntries((await req.formData()).entries())
 

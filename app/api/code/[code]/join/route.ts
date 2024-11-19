@@ -7,7 +7,7 @@ import { RequestAction } from "@/src/game.types";
 
 export async function POST(
   req: NextRequest,
-  { params }: { params: { code: string } }
+  { params }: { params: Promise<{ code: string }> }
 ) {
   // need POST also to avoid caching
   const data = Object.fromEntries((await req.formData()).entries())

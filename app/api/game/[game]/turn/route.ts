@@ -9,7 +9,7 @@ import { NextRequest, NextResponse } from "next/server";
 
 export async function POST(
   req: NextRequest,
-  { params }: { params: { game: string } }
+  { params }: { params: Promise<{ game: string }> }
 ) {
   // const data = Object.fromEntries((await req.formData()).entries())
   const data = (await req.json()) as unknown as ApiBody

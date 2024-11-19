@@ -10,7 +10,7 @@ import { NextRequest, NextResponse } from "next/server";
  */
 export async function POST(
   req: NextRequest,
-  { params }: { params: { session: string, user: string } }
+  { params }: { params: Promise<{ session: string, user: string }> }
 ) {
 
   const searchParams = req.nextUrl.searchParams
