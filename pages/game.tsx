@@ -7,7 +7,7 @@ import { useTranslation } from 'next-i18next';
 import { serverSideTranslations } from 'next-i18next/serverSideTranslations';
 import React, { useEffect, useRef, useState } from 'react';
 
-import { ApiBody, ApiResponse, Category, Country, Game, ApiQuery, Settings, autoRefreshInterval, defaultLanguage, defaultSettings, settingsChanged } from "@/src/game.types";
+import { ApiBody, ApiResponse, Category, Country, Game, ApiQuery, Settings, autoRefreshInterval, defaultLanguage, defaultSettings, settingsChanged, PlayerColor } from "@/src/game.types";
 import { GET, capitalize, getLocalStorage, readReadme, setLocalStorage, useAutoRefresh } from "@/src/util";
 var fs = require('fs').promises;
 
@@ -223,10 +223,13 @@ const GamePage: React.FC<PageProps & GamePageProps> = ({
 
   }
 
-  const getPlayerColor = (player: number | null) => {
+  function getPlayerColor(player: number | null): PlayerColor | null {
+    if (player === null) return null
+    const color = game?.users[player]?.color
+    if (color) return color as unknown as PlayerColor
     return player === 0 ? "blue" : (player === 1 ? "red" : null)
   }
-  const getPlayerTurnColor = () => {
+  function getPlayerTurnColor() {
     return getPlayerColor(game?.turn ?? null)
   }
 
@@ -500,6 +503,7 @@ const UnstyledUserAvatar: React.FC<React.HTMLProps<HTMLSpanElement> & {
 }> = ({ user, className, ...props }) => {
 
   const text = user?.name?.substring(0, 1).toUpperCase()
+  // TODO Offline player colors - only one DB user!
 
   return (
     <span className={className}>
@@ -511,8 +515,9 @@ const UnstyledUserAvatar: React.FC<React.HTMLProps<HTMLSpanElement> & {
 
 export const UserAvatar = styled(UnstyledUserAvatar)`
 
-  background: ${({ user }) => user ? `#${user.id.substring(0, 6)}` : "var(--bs-secondary)"};
-  color: ${({ user }) => user ? `#${user.id.substring(0, 6)}` : "var(--bs-secondary)"};
+  background: ${({ user }) => user ? `var(--player-${user.color})` : "var(--bs-secondary)"};
+  /* color: ${({ user }) => user ? `#${user.id.substring(0, 6)}` : "var(--bs-secondary)"}; */
+  color: white;
   display: inline-flex;
   width: 30px;
   height: 30px;

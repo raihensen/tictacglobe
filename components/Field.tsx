@@ -278,6 +278,7 @@ const SolutionInfoItem = styled.div`
   gap: .25rem;
   img {
     margin-right: .25rem;
+    height: 1em;
   }
   span {
     line-height: 1rem;

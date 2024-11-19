@@ -14,6 +14,7 @@ export async function POST(
 
   const action = data.action as unknown as RequestAction
   const name = data.name as unknown as string | undefined
+  const color = data.color as unknown as string | undefined
   const language = data.language as unknown as string
 
   const playingMode = (action == "InitSessionOffline" ? PlayingMode.Offline : PlayingMode.Online)
@@ -67,7 +68,8 @@ export async function POST(
       playingMode: playingMode,
       users: {
         create: {
-          name: name
+          name: name,
+          color: color,
         }
       }
     },

@@ -4,6 +4,13 @@ import path from "path";
 import { useEffect, useRef, useState } from "react";
 
 
+export function randomChoice<T>(arr: Array<T>): T | undefined {
+  if (!arr.length) {
+    return undefined
+  }
+  return arr[Math.floor(arr.length * Math.random())];
+}
+
 export async function GET<T>(url: string): Promise<T> {
   const res = await fetch(url)
   const data = await res.json()

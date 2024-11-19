@@ -1,4 +1,4 @@
-
+import '@/app/globals.css'
 import { Ripple } from "@/components/common/Loading";
 // import { useTtgStore } from "@/src/zustand";
 import Head from 'next/head';

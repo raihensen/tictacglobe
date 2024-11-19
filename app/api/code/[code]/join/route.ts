@@ -14,6 +14,7 @@ export async function POST(
 
   const action = data.action as unknown as RequestAction
   const name = data.name as unknown as string | undefined
+  const color = data.color as unknown as string | undefined
   const { code } = await params
 
   if (code) return error("Invalid request", 400)

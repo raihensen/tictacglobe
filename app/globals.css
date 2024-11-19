@@ -6,6 +6,12 @@
   --foreground-rgb: 0, 0, 0;
   --background-start-rgb: 214, 219, 220;
   --background-end-rgb: 255, 255, 255;
+
+  --player-red: var(--bs-red);
+  --player-blue: var(--bs-blue);
+  --player-green: var(--bs-green);
+  --player-oprange: var(--bs-oprange);
+  --player-yellow: var(--bs-yellow);
 }
 
 @media (prefers-color-scheme: dark) {

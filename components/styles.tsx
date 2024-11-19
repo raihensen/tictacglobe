@@ -63,7 +63,7 @@ export const PlayerBadge = styled.span<{ $playerColor: string }>`
   padding: .25rem;
   border-radius: 5px;
   color: white;
-  background-color: ${({ $playerColor }) => `var(--bs-${$playerColor})`};
+  background-color: ${({ $playerColor }) => `var(--player-${$playerColor})`};
   opacity: .75;
 `
 
@@ -259,12 +259,17 @@ export const LanguageSelectorToggle = styled(Dropdown.Toggle)`
   height: 100%;
   display: flex;
   align-items: center;
+  img {
+    margin-right: 0.5rem;
+    height: 1em;
+  }
 `;
 export const LanguageSelectorItem = styled(Dropdown.Item)`
   display: flex;
   align-items: center;
   img {
     margin-right: 0.5rem;
+    height: 1em;
   }
 `;
 

@@ -50,10 +50,11 @@ export const gameIncludeIngameData = {
   }
 }
 
-export async function joinSession(sessionId: number, name?: string) {
+export async function joinSession(sessionId: number, name?: string, color?: string) {
   const user = await db.user.create({
     data: {
-      name: name
+      name: name,
+      color: color,
     }
   })
   const session = await db.session.update({

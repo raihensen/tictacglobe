@@ -6,6 +6,9 @@ import { NextRouter } from "next/router";
 
 export const autoRefreshInterval = 1500  // interval [ms] for auto refresh
 
+export type PlayerColor = "red" | "blue" | "green" | "yellow" | "orange"
+export const playerColors: PlayerColor[] = ["red", "blue", "green", "yellow", "orange"]
+
 export type FieldSettings = {  // also game-level, but passed to the Field component
   showNumSolutions: boolean;
   showNumSolutionsHint: boolean;

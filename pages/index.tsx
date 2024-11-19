@@ -6,7 +6,7 @@ import { useSearchParams } from 'next/navigation';
 import { NextRouter, useRouter } from "next/router";
 import { useEffect, useRef, useState } from 'react';
 
-import { RequestAction, autoRefreshInterval, defaultLanguage } from "@/src/game.types";
+import { PlayerColor, playerColors, RequestAction, autoRefreshInterval, defaultLanguage } from "@/src/game.types";
 import { readReadme, setLocalStorage, useAutoRefresh } from "@/src/util";
 import type { GetServerSideProps } from 'next';
 import { PageProps } from "./_app";
@@ -23,6 +23,7 @@ import Button from "react-bootstrap/Button";
 import Form from 'react-bootstrap/Form';
 import InputGroup from 'react-bootstrap/InputGroup';
 import { FaCircleInfo } from "react-icons/fa6";
+import { randomChoice } from '@/src/util';
 
 export type ApiResponse = {
   session: Session
@@ -50,6 +51,7 @@ const IndexPage: React.FC<PageProps & IndexPageProps> = ({
   const { session, setSession } = useTtgStore.useState.session()
 
   const [state, setState] = useState<PageState>(PageState.Init)
+  const [userColor, setUserColor] = useState<PlayerColor>(randomChoice(playerColors) as PlayerColor)
 
   const [showGameInformation, setShowGameInformation] = useState<boolean>(false)
   const [showDonationModal, setShowDonationModal] = useState<boolean>(false)
@@ -178,10 +180,12 @@ const IndexPage: React.FC<PageProps & IndexPageProps> = ({
       () => {
         const formData = new FormData()
         formData.set("action", "JoinSession".toString())
+        formData.set("color", userColor)
         return fetch(`/api/code/${invitationCode}/join`, {
           body: formData,
           method: "POST"
         })
+        // TODO update frontend language after joining
       },
       "JoinSession"
     )
@@ -206,6 +210,7 @@ const IndexPage: React.FC<PageProps & IndexPageProps> = ({
               const formData = new FormData()
               formData.set("action", "InitSessionRandom".toString())
               formData.set("language", router.locale ?? defaultLanguage)
+              formData.set("color", userColor)
               return fetch(`/api/session/create`, {
                 body: formData,
                 method: "POST"
@@ -220,6 +225,7 @@ const IndexPage: React.FC<PageProps & IndexPageProps> = ({
               const formData = new FormData()
               formData.set("action", "InitSessionFriend".toString())
               formData.set("language", router.locale ?? defaultLanguage)
+              formData.set("color", userColor)
               return fetch(`/api/session/create`, {
                 body: formData,
                 method: "POST"
@@ -238,6 +244,7 @@ const IndexPage: React.FC<PageProps & IndexPageProps> = ({
               const formData = new FormData()
               formData.set("action", "InitSessionOffline".toString())
               formData.set("language", router.locale ?? defaultLanguage)
+              formData.set("color", userColor)
               return fetch(`/api/session/create`, {
                 body: formData,
                 method: "POST"

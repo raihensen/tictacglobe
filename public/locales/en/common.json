@@ -16,6 +16,9 @@
     "noOne": "no one",
     "blue": "blue",
     "red": "red",
+    "green": "green",
+    "yellow": "yellow",
+    "orange": "orange",
     "equivalentCountryWords": {
         "saint": "'Saint': 'St.', 'St'",
         "and": "'and': '&', 'n', '+'"
