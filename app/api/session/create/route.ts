@@ -6,8 +6,7 @@ import { NextRequest, NextResponse } from "next/server";
 
 
 export async function POST(
-  req: NextRequest,
-  { params }: { params: {} }
+  req: NextRequest
 ) {
   // need POST also to avoid caching
 
