@@ -1,14 +1,11 @@
 import { error, gameIncludeIngameData, sessionIncludeCurrentGame, switchTurnsAndUpdateState } from "@/src/api.utils";
+import { getCountryData } from "@/src/backend.util";
 import { db } from "@/src/db";
 import { Session } from "@/src/db.types";
-import { ApiBody, Country, Game, Language, RequestAction, parseCountry } from "@/src/game.types";
+import { ApiBody, Game, RequestAction } from "@/src/game.types";
 import { GameState } from "@prisma/client";
 import _ from "lodash";
 import { NextRequest, NextResponse } from "next/server";
-import path from 'path';
-var fs = require('fs').promises;
-
-var countryData: Record<string, Country[]> = {}
 
 export async function POST(
   req: NextRequest,
@@ -257,22 +254,5 @@ async function checkWinner(game: Game) {
     return -1
   }
   return null
-}
-
-async function getCountryData(language: Language): Promise<Country[] | null> {
-
-  if (language.toString() in countryData) {
-    return countryData[language.toString()]
-  }
-  const file = path.join(process.cwd(), 'public', 'data', 'countries', `countries-${language}.json`)
-  console.log(`Read countries from file ${file}...`)
-  try {
-    const data: any = await fs.readFile(file)
-    let countries = JSON.parse(data).map(parseCountry) as Country[]
-    countryData[language.toString()] = countries
-    return countries
-  } catch (err) {
-    return null
-  }
 }
 

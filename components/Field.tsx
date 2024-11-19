@@ -14,6 +14,7 @@ import { CircleFlag } from 'react-circle-flags';
 import { FaMountain } from "react-icons/fa6";
 import CountryAutoComplete from "./Autocomplete";
 import { ContinentIcon, getCategoryInfo, translateCategory } from "./TableHeading";
+import { useTtgStore } from "@/src/zustand";
 
 enum FieldMode {
   INITIAL = 0,
@@ -28,7 +29,7 @@ type FieldState = {
   mode: FieldMode;
 }
 
-const Field = ({ pos, setActive, setIsSearching, game, row, col, apiRequest, canControlGame, notifyDecided, countries, categories, settings }: {
+const Field = ({ pos, setActive, setIsSearching, game, row, col, apiRequest, canControlGame, notifyDecided, settings }: {
   pos: number[],
   active: boolean,
   setActive: (active: boolean) => void,
@@ -39,18 +40,18 @@ const Field = ({ pos, setActive, setIsSearching, game, row, col, apiRequest, can
   apiRequest: ApiHandler,
   canControlGame: boolean,
   notifyDecided: boolean,
-  countries: Country[],
-  categories: Category[],
   settings: FieldSettings,
 }) => {
   const { t, i18n } = useTranslation('common')
   const [i, j] = pos
   const { x, y } = game.getXY(i, j)
+  const countries = useTtgStore.use.countries() ?? []
+  const categories = useTtgStore.use.categories() ?? []
   const solutions = countries.filter(c => game.setup.solutions[i][j].includes(c.iso))
   const [exampleSolution, setExampleSolution] = useState<Country>(_.sample(solutions) as Country)
   const alternativeSolutions = countries.filter(c => game.setup.alternativeSolutions[i][j].includes(c.iso))
   const initFieldState = (game: Game) => ({
-    guess: countries.find(c => c.iso == game.guesses[i][j]) ?? null,
+    guess: countries?.find(c => c.iso == game.guesses[i][j]) ?? null,
     // exampleSolution: randomChoice(solutions),
     markedBy: game.marking[i][j] ?? -1,
     isWinning: game.winCoords !== null && game.winCoords.some(([x1, y1]) => x1 == x && y1 == y),
@@ -90,7 +91,7 @@ const Field = ({ pos, setActive, setIsSearching, game, row, col, apiRequest, can
       setActive(true)
       setIsSearching(true)
     }
-    
+
   }, [fieldState])
 
   const makeGuess = (country: Country) => {
@@ -141,7 +142,6 @@ const Field = ({ pos, setActive, setIsSearching, game, row, col, apiRequest, can
           <div className="field-flex">
             <div style={{ width: "100%" }}>
               <CountryAutoComplete
-                countries={countries}
                 makeGuess={makeGuess}
                 onBlur={() => {
                   setIsSearching(false)
@@ -297,7 +297,7 @@ export const ColumnList: React.FC<Omit<RowProps, "children"> & { contents: React
   } else {
     chunks = [contents]
   }
-  
+
   return (<Row>
     {chunks.map((chunk, i) => (
       <Col key={i} {...colProps}>

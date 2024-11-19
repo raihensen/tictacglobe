@@ -92,8 +92,13 @@ const GamePage: React.FC<PageProps & GamePageProps> = ({
   // const [hasTurn, setHasTurn] = useState<boolean>(session?.playingMode == PlayingMode.Offline)
   const [turnStartTimestamp, setTurnStartTimestamp] = useState<number>(Date.now() - 60000)
 
-  const [countries, setCountries] = useState<Country[]>([])
-  const { data: categories, mutate: mutateCategories, error: categoriesError, isLoading: isLoadingCategories } = useSWR<Category[]>(`/api/categories?language=${router.locale}`, GET)
+  // TODO countries SWR?
+  const { countries, setCountries } = useTtgStore.useState.countries()
+  const { categories, setCategories } = useTtgStore.useState.categories()
+  const { data: categoriesData, mutate: mutateCategories, error: categoriesError, isLoading: isLoadingCategories } = useSWR<Category[]>(`/api/categories?language=${router.locale}`, GET)
+  useEffect(() => {
+    setCategories(categoriesData ?? null)
+  }, [categoriesData])
 
   const { scheduleAutoRefresh, clearAutoRefresh } = useAutoRefresh((session: Session) => {
     if (!session) return
@@ -392,8 +397,6 @@ const GamePage: React.FC<PageProps & GamePageProps> = ({
                     apiRequest={apiRequest}
                     canControlGame={canControlGame}
                     notifyDecided={notifyDecided}
-                    countries={countries}
-                    categories={categories ?? []}
                     settings={settings}
                   />
                 </div>)

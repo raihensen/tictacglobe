@@ -1,4 +1,5 @@
 import { Country } from "@/src/game.types";
+import { useTtgStore } from "@/src/zustand";
 import _ from "lodash";
 import { useTranslation } from "next-i18next";
 import { useEffect, useState } from 'react';
@@ -7,7 +8,6 @@ const NodeCache = require("node-cache");
 
 
 type CountryAutoCompleteProps = {
-  countries: Country[];
   makeGuess: (country: Country) => boolean;
   onBlur: () => void;
 }
@@ -20,11 +20,11 @@ type AutoCompleteItem = {
   key: string;
 }
 
-const CountryAutoComplete = ({ countries, makeGuess, onBlur }: CountryAutoCompleteProps) => {
+const CountryAutoComplete = ({ makeGuess, onBlur }: CountryAutoCompleteProps) => {
   const { t, i18n } = useTranslation('common')
+  const countries = useTtgStore.use.countries() ?? []
 
   const [searchValue, setSearchValue] = useState("")
-
   const [searchCache, setSearchCache] = useState(new NodeCache())
 
   // Init regexes to replace equivalent words
@@ -35,14 +35,14 @@ const CountryAutoComplete = ({ countries, makeGuess, onBlur }: CountryAutoComple
     const words = others.split(",").map(w => w.trim().toLowerCase().substring(1, w.trim().length - 1))
     const regexes = words.map(w => new RegExp(`(?<prefix>\\s|^)(?<hit>${_.escapeRegExp(w)})(?<suffix>\\s|$)`, "gi"))  // \b does not work for w = "St."
     // console.log(`Built regexes ${regexes.join(", ")} for word "${word.toLowerCase()}"`);
-    
+
     return [regexes, word.toLowerCase()]
     // const [word, others] = t(`equivalentCountryWords.${key}`).split(":").map(s => s.trim())
     // const words = others.split(", ").map(w => w.trim().toLowerCase().substring(1, w.trim().length - 1))
     // const regex = new RegExp(`\\b(${words.map(w => `(${_.escapeRegExp(w)})`).join("|")})\\b`, "gi")
     // console.log(`Built regex ${regex} for word "${word.toLowerCase()}"`);
   }) as [RegExp[], string][]  // TODO Reduce the number this gets executed
-  
+
   const normalize = (str: string) => {
     // let str1 = str.toLowerCase()
     str = str.toLowerCase()
@@ -73,9 +73,9 @@ const CountryAutoComplete = ({ countries, makeGuess, onBlur }: CountryAutoComple
     }
     return -1
   }
-  
+
   const noSpoilerSearch = (queries: string[]) => {
-    
+
     queries = [...new Set(queries.filter(q => q.length >= 3))]
     if (!queries.length) {
       return []
@@ -103,9 +103,9 @@ const CountryAutoComplete = ({ countries, makeGuess, onBlur }: CountryAutoComple
     // multiple results, do not show any
     return []
 
-  
+
   }
-  
+
   const items = countries.map(c => [c.name, ...(c.alternativeValues?.name ?? [])].map((name, i) => ({
     country: c,
     name: name,
@@ -130,7 +130,7 @@ const CountryAutoComplete = ({ countries, makeGuess, onBlur }: CountryAutoComple
 
   const [isDisabled, setIsDisabled] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
-  
+
   type Option = { label: string, value: string, data: AutoCompleteItem }
 
   return (<Select
@@ -196,7 +196,7 @@ const CountryAutoComplete = ({ countries, makeGuess, onBlur }: CountryAutoComple
         boxShadow: isFocused ? "boxShadow: 0 0 0 .25rem rgba(13,110,253,.25)" : undefined,
         outline: isFocused ? "0" : undefined
       }),
-      input: ({margin, paddingTop, paddingBottom, ...base}, state) => ({
+      input: ({ margin, paddingTop, paddingBottom, ...base }, state) => ({
         ...base,
         cursor: "text",
         color: "var(--bs-body-color)"
@@ -268,7 +268,7 @@ export default CountryAutoComplete;
 // 			backgroundImage: "var(--bs-select-indicator)",
 // 			backgroundRepeat: "no-repeat",
 // 			backgroundPosition: `right var(--bs-select-padding-x) center`,
-// 			backgroundSize: "var(--bs-select-bg-size)",			
+// 			backgroundSize: "var(--bs-select-bg-size)",
 // 		}),
 // 		input: ({margin, paddingTop, paddingBottom, ...provided}, state) => ({
 // 			...provided

@@ -1,9 +1,8 @@
-import { NextRequest, NextResponse } from "next/server";
-import { error, findSessionWithCurrentGame, invitationCodeAlive, joinSession } from "@/src/api.utils";
-import { PlayingMode, PrismaClient } from '@prisma/client'
-import { generateInvitationCode } from "@/src/api.utils";
+import { error, findSessionWithCurrentGame, generateInvitationCode, invitationCodeAlive, joinSession } from "@/src/api.utils";
 import { db } from "@/src/db";
 import { RequestAction, defaultSettings } from "@/src/game.types";
+import { PlayingMode, PrismaClient } from '@prisma/client';
+import { NextRequest, NextResponse } from "next/server";
 
 
 export async function POST(
@@ -11,11 +10,13 @@ export async function POST(
   { params }: { params: {} }
 ) {
   // need POST also to avoid caching
+
   const data = Object.fromEntries((await req.formData()).entries())
 
   const action = data.action as unknown as RequestAction
   const name = data.name as unknown as string | undefined
-  
+  const language = data.language as unknown as string
+
   const playingMode = (action == "InitSessionOffline" ? PlayingMode.Offline : PlayingMode.Online)
   const settings = defaultSettings
 
@@ -35,7 +36,8 @@ export async function POST(
           isPublic: true,
           playingMode: PlayingMode.Online,
           isFull: false,
-          isAlive: true
+          isAlive: true,
+          language: language,
         }
       },
       orderBy: {
@@ -46,7 +48,7 @@ export async function POST(
     if (availableSessions.length) {
       const sessionToJoin = availableSessions[0]
       const { session, user } = await joinSession(sessionToJoin.id, name)
-      
+
       if (!session) return error("Internal Server Error", 500)
       return NextResponse.json({
         user: user,
@@ -62,6 +64,7 @@ export async function POST(
       invitationCode: invitationCode,
       isPublic: action == "InitSessionRandom",
       settings: JSON.stringify(settings),
+      language: language,
       playingMode: playingMode,
       users: {
         create: {

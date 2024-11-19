@@ -5,6 +5,8 @@ import _ from "lodash";
 import path from 'path';
 var fs = require('fs').promises;
 
+// TODO app router
+
 var categoryData: Record<string, Category[]> = {}  // key: language
 
 type Request = IncomingMessage & {
@@ -14,10 +16,7 @@ type Request = IncomingMessage & {
 }
 
 const handler = async (req: Request, res: ServerResponse<Request>) => {
-
   const language = req.query.language
-  // countries = await getCountryData(language)
-
   const categories = await getCategories(language)
   if (!categories) {
     return respondWithError(res)

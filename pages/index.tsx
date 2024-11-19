@@ -45,10 +45,10 @@ const IndexPage: React.FC<PageProps & IndexPageProps> = ({
   const { t } = useTranslation("common")
   const router = useRouter()
   const searchParams = useSearchParams()
-  
+
   const { user, setUser } = useTtgStore.useState.user()
   const { session, setSession } = useTtgStore.useState.session()
-  
+
   const [state, setState] = useState<PageState>(PageState.Init)
 
   const [showGameInformation, setShowGameInformation] = useState<boolean>(false)
@@ -77,13 +77,13 @@ const IndexPage: React.FC<PageProps & IndexPageProps> = ({
   }, [searchParams])
 
   const { scheduleAutoRefresh, clearAutoRefresh } = useAutoRefresh((sessionId: number | null) => {
-      apiRequest(async () => {
-        if (!sessionId) return false
-        return fetch(`/api/session/${sessionId}/refresh`, {
-          method: "POST"
-        })
-      }, "RefreshSession")
-    },
+    apiRequest(async () => {
+      if (!sessionId) return false
+      return fetch(`/api/session/${sessionId}/refresh`, {
+        method: "POST"
+      })
+    }, "RefreshSession")
+  },
     autoRefreshInterval
   )
 
@@ -120,7 +120,7 @@ const IndexPage: React.FC<PageProps & IndexPageProps> = ({
       setUser(data.user)
       setLocalStorage("tictacglobe:userId", data.user.id)
     }
-    
+
     console.log("Session: " + JSON.stringify(data.session))
 
     // session is filled: forward to game page
@@ -143,7 +143,7 @@ const IndexPage: React.FC<PageProps & IndexPageProps> = ({
       setState(PageState.WaitingForFriend)
       scheduleAutoRefresh(data.session.id)
     }
-    
+
     if (action == "RefreshSession") {
       scheduleAutoRefresh(data.session.id)
     }
@@ -189,7 +189,7 @@ const IndexPage: React.FC<PageProps & IndexPageProps> = ({
   }
 
   return (<>
-    
+
     <h1>
       {!user && <>Welcome!</>}
       {!!user?.name && <>Welcome, {user.name}!</>}
@@ -205,6 +205,7 @@ const IndexPage: React.FC<PageProps & IndexPageProps> = ({
             () => {
               const formData = new FormData()
               formData.set("action", "InitSessionRandom".toString())
+              formData.set("language", router.locale ?? defaultLanguage)
               return fetch(`/api/session/create`, {
                 body: formData,
                 method: "POST"
@@ -218,6 +219,7 @@ const IndexPage: React.FC<PageProps & IndexPageProps> = ({
             () => {
               const formData = new FormData()
               formData.set("action", "InitSessionFriend".toString())
+              formData.set("language", router.locale ?? defaultLanguage)
               return fetch(`/api/session/create`, {
                 body: formData,
                 method: "POST"
@@ -235,6 +237,7 @@ const IndexPage: React.FC<PageProps & IndexPageProps> = ({
             () => {
               const formData = new FormData()
               formData.set("action", "InitSessionOffline".toString())
+              formData.set("language", router.locale ?? defaultLanguage)
               return fetch(`/api/session/create`, {
                 body: formData,
                 method: "POST"
@@ -305,10 +308,10 @@ const IndexPage: React.FC<PageProps & IndexPageProps> = ({
     <MarkdownModal show={showGameInformation} setShow={setShowGameInformation}>
       {gameInformationMarkdown}
     </MarkdownModal>
-    
+
     <DonationModal show={showDonationModal} setShow={setShowDonationModal} href={process.env.NEXT_PUBLIC_PAYPAL_DONATE_LINK as string} />
 
-    
+
   </>)
 
 }
