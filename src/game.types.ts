@@ -299,6 +299,13 @@ export class Game {
     this.finishedAt = game.finishedAt ? new Date(game.finishedAt) : null
   }
 
+  getPlayerColor(p: number): PlayerColor {
+    if (p == 0) return this.session.color1 as unknown as PlayerColor
+    if (p == 1) return this.session.color2 as unknown as PlayerColor
+    console.log(p)
+    throw Error()
+  }
+
   isRunning() {
     return this.state == GameState.Initialized || this.state == GameState.Running || this.state == GameState.PlayingOn
   }

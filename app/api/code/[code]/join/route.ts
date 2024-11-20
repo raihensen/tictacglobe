@@ -26,7 +26,7 @@ export async function POST(
   })
   if (!sessionFromCode) return error("Session not found", 404)
 
-  const { session, user } = await joinSession(sessionFromCode.id, name)
+  const { session, user } = await joinSession(sessionFromCode, name)
 
   return NextResponse.json({
     user: user,

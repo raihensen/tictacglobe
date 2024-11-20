@@ -1,6 +1,6 @@
 
 import { db } from "@/src/db";
-import { GameState, Prisma } from "@prisma/client";
+import { GameState, Prisma, Session } from "@prisma/client";
 import { DefaultArgs } from "@prisma/client/runtime/library";
 import _ from "lodash";
 import { NextResponse } from "next/server";
@@ -50,22 +50,24 @@ export const gameIncludeIngameData = {
   }
 }
 
-export async function joinSession(sessionId: number, name?: string, color?: string) {
+export async function joinSession(session: Session, name?: string, color?: string) {
+  const userIndex = session.isFull ? 1 : 0
   const user = await db.user.create({
     data: {
       name: name,
       color: color,
     }
   })
-  const session = await db.session.update({
-    where: { id: sessionId },
+  session = await db.session.update({
+    where: { id: session.id },
     data: {
       isFull: true,
       users: {
         connect: {
           id: user.id
         }
-      }
+      },
+      ...(userIndex == 0 ? { color1: color } : { color2: color }),
     },
     include: sessionIncludeCurrentGame
   })

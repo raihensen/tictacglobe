@@ -225,7 +225,9 @@ const GamePage: React.FC<PageProps & GamePageProps> = ({
 
   function getPlayerColor(player: number | null): PlayerColor | null {
     if (player === null) return null
-    const color = game?.users[player]?.color
+    let color = game?.getPlayerColor(player)
+    if (color) return color
+    color = game?.users[player]?.color as unknown as PlayerColor
     if (color) return color as unknown as PlayerColor
     return player === 0 ? "blue" : (player === 1 ? "red" : null)
   }
@@ -269,12 +271,14 @@ const GamePage: React.FC<PageProps & GamePageProps> = ({
       isSessionAdmin={isSessionAdmin}
     />
     {/* {(isClient && isCustomUserIdentifier) && (<h3>User: {userIdentifier}</h3>)} */}
-    <p className="d-flex align-items-center gap-2">
-      <UserAvatar user={user} />
-      @{userIndex}
-      <SessionScore perspective={user} />
-      <UserAvatar user={opponentUser} />
-    </p>
+    {!!session && (
+      <p className="d-flex align-items-center gap-2">
+        <UserAvatar user={user} color={userIndex == 0 ? session.color1 : session.color2} />
+        {/* @{userIndex} */}
+        <SessionScore perspective={user} />
+        <UserAvatar user={opponentUser} color={userIndex == 0 ? session.color2 : session.color1} />
+      </p>
+    )}
     {(hasError && errorMessage) && <Alert variant="danger">Error: {errorMessage}</Alert>}
     {hasError && (<>
       <p>
@@ -515,7 +519,7 @@ const UnstyledUserAvatar: React.FC<React.HTMLProps<HTMLSpanElement> & {
 
 export const UserAvatar = styled(UnstyledUserAvatar)`
 
-  background: ${({ user }) => user ? `var(--player-${user.color})` : "var(--bs-secondary)"};
+  background: ${({ color }) => !!color ? `var(--player-${color})` : "var(--bs-secondary)"};
   /* color: ${({ user }) => user ? `#${user.id.substring(0, 6)}` : "var(--bs-secondary)"}; */
   color: white;
   display: inline-flex;

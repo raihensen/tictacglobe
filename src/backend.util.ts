@@ -3,13 +3,6 @@ import path from "path";
 import { Country, GameSetup, Language, parseCountry } from "./game.types";
 var fs = require('fs').promises;
 
-export function randomChoice<T>(arr: Array<T>): T | undefined {
-  if (!arr.length) {
-    return undefined
-  }
-  return arr[Math.floor(arr.length * Math.random())];
-}
-
 var countryData: Record<string, Country[]> = {}
 
 export async function getCountryData(language: Language): Promise<Country[] | null> {

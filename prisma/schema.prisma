@@ -24,6 +24,8 @@ model Session {
   users          User[]
   score1         Int         @default(0)
   score2         Int         @default(0)
+  color1         String      @default("blue")
+  color2         String      @default("red")
   settings       String      @db.Text
   language       String      @default("en")
   createdAt      DateTime    @default(now())

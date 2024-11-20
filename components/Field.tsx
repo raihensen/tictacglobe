@@ -135,7 +135,12 @@ const Field = ({ pos, setActive, setIsSearching, game, row, col, apiRequest, can
           {settings.showNumSolutionsHint && <NumSolutions game={game} fieldState={fieldState} settings={settings} solutions={solutions} alternativeSolutions={alternativeSolutions} />}
         </>}
         {/* Game just became a tie: grey out */}
-        {notifyDecided && (<MarkingBackground $player={-1} $isWinning={false} />)}
+        {notifyDecided && (
+          <MarkingBackground
+            $player={-1}
+            $isWinning={false}
+          />
+        )}
       </>}
       {(fieldState.mode == FieldMode.SEARCH && canControlGame) && (
         <>
@@ -155,7 +160,11 @@ const Field = ({ pos, setActive, setIsSearching, game, row, col, apiRequest, can
       )}
       {(fieldState.mode == FieldMode.FILLED && getCountry(game, fieldState)) && (
         <>
-          <MarkingBackground $player={fieldState.markedBy} $isWinning={fieldState.isWinning} />
+          <MarkingBackground
+            $color={[0, 1].includes(fieldState.markedBy) ? game.getPlayerColor(fieldState.markedBy) : undefined}
+            $player={fieldState.markedBy}
+            $isWinning={fieldState.isWinning}
+          />
           <div className="field-center-50">
             <OverlayTrigger placement="bottom" overlay={(
               <TextTooltip id={tooltipCountryInfoIds[0]} className="d-md-none">

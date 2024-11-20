@@ -1,4 +1,5 @@
 
+import { PlayerColor } from "@/src/game.types";
 import { Modal } from "react-bootstrap";
 import Button, { ButtonProps } from "react-bootstrap/Button";
 import BsButtonToolbar from "react-bootstrap/ButtonToolbar";
@@ -216,8 +217,9 @@ export const TableCellInner = styled.div`
   }
 `
 
-export const MarkingBackground = styled.div<{ $player: number, $isWinning: boolean }>`
-  background: var(${props => props.$player === 0 ? "--bs-blue" : (props => props.$player === 1 ? "--bs-red" : "--bs-gray")});
+export const MarkingBackground = styled.div<{ $player: number, $color?: PlayerColor, $isWinning: boolean }>`
+  /* background: var(${props => props.$player === 0 ? "--bs-blue" : (props => props.$player === 1 ? "--bs-red" : "--bs-gray")}); */
+  background: var(${props => !!props.$color ? `--player-${props.$color}` : "--bs-gray"});
   display: block;
   opacity: ${props => props.$isWinning ? ".5" : ".25"};
   position: absolute;
