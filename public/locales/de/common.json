@@ -119,6 +119,10 @@
         "elevation_sub1k": {
             "label": "< 1000m",
             "tooltip": "Länder ohne Berge über 1000m"
+        },
+        "capital_not_largest": {
+            "label": "Kleinere Hauptstadt",
+            "tooltip": "Länder, deren Hauptstadt nicht die größte Stadt ist"
         }
     },
     "changeLanguage": {

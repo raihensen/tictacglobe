@@ -3,7 +3,7 @@ import { CategoryValue } from "@/src/game.types";
 import { TFunction, useTranslation } from "next-i18next";
 import { forwardRef, useId } from "react";
 import { OverlayTrigger, Tooltip } from "react-bootstrap";
-import { FaBuildingColumns, FaCircle, FaEarthAfrica, FaEarthAmericas, FaEarthAsia, FaEarthEurope, FaEarthOceania, FaFlag, FaMaximize, FaMinimize, FaMountain, FaUsers, FaWater } from "react-icons/fa6";
+import { FaBuildingColumns, FaCircle, FaCity, FaEarthAfrica, FaEarthAmericas, FaEarthAsia, FaEarthEurope, FaEarthOceania, FaFlag, FaMaximize, FaMinimize, FaMountain, FaUsers, FaWater } from "react-icons/fa6";
 import styled from "styled-components";
 
 import { addClassName } from "@/src/util";
@@ -18,7 +18,8 @@ const simpleCategoryIcons: { [category: string]: React.FC<IconBaseProps> } = {
   top_20_area: FaMaximize,
   bottom_20_area: FaMinimize,
   elevation_sup5k: FaMountain,
-  elevation_sub1k: crossed(FaMountain)
+  elevation_sub1k: crossed(FaMountain),
+  capital_not_largest: crossed(FaCity),
 }
 const continentIcons = {
   AS: FaEarthAsia,
@@ -34,13 +35,13 @@ export const ContinentIcon: React.FC<IconBaseProps & { continent: string }> = ({
 }
 
 const flagColorStyles = {
-  "White": { background: "#eeeeee", color: "var(--bs-dark)"},
-  "Black": { background: "#333333", color: "var(--bs-light)"},
-  "Red": { background: "#d80027", color: "var(--bs-light)"},
-  "Orange": { background: "#ff9811", color: "var(--bs-dark)"},
-  "Yellow/Gold": { background: "#ffda44", color: "var(--bs-dark)"},
-  "Green": { background: "#6da544", color: "var(--bs-light)"},
-  "Blue": { background: "#0052b4", color: "var(--bs-light)"}
+  "White": { background: "#eeeeee", color: "var(--bs-dark)" },
+  "Black": { background: "#333333", color: "var(--bs-light)" },
+  "Red": { background: "#d80027", color: "var(--bs-light)" },
+  "Orange": { background: "#ff9811", color: "var(--bs-dark)" },
+  "Yellow/Gold": { background: "#ffda44", color: "var(--bs-dark)" },
+  "Green": { background: "#6da544", color: "var(--bs-light)" },
+  "Blue": { background: "#0052b4", color: "var(--bs-light)" }
 }
 
 const CategoryBadgeSimple = ({ label, labelFormatter, icon, ...props }: React.ComponentProps<typeof CategoryBadge> & {
@@ -112,7 +113,7 @@ export const getCategoryInfo = ({ category, value, badge = true, key, ...props }
   description?: string | TranslationArgsType,
   badge?: JSX.Element
 } => {
-  
+
   // Simple badges (only for boolean categories)
   if (category in simpleCategoryIcons) {
     const Icon = simpleCategoryIcons[category]
@@ -151,7 +152,7 @@ export const getCategoryInfo = ({ category, value, badge = true, key, ...props }
       badge: badge ? (<CategoryBadgeSimple key={key} icon={<ContinentIcon continent={continent} />} label={`category.continent.values.${continent}`} {...props} />) : undefined
     }
   }
-  
+
   return {}
 }
 
