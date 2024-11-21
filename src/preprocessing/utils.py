@@ -1,4 +1,3 @@
-
 import os
 import json
 
@@ -15,27 +14,30 @@ def add_alternative_value(df, col, country, *values):
     cols = list(df.columns)
     if col not in cols:
         return False
-    
+
     # Add alternative column if not exists
     altcol = col + "_alt"
     if altcol not in cols:
         df.insert(cols.index(col) + 1, altcol, df[col].apply(lambda x: []))
-    
+
     # Find country
     index = get_country_index(df, country)
     if index is None:
         print(f"country {country} not found!")
         return False
-    
+
     # Add values
     values = sum([[x] if not isinstance(x, list) else x for x in values], [])
-    
+
     # Warn if value to-be-added is the actual value. Swap if not first-named
     if df.loc[index, col] in values:
         if values[0] == df.loc[index, col]:
-            print(f"{country}/{col}: '{df.loc[index, col]}' is already set as main value - skipping")
+            # print(f"{country}/{col}: '{df.loc[index, col]}' is already set as main value - skipping")
+            pass
         else:
-            print(f"{country}/{col}: '{df.loc[index, col]}' is already set as main value - swapping with '{values[0]}'")
+            print(
+                f"{country}/{col}: '{df.loc[index, col]}' is already set as main value - swapping with '{values[0]}'"
+            )
             df.loc[index, col] = values[0]
         values = values[1:]
 
@@ -54,31 +56,57 @@ def set_border(df, c1, c2, border=True, alt_border=False):
         print("Cannot set both border and alt_border relation.")
         return
     iso1, iso2 = df.loc[i1, "iso"], df.loc[i2, "iso"]
-    df.at[i1, "neighbors"] = list(sorted(set(df.at[i1, "neighbors"]).difference({iso2}).union({iso2} if border else {})))
-    df.at[i2, "neighbors"] = list(sorted(set(df.at[i2, "neighbors"]).difference({iso1}).union({iso1} if border else {})))
-    df.at[i1, "neighbors_alt"] = list(sorted(set(df.at[i1, "neighbors_alt"]).difference({iso2}).union({iso2} if alt_border else {})))
-    df.at[i2, "neighbors_alt"] = list(sorted(set(df.at[i2, "neighbors_alt"]).difference({iso1}).union({iso1} if alt_border else {})))
+    df.at[i1, "neighbors"] = list(
+        sorted(
+            set(df.at[i1, "neighbors"])
+            .difference({iso2})
+            .union({iso2} if border else {})
+        )
+    )
+    df.at[i2, "neighbors"] = list(
+        sorted(
+            set(df.at[i2, "neighbors"])
+            .difference({iso1})
+            .union({iso1} if border else {})
+        )
+    )
+    df.at[i1, "neighbors_alt"] = list(
+        sorted(
+            set(df.at[i1, "neighbors_alt"])
+            .difference({iso2})
+            .union({iso2} if alt_border else {})
+        )
+    )
+    df.at[i2, "neighbors_alt"] = list(
+        sorted(
+            set(df.at[i2, "neighbors_alt"])
+            .difference({iso1})
+            .union({iso1} if alt_border else {})
+        )
+    )
 
 
 def add_border(df, c1, c2):
     set_border(df, c1, c2, border=True, alt_border=False)
 
+
 def add_alternative_border(df, c1, c2):
     set_border(df, c1, c2, border=False, alt_border=True)
+
 
 def remove_border(df, c1, c2):
     set_border(df, c1, c2, border=False, alt_border=False)
 
 
 def camel_case(s: str) -> str:
-    output = ''.join(x for x in s.title() if x.isalnum())
+    output = "".join(x for x in s.title() if x.isalnum())
     return output[0].lower() + output[1:]
-
 
 
 def chdir_this_file():
     script_dir = os.path.dirname(os.path.abspath(__file__))
     os.chdir(script_dir)
+
 
 def export_country_data(df, language):
     # CSV export
@@ -88,7 +116,5 @@ def export_country_data(df, language):
 
     # JSON export
     json_path = f"../../public/data/countries/countries-{language.lower()}.json"
-    json.dump(df.to_dict(orient="records"),
-              open(json_path, mode="w"))
+    json.dump(df.to_dict(orient="records"), open(json_path, mode="w"))
     print(f"JSON Country data exported to {json_path}.")
-    
