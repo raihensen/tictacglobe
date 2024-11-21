@@ -106,8 +106,8 @@ const GamePage: React.FC<PageProps & GamePageProps> = ({
   }, autoRefreshInterval)
 
   const refresh = (session: Session) => {
-    apiRequest(`api/session/${session?.id}/refresh`, {
-      action: "RefreshSession"
+    apiRequest(`api/session/${session.id}/refresh`, {
+      action: "RefreshSession",
     })
   }
 

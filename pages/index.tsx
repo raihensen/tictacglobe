@@ -82,7 +82,8 @@ const IndexPage: React.FC<PageProps & IndexPageProps> = ({
     apiRequest(async () => {
       if (!sessionId) return false
       return fetch(`/api/session/${sessionId}/refresh`, {
-        method: "POST"
+        method: "POST",
+        body: new FormData(),
       })
     }, "RefreshSession")
   },
