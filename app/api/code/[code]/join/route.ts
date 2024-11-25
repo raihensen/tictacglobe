@@ -11,13 +11,16 @@ export async function POST(
 ) {
   // need POST also to avoid caching
   const data = Object.fromEntries((await req.formData()).entries())
+  // const data = (await req.json()) as unknown as ApiBody
 
   const action = data.action as unknown as RequestAction
-  const name = data.name as unknown as string | undefined
-  const color = data.color as unknown as string | undefined
+  const user = await db.user.findUnique({ where: { id: data.user as string } })
+  if (!user) return error("User not found", 404)
+  // const name = data.name as unknown as string | undefined
+  // const color = data.color as unknown as string | undefined
   const { code } = await params
 
-  if (code) return error("Invalid request", 400)
+  if (!code) return error("Invalid request", 400)
   const sessionFromCode = await db.session.findFirst({
     where: {
       invitationCode: code,
@@ -26,7 +29,7 @@ export async function POST(
   })
   if (!sessionFromCode) return error("Session not found", 404)
 
-  const { session, user } = await joinSession(sessionFromCode, name)
+  const { session } = await joinSession(sessionFromCode, user)
 
   return NextResponse.json({
     user: user,

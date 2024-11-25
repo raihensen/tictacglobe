@@ -129,7 +129,7 @@ export function useDarkMode(initialValue: boolean = false): [boolean, () => void
  * @param interval The time duration [ms].
  * @returns an object with the two functions scheduleAutoRefresh and clearAutoRefresh.
  */
-export function useAutoRefresh(action: (...args: any[]) => void, interval: number) {
+export function useAutoRefresh<T extends any[]>(action: (...args: T) => void, interval: number) {
 
   const autoRefreshIntervalMutex = new Mutex()
   const [autoRefreshIntervalHandle, setAutoRefreshIntervalHandle] = useState<NodeJS.Timeout>()
@@ -147,7 +147,7 @@ export function useAutoRefresh(action: (...args: any[]) => void, interval: numbe
     })
   }
 
-  const scheduleAutoRefresh = (...args: any[]) => {
+  const scheduleAutoRefresh = (...args: T) => {
     autoRefreshIntervalMutex.runExclusive(() => {
       if (autoRefreshIntervalHandle !== undefined) {
         clearTimeout(autoRefreshIntervalHandle)

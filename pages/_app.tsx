@@ -2,7 +2,7 @@
 
 import Layout from '@/components/Layout'
 import ConfirmationModalProvider from '@/components/common/Confirmation'
-import { getLocalStorage, useDarkMode, useIsClient } from '@/src/util'
+import { getLocalStorage, setLocalStorage, useDarkMode, useInitEffect, useIsClient } from '@/src/util'
 import { useTtgStore } from '@/src/zustand'
 import { appWithTranslation } from 'next-i18next'
 import type { AppProps } from 'next/app'
@@ -34,36 +34,35 @@ export type PageProps = InitialPageProps & {
 const MyApp: React.FC<AppProps<InitialPageProps>> = ({ Component, pageProps }) => {
   const pageName = Component.displayName || Component.name || 'UnknownComponent'
   const isClient = useIsClient()
-  const searchParams = useSearchParams()
 
   const { user, setUser } = useTtgStore.useState.user()
 
   // const [userIdentifier, setUserIdentifier] = useState<string | undefined>(undefined)
   // const [isCustomUserIdentifier, setIsCustomUserIdentifier] = useState<boolean>(false)
 
-  useEffect(() => {
-    // Get userId from localStorage, and get user data from db
+  useInitEffect(() => {
+    // Get userId from localStorage, and get user data from db, or create new user
     effect()
     async function effect() {
       const storedUserId = getLocalStorage("tictacglobe:userId", null)
-      if (storedUserId && !user) {
+      if (storedUserId) {
+        // if (!!user) throw Error("User state already set.")
         const data = await fetch(`/api/user/${storedUserId}`).then(res => res.json())
         if ("user" in data) {
           setUser(data.user)
-        }
-        console.error(`Fetching user ${storedUserId} failed.`)
+        } else throw Error(`Fetching user ${storedUserId} failed.`)
+      } else {
+        if (!!user) throw Error("User state already set.")
+        // Create new user
+        const data = await fetch(`/api/user/create`, { method: "POST" }).then(res => res.json())
+        if ("user" in data) {
+          setUser(data.user)
+          setLocalStorage("tictacglobe:userId", data.user.id)
+        } else throw Error(`Creating new user failed.`)
       }
     }
 
-    // if (searchParams?.get("user")) {
-    //   setIsCustomUserIdentifier(true)
-    //   setUserIdentifier(searchParams.get("user") ?? undefined)
-
-    // } else {
-    //   setIsCustomUserIdentifier(false)
-    //   setUserIdentifier(initUserIdentifier())
-    // }
-  }, [searchParams])
+  }, [user])
 
   const [darkMode, toggleDarkMode] = useDarkMode()
   const [errorMessage, setErrorMessage] = useState<string | false>(false)

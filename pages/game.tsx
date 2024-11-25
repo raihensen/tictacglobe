@@ -270,7 +270,6 @@ const GamePage: React.FC<PageProps & GamePageProps> = ({
       apiRequest={apiRequest}
       isSessionAdmin={isSessionAdmin}
     />
-    {/* {(isClient && isCustomUserIdentifier) && (<h3>User: {userIdentifier}</h3>)} */}
     {!!session && (
       <p className="d-flex align-items-center gap-2">
         <UserAvatar user={user} color={userIndex == 0 ? session.color1 : session.color2} />

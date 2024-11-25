@@ -155,20 +155,6 @@ export type ApiBody = ApiQuery & {
   turn?: number  // turnCounter
 }
 
-export type GameSession = {
-  index: number
-  id: string
-  isPublic: boolean
-  invitationCode?: string
-  playingMode: PlayingMode
-  currentGame: Game | null
-  previousGames: Game[]
-  users: string[]
-  score: number[]
-  settings: Settings
-}
-export type SessionWithoutGames = Omit<GameSession, "currentGame" | "previousGames">
-
 export interface Country {
   iso: string;
   name: string;
@@ -230,18 +216,6 @@ export interface GameSetup {
     maxCellDifficulty: number;
     [x: string]: any;
   }
-}
-// export enum GameState {
-//   Initialized = 0,
-//   Running = 1,
-//   Decided = 2,  // set as soon as a winner / draw is determined but the board is not full yet (might continue playing)
-//   Finished = 3,  // only set if the board is fully marked
-//   Ended = 4  // After having clicked "End game", then show solutions
-// }
-
-export type GameData = {
-  // isNewGame: boolean;
-  game: Game | null;
 }
 
 type GamePropertyKeys = keyof Game;

@@ -13,6 +13,8 @@ export async function POST(
   const data = Object.fromEntries((await req.formData()).entries())
 
   const action = data.action as unknown as RequestAction
+  const user = await db.user.findUnique({ where: { id: data.user as string } })
+  if (!user) return error("User not found", 404)
   const name = data.name as unknown as string | undefined
   const color = data.color as unknown as string | undefined
   const language = data.language as unknown as string
@@ -47,7 +49,7 @@ export async function POST(
     })
     if (availableSessions.length) {
       const sessionToJoin = availableSessions[0]
-      const { session, user } = await joinSession(sessionToJoin, name)
+      const { session } = await joinSession(sessionToJoin, user)
 
       if (!session) return error("Internal Server Error", 500)
       return NextResponse.json({
@@ -67,10 +69,7 @@ export async function POST(
       language: language,
       playingMode: playingMode,
       users: {
-        create: {
-          name: name,
-          color: color,
-        }
+        connect: { id: user.id }
       },
       color1: color,
     },
@@ -82,7 +81,7 @@ export async function POST(
   if (!session) return error("Internal Server Error", 500)
 
   return NextResponse.json({
-    user: newSession.users[0],
+    user: user,
     session: session,
     success: true
   })

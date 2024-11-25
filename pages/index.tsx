@@ -4,7 +4,7 @@ import { useTranslation } from 'next-i18next';
 import { serverSideTranslations } from "next-i18next/serverSideTranslations";
 import { useSearchParams } from 'next/navigation';
 import { NextRouter, useRouter } from "next/router";
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 
 import { PlayerColor, playerColors, RequestAction, autoRefreshInterval, defaultLanguage } from "@/src/game.types";
 import { readReadme, setLocalStorage, useAutoRefresh } from "@/src/util";
@@ -78,17 +78,20 @@ const IndexPage: React.FC<PageProps & IndexPageProps> = ({
     }
   }, [searchParams])
 
-  const { scheduleAutoRefresh, clearAutoRefresh } = useAutoRefresh((sessionId: number | null) => {
+  const execAutoRefresh = useCallback(() => {
     apiRequest(async () => {
-      if (!sessionId) return false
-      return fetch(`/api/session/${sessionId}/refresh`, {
+      if (!session?.id) return false
+      if (!user?.id) return false
+      return fetch(`/api/session/${session.id}/refresh`, {
         method: "POST",
-        body: new FormData(),
+        body: JSON.stringify({
+          action: "RefreshSession",
+          user: user.id,
+        }),
       })
     }, "RefreshSession")
-  },
-    autoRefreshInterval
-  )
+  }, [session, user])
+  const { scheduleAutoRefresh, clearAutoRefresh } = useAutoRefresh(execAutoRefresh, autoRefreshInterval)
 
   async function apiRequest(
     exec: () => Promise<any>,
@@ -119,10 +122,11 @@ const IndexPage: React.FC<PageProps & IndexPageProps> = ({
     setErrorMessage(false)
     setIsWaiting(false)
     setSession(data.session)
-    if (data.user) {
-      setUser(data.user)
-      setLocalStorage("tictacglobe:userId", data.user.id)
-    }
+    if (data.user?.id != user?.id) console.error("User ID mismatch")
+    // if (data.user) {
+    //   setUser(data.user)
+    //   setLocalStorage("tictacglobe:userId", data.user.id)
+    // }
 
     console.log("Session: " + JSON.stringify(data.session))
 
@@ -135,7 +139,7 @@ const IndexPage: React.FC<PageProps & IndexPageProps> = ({
     if (action == "InitSessionRandom") {
       // session not filled yet, waiting for opponent
       setState(PageState.WaitingForRandomOpponent)
-      scheduleAutoRefresh(data.session.id)
+      scheduleAutoRefresh()
     }
 
     if (action == "InitSessionFriend") {
@@ -144,11 +148,11 @@ const IndexPage: React.FC<PageProps & IndexPageProps> = ({
         return false
       }
       setState(PageState.WaitingForFriend)
-      scheduleAutoRefresh(data.session.id)
+      scheduleAutoRefresh()
     }
 
     if (action == "RefreshSession") {
-      scheduleAutoRefresh(data.session.id)
+      scheduleAutoRefresh()
     }
 
     return true
@@ -170,10 +174,9 @@ const IndexPage: React.FC<PageProps & IndexPageProps> = ({
   }
 
   const submitEnterCode = (invitationCode: string) => {
-    if (isWaiting) {
-      return false
-    }
-    if (!invitationCode.match(/^[^A-Z0-9]{4}$/)) {
+    if (isWaiting) return false
+    if (!user) return false
+    if (!invitationCode.match(/^[A-Z0-9]{4}$/)) {
       console.error(`Invalid invitation code format (${invitationCode})`)
       return false
     }
@@ -181,6 +184,7 @@ const IndexPage: React.FC<PageProps & IndexPageProps> = ({
       () => {
         const formData = new FormData()
         formData.set("action", "JoinSession".toString())
+        formData.set("user", user.id)
         formData.set("color", userColor)
         return fetch(`/api/code/${invitationCode}/join`, {
           body: formData,
@@ -206,10 +210,12 @@ const IndexPage: React.FC<PageProps & IndexPageProps> = ({
     {state == PageState.Init && (<>
       <div style={{ display: "flex", flexDirection: "column", width: "250px", maxWidth: "90%", alignItems: "stretch" }}>
         <Button variant="danger" size="lg" className="mb-2" onClick={() => {
+          if (!user) return false
           apiRequest(
             () => {
               const formData = new FormData()
               formData.set("action", "InitSessionRandom".toString())
+              formData.set("user", user.id)
               formData.set("language", router.locale ?? defaultLanguage)
               formData.set("color", userColor)
               return fetch(`/api/session/create`, {
@@ -221,10 +227,12 @@ const IndexPage: React.FC<PageProps & IndexPageProps> = ({
           )
         }}>Search opponent</Button>
         <Button variant="warning" size="lg" className="mb-2" onClick={() => {
+          if (!user) return false
           apiRequest(
             () => {
               const formData = new FormData()
               formData.set("action", "InitSessionFriend".toString())
+              formData.set("user", user.id)
               formData.set("language", router.locale ?? defaultLanguage)
               formData.set("color", userColor)
               return fetch(`/api/session/create`, {
@@ -240,10 +248,12 @@ const IndexPage: React.FC<PageProps & IndexPageProps> = ({
         }}>Enter code</Button>
         {/* <Button size="lg" className="mb-2">Online opponent</Button> */}
         <Button variant="primary" size="lg" className="mb-2" onClick={() => {
+          if (!user) return false
           apiRequest(
             () => {
               const formData = new FormData()
               formData.set("action", "InitSessionOffline".toString())
+              formData.set("user", user.id)
               formData.set("language", router.locale ?? defaultLanguage)
               formData.set("color", userColor)
               return fetch(`/api/session/create`, {

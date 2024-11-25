@@ -1,5 +1,6 @@
 import { error, sessionIncludeCurrentGame } from "@/src/api.utils";
 import { db } from "@/src/db";
+import { ApiBody } from "@/src/game.types";
 import { NextRequest, NextResponse } from "next/server";
 
 
@@ -7,7 +8,8 @@ export async function POST(
   req: NextRequest,
   { params }: { params: Promise<{ session: string }> }
 ) {
-  const data = Object.fromEntries((await req.formData()).entries())
+  // const data = Object.fromEntries((await req.formData()).entries())
+  const data = (await req.json()) as unknown as ApiBody
 
   const sessionId = Number.parseInt((await params).session)
   if (!sessionId) return error("Invalid request", 400)
