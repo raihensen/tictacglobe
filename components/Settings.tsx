@@ -9,12 +9,12 @@ import Form from 'react-bootstrap/Form';
 import Modal from 'react-bootstrap/Modal';
 
 import { LanguageSelectorItem, LanguageSelectorToggle } from "@/components/styles";
-import { ApiHandler, Game, Language, Settings, defaultLanguage } from "@/src/game.types";
+import { ApiHandler, Language, Settings, defaultLanguage } from "@/src/game.types";
+import { useTtgStore } from '@/src/zustand';
 import _ from "lodash";
 import { NextRouter, useRouter } from "next/router";
 import { Dropdown } from "react-bootstrap";
 import { CircleFlag } from "react-circle-flags";
-import { useTtgStore } from '@/src/zustand';
 
 
 export function useSettings(defaultSettings: Settings): [Settings, (value: Settings) => void] {

@@ -1,9 +1,10 @@
 
-import { ApiHandler, Category, CategoryValue, Country, FieldSettings, Game } from "@/src/game.types";
-import { ReactNode, forwardRef, useEffect, useId, useState } from 'react';
+import { ApiHandler, CategoryValue, Country, FieldSettings, Game } from "@/src/game.types";
+import { ReactNode, forwardRef, useEffect, useId, useMemo, useState } from 'react';
 import styled from "styled-components";
 
 import { MarkingBackground, TableCellInner } from "@/components/styles";
+import { useTtgStore } from "@/src/zustand";
 import { GameState } from "@prisma/client";
 import _ from "lodash";
 import { useTranslation } from "next-i18next";
@@ -14,7 +15,6 @@ import { CircleFlag } from 'react-circle-flags';
 import { FaMountain } from "react-icons/fa6";
 import CountryAutoComplete from "./Autocomplete";
 import { ContinentIcon, getCategoryInfo, translateCategory } from "./TableHeading";
-import { useTtgStore } from "@/src/zustand";
 
 enum FieldMode {
   INITIAL = 0,
@@ -48,7 +48,8 @@ const Field = ({ pos, setActive, setIsSearching, game, row, col, apiRequest, can
   const countries = useTtgStore.use.countries() ?? []
   const categories = useTtgStore.use.categories() ?? []
   const solutions = countries.filter(c => game.setup.solutions[i][j].includes(c.iso))
-  const [exampleSolution, setExampleSolution] = useState<Country>(_.sample(solutions) as Country)
+  const exampleSolutionSeed = useMemo(() => Math.floor(_.random(0, 1000)), [])
+  const exampleSolution = useMemo(() => _.sortBy(solutions, "iso")[exampleSolutionSeed % solutions.length] as Country, [solutions])
   const alternativeSolutions = countries.filter(c => game.setup.alternativeSolutions[i][j].includes(c.iso))
   const initFieldState = (game: Game) => ({
     guess: countries?.find(c => c.iso == game.guesses[i][j]) ?? null,

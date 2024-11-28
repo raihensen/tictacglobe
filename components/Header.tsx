@@ -12,6 +12,7 @@ import Image from "next/image";
 import { useRouter } from "next/router";
 import { FaBars, FaCircleInfo, FaGear, FaMoon, FaXmark } from "react-icons/fa6";
 import { useConfirmation } from './common/Confirmation';
+import ThemeSwitch from './common/ThemeSwitch';
 
 
 const Header: React.FC<{
@@ -29,7 +30,7 @@ const Header: React.FC<{
   const router = useRouter()
   const confirm = useConfirmation()
 
-  const [ expanded, setExpanded ] = useState<boolean>(false)
+  const [expanded, setExpanded] = useState<boolean>(false)
 
   return (
     <HeaderStyle>
@@ -55,7 +56,8 @@ const Header: React.FC<{
           <ButtonToolbar className={expanded ? "d-flex" : "d-none d-md-flex"}>
             <ShareButton {...shareButtonProps} tooltipPlacement='bottom' />
             <IconButton variant="secondary" onClick={triggerShowGameInformation}><FaCircleInfo /></IconButton>
-            <IconButton variant="secondary" onClick={toggleDarkMode}><FaMoon /></IconButton>
+            {/* <IconButton variant="secondary" onClick={toggleDarkMode}><FaMoon /></IconButton> */}
+            <ThemeSwitch variant="secondary" />
             {/* <LanguageSelector value={router.locale ?? defaultLanguage} disabled={!isSessionAdmin} onChange={async (oldLanguage, newLanguage) => { */}
             <LanguageSelector value={router.locale ?? defaultLanguage} disabled={true} onChange={async (oldLanguage, newLanguage) => {
               if (await confirm(t("changeLanguage.confirm.question"), {

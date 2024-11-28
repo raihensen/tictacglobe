@@ -280,7 +280,7 @@ const GamePage: React.FC<PageProps & GamePageProps> = ({
 
           {canEndGame && (
             <IconButton label={t("endGame.action")} variant="danger" onClick={async () => {
-              if (await confirm(t("endGame.confirm.question"), {
+              if (game.isDecided() || await confirm(t("endGame.confirm.question"), {
                 title: t("endGame.confirm.title"),
                 confirmText: t("endGame.action"),
                 cancelText: t("cancel")
