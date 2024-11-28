@@ -2,7 +2,7 @@ import { error, gameIncludeIngameData, sessionIncludeCurrentGame, switchTurnsAnd
 import { getCountryData } from "@/src/backend.util";
 import { db } from "@/src/db";
 import { Session } from "@/src/db.types";
-import { ApiBody, Game, RequestAction } from "@/src/game.types";
+import { ApiRequestBodyTurn, Game } from "@/src/game.types";
 import { GameState } from "@prisma/client";
 import _ from "lodash";
 import { NextRequest, NextResponse } from "next/server";
@@ -11,19 +11,19 @@ export async function POST(
   req: NextRequest,
   { params }: { params: Promise<{ game: string }> }
 ) {
-  // const data = Object.fromEntries((await req.formData()).entries())
-  const data = (await req.json()) as unknown as ApiBody
-  const searchParams = req.nextUrl.searchParams
-
-  const action = data.action as RequestAction
-  if (!action) return error("Invalid request: No action specified")
-
   const gameId = Number.parseInt((await params).game)
   if (!gameId) return error("Invalid request: No game ID specified")
-  const userId = data.user as string
+
+  const {
+    action,
+    user: userId,
+    turn: turnCounter,
+  } = (await req.json()) as unknown as ApiRequestBodyTurn
+
+  if (!action) return error("Invalid request: No action specified")
   if (!userId) return error("Invalid request: No user ID specified")
 
-  const turnCounter = data.turn
+  const searchParams = req.nextUrl.searchParams
   if (!turnCounter && turnCounter !== 0) return error("Invalid request: No turn counter specified")
 
   let game = await db.game.findUnique({

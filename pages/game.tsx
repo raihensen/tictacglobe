@@ -7,7 +7,7 @@ import { useTranslation } from 'next-i18next';
 import { serverSideTranslations } from 'next-i18next/serverSideTranslations';
 import React, { useEffect, useRef, useState } from 'react';
 
-import { ApiBody, ApiResponse, Category, Country, Game, ApiQuery, Settings, autoRefreshInterval, defaultLanguage, defaultSettings, settingsChanged, PlayerColor } from "@/src/game.types";
+import { ApiRequestBodyTurn, ApiResponse, Category, Country, Game, ApiRequestBodyBase, Settings, autoRefreshInterval, defaultLanguage, defaultSettings, settingsChanged, PlayerColor } from "@/src/game.types";
 import { GET, capitalize, getLocalStorage, readReadme, setLocalStorage, useAutoRefresh } from "@/src/util";
 var fs = require('fs').promises;
 
@@ -46,26 +46,29 @@ const GamePage: React.FC<PageProps & GamePageProps> = ({
     if (!user) return
 
     // TODO move to _app?
-    if (!session) {
-      const storedSessionId = getLocalStorage("tictacglobe:sessionId", null)
-      if (!storedSessionId) return
-      loadGame(storedSessionId)
-    } else if (session && !game) {
-      // First client-side init with user set
-      loadGame(session.id)
+    // if (!session) {
+    //   const storedSessionId = getLocalStorage("tictacglobe:sessionId", null)
+    //   if (!storedSessionId) return
+    //   loadGame(storedSessionId)
+    // } else if (session && !game) {
+    //   // First client-side init with user set
+    //   loadGame(session.id)
+    // }
+    if (!game) {
+      loadGame()
     }
-    async function loadGame(sessionId: number) {
+    async function loadGame() {
       if (!user) return
-      console.log(`First client-side init (GamePage) - userId ${user.id} - sessionId ${sessionId}`)
-      apiRequest(`api/session/${sessionId}/user/${user.id}/game`, { action: "ExistingOrNewGame" })
+      console.log(`First client-side init (GamePage) - userId ${user.id}`)
+      apiRequest(`api/user/${user.id}/game`, { action: "ExistingOrNewGame" })
     }
   }, [user, game, session])
 
-  useEffect(() => {
-    if (session) {
-      setLocalStorage("tictacglobe:sessionId", session.id)
-    }
-  }, [session])
+  // useEffect(() => {
+  //   if (session) {
+  //     setLocalStorage("tictacglobe:sessionId", session.id)
+  //   }
+  // }, [session])
 
   const router = useRouter()
   const { t, i18n } = useTranslation('common')
@@ -117,7 +120,7 @@ const GamePage: React.FC<PageProps & GamePageProps> = ({
 
   async function apiRequest(
     url: string,
-    params: ApiQuery
+    params: ApiRequestBodyBase
   ) {
     const { action, settings: newSettings } = params
     if (!user) {
@@ -132,7 +135,7 @@ const GamePage: React.FC<PageProps & GamePageProps> = ({
       }
     }
 
-    const reqData: ApiBody = {
+    const reqData: ApiRequestBodyTurn = {
       action: action,
       user: user.id,
     }
@@ -142,19 +145,9 @@ const GamePage: React.FC<PageProps & GamePageProps> = ({
     if (newSettings) {
       reqData.settings = newSettings
     }
-    // const formData = new FormData()
-    // formData.set("action", action)
-    // formData.set("user", user.id)
-    // if (game) {
-    //   formData.set("turn", game?.turnCounter.toString())
-    // }
-    // if (newSettings) {
-    //   formData.set("settings", JSON.stringify(newSettings))
-    // }
     if (!url.startsWith("/")) url = "/" + url
     const res = await fetch(url, {
       body: JSON.stringify(reqData),
-      // body: formData,
       method: "POST"
     })
     const data = await res.json() as ApiResponse
@@ -306,7 +299,7 @@ const GamePage: React.FC<PageProps & GamePageProps> = ({
           )}
           {canRequestNewGame && (
             <IconButton label={t("newGame")} variant="danger" onClick={() => {
-              apiRequest(`api/session/${session.id}/user/${user.id}/game?newGame=true`, {
+              apiRequest(`api/user/${user.id}/game?newGame=true`, {
                 action: "NewGame"
               })
             }}><FaArrowsRotate /></IconButton>

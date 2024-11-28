@@ -39,9 +39,9 @@ export const SettingsModal: React.FC<{
 
   // const showSettings = () => setShowSettings(true)
 
-  const updateSettings = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement> | { target: SettingsValues}) => {
+  const updateSettings = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement> | { target: SettingsValues }) => {
     const newSettings = assignSettings(settings, e)
-    console.log(`New settings: ${JSON.stringify(newSettings)}`)
+    console.log(`New settings: ${newSettings}`)
 
     apiRequest(`api/game/${game.id}/refresh`, {
       action: "RefreshSession",
@@ -68,9 +68,9 @@ export const SettingsModal: React.FC<{
         </Form.Select>
         <Form.Check type="switch" onChange={updateSettings} checked={settings.showNumSolutions} id="settingsShowNumSolutions" label={t("settings.showNumSolutions")} />
         <Form.Check type="switch" onChange={updateSettings} checked={settings.showNumSolutionsHint} disabled={!settings.showNumSolutions} id="settingsShowNumSolutionsHint" label={t("settings.showNumSolutionsHint")} />
-        
+
         <Form.Check type="switch" onChange={(e) => {
-          updateSettings({ target: { id: "settingsTimeLimit", value: e.target.checked ? timeLimitSliderValue : false }})
+          updateSettings({ target: { id: "settingsTimeLimit", value: e.target.checked ? timeLimitSliderValue : false } })
           setShowTimeLimitSlider(e.target.checked)
         }} checked={settings.timeLimit !== false} id="settingsEnableTimeLimit" label={t("settings.enableTimeLimit")} />
 
@@ -83,7 +83,7 @@ export const SettingsModal: React.FC<{
               onChange={(v: number | number[]) => {
                 const t = v as number
                 setTimeLimitSliderValue(t)
-                updateSettings({ target: { id: "settingsTimeLimit", value: t }})
+                updateSettings({ target: { id: "settingsTimeLimit", value: t } })
               }}
               min={Math.min(...timeLimitValues)}
               max={Math.max(...timeLimitValues)}
@@ -110,7 +110,7 @@ const timeLimitValues = [10, 20, 30, 45, 60, 90, 120]
 const defaultTimeLimitSliderValue = 60
 
 const formatTimeLimit = (t: number): string => {
-  
+
   if (t <= 90) {
     return `${t} s`
   }
@@ -123,9 +123,9 @@ const formatTimeLimit = (t: number): string => {
 }
 
 
-function assignSettings(settings: Settings, e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement> | { target: SettingsValues}): Settings {
-    
-  const newSettings = {...settings} as Settings
+function assignSettings(settings: Settings, e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement> | { target: SettingsValues }): Settings {
+
+  const newSettings = { ...settings } as Settings
   Object.entries(settings).forEach(([prop, value]) => {
     if (e.target.id == `settings${capitalize(prop)}`) {
       if (prop == "timeLimit") {

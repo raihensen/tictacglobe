@@ -13,21 +13,27 @@ export async function POST(
   { params }: { params: Promise<{ session: string, user: string }> }
 ) {
 
-  const searchParams = req.nextUrl.searchParams
-
-  const sessionId = Number.parseInt((await params).session)
+  // const sessionId = Number.parseInt((await params).session)
   const userId = (await params).user
-  const newGame = !!searchParams.get("newGame")
 
-  if (!sessionId) return error("Invalid request", 400)
+  // if (!sessionId) return error("Invalid request", 400)
   if (!userId) return error("Invalid request", 400)
 
-  let session = await db.session.findUnique({
-    where: { id: sessionId },
+  let session = await db.session.findFirst({
+    where: { users: { some: { id: userId } } },
+    orderBy: { createdAt: "desc" },
     include: sessionIncludeCurrentGame
   })
+  // let session = await db.session.findUnique({
+  //   where: { id: sessionId },
+  //   include: sessionIncludeCurrentGame
+  // })
   if (!session) return error("Session not found", 404)
   if (!session.users.some(u => u.id == userId)) return error("User not part of the session", 403)
+  const sessionId = session.id
+
+  const searchParams = req.nextUrl.searchParams
+  const newGame = !!searchParams.get("newGame")
 
   const settings = JSON.parse(session.settings) as Settings
 

@@ -182,12 +182,12 @@ const IndexPage: React.FC<PageProps & IndexPageProps> = ({
     }
     apiRequest(
       () => {
-        const formData = new FormData()
-        formData.set("action", "JoinSession".toString())
-        formData.set("user", user.id)
-        formData.set("color", userColor)
         return fetch(`/api/code/${invitationCode}/join`, {
-          body: formData,
+          body: JSON.stringify({
+            action: "JoinSession".toString(),
+            user: user.id,
+            color: userColor,
+          }),
           method: "POST"
         })
         // TODO update frontend language after joining
@@ -213,13 +213,13 @@ const IndexPage: React.FC<PageProps & IndexPageProps> = ({
           if (!user) return false
           apiRequest(
             () => {
-              const formData = new FormData()
-              formData.set("action", "InitSessionRandom".toString())
-              formData.set("user", user.id)
-              formData.set("language", router.locale ?? defaultLanguage)
-              formData.set("color", userColor)
               return fetch(`/api/session/create`, {
-                body: formData,
+                body: JSON.stringify({
+                  action: "InitSessionRandom",
+                  user: user.id,
+                  language: router.locale ?? defaultLanguage,
+                  color: userColor,
+                }),
                 method: "POST"
               })
             },
@@ -230,13 +230,13 @@ const IndexPage: React.FC<PageProps & IndexPageProps> = ({
           if (!user) return false
           apiRequest(
             () => {
-              const formData = new FormData()
-              formData.set("action", "InitSessionFriend".toString())
-              formData.set("user", user.id)
-              formData.set("language", router.locale ?? defaultLanguage)
-              formData.set("color", userColor)
               return fetch(`/api/session/create`, {
-                body: formData,
+                body: JSON.stringify({
+                  action: "InitSessionFriend",
+                  user: user.id,
+                  language: router.locale ?? defaultLanguage,
+                  color: userColor,
+                }),
                 method: "POST"
               })
             },
@@ -251,13 +251,13 @@ const IndexPage: React.FC<PageProps & IndexPageProps> = ({
           if (!user) return false
           apiRequest(
             () => {
-              const formData = new FormData()
-              formData.set("action", "InitSessionOffline".toString())
-              formData.set("user", user.id)
-              formData.set("language", router.locale ?? defaultLanguage)
-              formData.set("color", userColor)
               return fetch(`/api/session/create`, {
-                body: formData,
+                body: JSON.stringify({
+                  action: "InitSessionOffline",
+                  user: user.id,
+                  language: router.locale ?? defaultLanguage,
+                  color: userColor,
+                }),
                 method: "POST"
               })
             },

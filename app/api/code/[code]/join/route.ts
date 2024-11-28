@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 
 import { error, invitationCodeAlive, joinSession } from "@/src/api.utils";
 import { db } from "@/src/db";
-import { RequestAction } from "@/src/game.types";
+import { ApiRequestBodyTurn } from "@/src/game.types";
 
 
 export async function POST(
@@ -10,17 +10,18 @@ export async function POST(
   { params }: { params: Promise<{ code: string }> }
 ) {
   // need POST also to avoid caching
-  const data = Object.fromEntries((await req.formData()).entries())
-  // const data = (await req.json()) as unknown as ApiBody
-
-  const action = data.action as unknown as RequestAction
-  const user = await db.user.findUnique({ where: { id: data.user as string } })
-  if (!user) return error("User not found", 404)
-  // const name = data.name as unknown as string | undefined
-  // const color = data.color as unknown as string | undefined
   const { code } = await params
+  if (!code) return error("Invalid request: No code specified", 400)
 
-  if (!code) return error("Invalid request", 400)
+  const {
+    action,
+    user: userId
+  } = (await req.json()) as unknown as ApiRequestBodyTurn
+
+  if (!userId) return error("Invalid request: No user ID specified", 400)
+  const user = await db.user.findUnique({ where: { id: userId as string } })
+  if (!user) return error("User not found", 404)
+
   const sessionFromCode = await db.session.findFirst({
     where: {
       invitationCode: code,

@@ -1,6 +1,6 @@
 import { error, findSessionWithCurrentGame, generateInvitationCode, invitationCodeAlive, joinSession } from "@/src/api.utils";
 import { db } from "@/src/db";
-import { RequestAction, defaultSettings } from "@/src/game.types";
+import { ApiRequestBodyCreateSession, defaultSettings } from "@/src/game.types";
 import { PlayingMode, PrismaClient } from '@prisma/client';
 import { NextRequest, NextResponse } from "next/server";
 
@@ -10,17 +10,18 @@ export async function POST(
 ) {
   // need POST also to avoid caching
 
-  const data = Object.fromEntries((await req.formData()).entries())
+  const {
+    action,
+    user: userId,
+    language,
+  } = (await req.json()) as unknown as ApiRequestBodyCreateSession
 
-  const action = data.action as unknown as RequestAction
-  const user = await db.user.findUnique({ where: { id: data.user as string } })
+  if (!userId) return error("Invalid request: No user ID specified", 400)
+  const user = await db.user.findUnique({ where: { id: userId as string } })
   if (!user) return error("User not found", 404)
-  const name = data.name as unknown as string | undefined
-  const color = data.color as unknown as string | undefined
-  const language = data.language as unknown as string
 
   const playingMode = (action == "InitSessionOffline" ? PlayingMode.Offline : PlayingMode.Online)
-  const settings = defaultSettings
+  const settings = defaultSettings  // TODO send
 
   // Generate invitation code (if InitSessionFriend)
   let invitationCode = null
@@ -40,6 +41,7 @@ export async function POST(
           isFull: false,
           isAlive: true,
           language: language,
+          users: { none: { id: user.id } },
         }
       },
       orderBy: {
@@ -71,7 +73,7 @@ export async function POST(
       users: {
         connect: { id: user.id }
       },
-      color1: color,
+      color1: "blue",  // TODO
     },
     include: {
       users: true

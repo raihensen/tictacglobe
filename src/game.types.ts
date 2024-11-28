@@ -145,15 +145,32 @@ export type ScalarQuery = {
 export type Query = ScalarQuery & Partial<PrefixedSettings>;
 export type FrontendQuery = Omit<ScalarQuery, "userIdentifier" | "playingMode"> & { settings?: Settings }
 
-export type ApiQuery = {
+export type ApiRequestBodyBase = {
   action: RequestAction
   settings?: Settings
 }
 
-export type ApiBody = ApiQuery & {
+export type ApiRequestBodyWithUser = ApiRequestBodyBase & {
   user: User["id"]
-  turn?: number  // turnCounter
 }
+
+export type ApiRequestBodyTurn = ApiRequestBodyWithUser & {
+  turn?: number
+}
+
+export type ApiRequestBodyCreateSession = ApiRequestBodyWithUser & {
+  language: Language
+}
+
+export type ApiRequestBodyRefreshSession = ApiRequestBodyWithUser & {
+  settings?: Settings
+}
+
+export type ApiRequestBodyJoin = ApiRequestBodyWithUser & {
+  code: string
+}
+
+
 
 export interface Country {
   iso: string;
