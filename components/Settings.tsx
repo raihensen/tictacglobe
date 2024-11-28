@@ -14,6 +14,7 @@ import _ from "lodash";
 import { NextRouter, useRouter } from "next/router";
 import { Dropdown } from "react-bootstrap";
 import { CircleFlag } from "react-circle-flags";
+import { useTtgStore } from '@/src/zustand';
 
 
 export function useSettings(defaultSettings: Settings): [Settings, (value: Settings) => void] {
@@ -28,26 +29,35 @@ type SettingsValues = { id: "settingsTimeLimit", value: number | false }
 // | { id: "settingsLanguage", value: Language }
 
 export const SettingsModal: React.FC<{
-  settings: Settings;
-  game: Game;
-  setSettings: (value: Settings) => void;
-  show: boolean;
-  setShow: (value: boolean) => void;
-  apiRequest: ApiHandler;
-}> = ({ settings, setSettings, game, show, setShow, apiRequest }) => {
+  settings: Settings
+  setSettings: (value: Settings) => void
+  show: boolean
+  setShow: (value: boolean) => void
+  apiRequest: ApiHandler
+}> = ({ settings, setSettings, show, setShow, apiRequest }) => {
   const { t, i18n } = useTranslation()
+  const session = useTtgStore.use.session()
+  const user = useTtgStore.use.user()
 
   // const showSettings = () => setShowSettings(true)
 
   const updateSettings = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement> | { target: SettingsValues }) => {
+    if (!session || !user) return false
     const newSettings = assignSettings(settings, e)
     console.log(`New settings: ${newSettings}`)
-
-    apiRequest(`api/game/${game.id}/refresh`, {
-      action: "RefreshSession",
-      settings: newSettings
-      // ...settingsToQuery(newSettings)
+    fetch(`/api/session/${session.id}/updateSettings`, {
+      method: "POST",
+      body: JSON.stringify({
+        settings: newSettings,
+        user: user.id,
+      }),
     })
+    // apiRequest(`/api/session/${session.id}/updateSettings`, { action: "UpdateSettings", settings: newSettings })
+    // apiRequest(`api/session/${session.id}/updateSettings`, {
+    //   action: "RefreshSession",
+    //   settings: newSettings
+    //   // ...settingsToQuery(newSettings)
+    // })
 
     setSettings(newSettings)
   }

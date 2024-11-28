@@ -2,7 +2,6 @@
 import { Game as DbGame, Session } from "@/src/db.types";
 import { GameState, PlayingMode, User } from "@prisma/client";
 import _ from "lodash";
-import { NextRouter } from "next/router";
 
 export const autoRefreshInterval = 1500  // interval [ms] for auto refresh
 
@@ -59,36 +58,6 @@ type RemoveSettingsPrefix<T> = {
 
 export type PrefixedSettings = CamelCaseWithPrefix<Settings, "settings">
 
-// export const settingsToQuery = (settings: Partial<Settings>): Partial<PrefixedSettings> => {
-//   // return settings as PrefixedSettings
-//   // return Object.fromEntries(Object.entries(settings).map(([k, v]) => [_.camelCase("settings" + k), v])) as Partial<PrefixedSettings>
-// }
-export const settingsFromQuery = (query: Query): Partial<Settings> => {
-  // return query as RemoveSettingsPrefix<FilteredObject<Query, PrefixedSettings>>
-  return Object.fromEntries((Object.entries(query).filter(([k, v]) => k.startsWith("settings")) as [keyof Settings, any][]).map(([k, v]) => [
-    k.charAt("settings".length).toLowerCase() + k.substring("settings".length + 1), v
-  ]).map(([k, v]) => [k, parseSetting(k, v)])) as Partial<Settings>
-
-}
-
-export const getApiUrl = (query: ScalarQuery, { settings, router }: {
-  settings?: Settings,
-  router?: NextRouter
-} = {}): string => {
-  if (query.action == "NewGame" || query.action == "ExistingOrNewGame") {
-    if (settings && router) {
-      query.difficulty = settings.difficulty
-      query.language = query.language ?? (router.locale ?? defaultLanguage) as Language
-    }
-  }
-
-  const search = Object.entries(query).filter(([key, val]) => val != undefined).map(([key, val]) => `${key}=${encodeURIComponent(val)}`).join("&")
-  const url = "/api/game?" + search
-  return url
-}
-
-
-
 export enum Language {
   German = "de",
   English = "en"
@@ -108,7 +77,8 @@ export type RequestAction = "ExistingOrNewGame" |
   "InitSessionRandom" |
   "RefreshSession" |
   "JoinSession" |
-  "InitSessionOffline"
+  "InitSessionOffline" |
+  "UpdateSettings"
 
 export function isIngameAction(action: RequestAction) {
   return action == "MakeGuess" || action == "EndTurn" || action == "TimeElapsed" || action == "RefreshSession" || action == "EndGame"
@@ -129,25 +99,20 @@ export type ApiResponse = {
 } | {
   error: string
 }
-export type ApiHandler = (url: string, query: FrontendQuery) => any
 
-export type ScalarQuery = {
-  userIdentifier: string;
-  playingMode?: PlayingMode;
-  invitationCode?: string;
-  action: RequestAction;
-  player?: number;
-  countryId?: string;
-  pos?: string;  // coords like "0,2"
-  difficulty?: DifficultyLevel;
-  language?: Language;
-};
-export type Query = ScalarQuery & Partial<PrefixedSettings>;
-export type FrontendQuery = Omit<ScalarQuery, "userIdentifier" | "playingMode"> & { settings?: Settings }
+type EmptyApiRequestBody<A extends RequestAction> = {
+  action: A
+}
+export type ApiRequestBody = ApiRequestBodyCreateSession
+  | ApiRequestBodyTurn
+  | ApiRequestBodyRefreshSession
+  | ApiRequestBodyUpdateSettings
+  | ApiRequestBodyJoin
+  | { action: "InitSessionFriend" }
+export type ApiHandler = (url: string, req: Omit<ApiRequestBody, "user" | "turn">) => any
 
 export type ApiRequestBodyBase = {
   action: RequestAction
-  settings?: Settings
 }
 
 export type ApiRequestBodyWithUser = ApiRequestBodyBase & {
@@ -155,6 +120,7 @@ export type ApiRequestBodyWithUser = ApiRequestBodyBase & {
 }
 
 export type ApiRequestBodyTurn = ApiRequestBodyWithUser & {
+  action: "MakeGuess" | "EndTurn" | "EndGame" | "TimeElapsed" | "PlayOn" | "NewGame" | "ExistingOrNewGame"
   turn?: number
 }
 
@@ -162,15 +128,16 @@ export type ApiRequestBodyCreateSession = ApiRequestBodyWithUser & {
   language: Language
 }
 
-export type ApiRequestBodyRefreshSession = ApiRequestBodyWithUser & {
-  settings?: Settings
+export type ApiRequestBodyRefreshSession = ApiRequestBodyWithUser & { action: "RefreshSession" }
+
+export type ApiRequestBodyUpdateSettings = ApiRequestBodyWithUser & {
+  action: "UpdateSettings"
+  settings: Settings
 }
 
 export type ApiRequestBodyJoin = ApiRequestBodyWithUser & {
   code: string
 }
-
-
 
 export interface Country {
   iso: string;

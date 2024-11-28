@@ -19,8 +19,6 @@ type InitialPageProps = {
 export type PageProps = InitialPageProps & {
   // props provided by App
   isClient: boolean;
-  // userIdentifier: string | undefined;
-  // isCustomUserIdentifier: boolean;
   darkMode: boolean;
   toggleDarkMode: () => void;
   hasError: boolean;
@@ -36,9 +34,6 @@ const MyApp: React.FC<AppProps<InitialPageProps>> = ({ Component, pageProps }) =
   const isClient = useIsClient()
 
   const { user, setUser } = useTtgStore.useState.user()
-
-  // const [userIdentifier, setUserIdentifier] = useState<string | undefined>(undefined)
-  // const [isCustomUserIdentifier, setIsCustomUserIdentifier] = useState<boolean>(false)
 
   useInitEffect(() => {
     // Get userId from localStorage, and get user data from db, or create new user
@@ -94,8 +89,6 @@ const MyApp: React.FC<AppProps<InitialPageProps>> = ({ Component, pageProps }) =
           isClient={isClient}
           darkMode={darkMode}
           toggleDarkMode={toggleDarkMode}
-          // userIdentifier={userIdentifier}
-          // isCustomUserIdentifier={isCustomUserIdentifier}
           hasError={hasError}
           errorMessage={errorMessage}
           setErrorMessage={setErrorMessage}
@@ -110,16 +103,3 @@ const MyApp: React.FC<AppProps<InitialPageProps>> = ({ Component, pageProps }) =
 }
 
 export default appWithTranslation(MyApp)
-
-// userIdentifier: unique ID that is consistent across the browser (saved in localStorage)
-// const initUserIdentifier = () => {
-//   let storedUserIdentifier = localStorage.getItem('userIdentifier')
-
-//   if (!storedUserIdentifier) {
-//     console.log(`userIdentifier not found in localStorage. Generating ...`);
-//     // Generate a random user identifier
-//     storedUserIdentifier = `${Date.now() % 1000000}-${Math.random().toString(36).substring(10)}`
-//     localStorage.setItem('userIdentifier', storedUserIdentifier)
-//   }
-//   return storedUserIdentifier
-// }

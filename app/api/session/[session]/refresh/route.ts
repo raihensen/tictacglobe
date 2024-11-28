@@ -13,29 +13,7 @@ export async function POST(
 
   const {
     user: userId,
-    settings,
   } = (await req.json()) as unknown as ApiRequestBodyRefreshSession
-
-  if (settings) {
-    // Need authentication if settings are changed
-    const session = await db.session.findUnique({
-      where: { id: sessionId },
-      include: sessionIncludeCurrentGame
-    })
-    if (!session) return error("Session not found", 404)
-    if (!userId) return error("Invalid request", 400)
-    if (!session.users.map(u => u.id).includes(userId)) return error("User not part of the session", 403)
-    try {
-      await db.session.update({
-        where: { id: sessionId },
-        data: {
-          settings: JSON.stringify(settings)
-        }
-      })
-    } catch (e) {
-      return error("Invalid settings format", 400)
-    }
-  }
 
   const session = await db.session.findUnique({
     where: { id: sessionId },

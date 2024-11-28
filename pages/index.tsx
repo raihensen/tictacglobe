@@ -205,8 +205,6 @@ const IndexPage: React.FC<PageProps & IndexPageProps> = ({
       {(user && !user.name) && <>Welcome, <span className="text-muted small">{user.id}</span>!</>}
     </h1>
 
-    {/* {isCustomUserIdentifier && (<p>User: {userIdentifier}</p>)} */}
-
     {state == PageState.Init && (<>
       <div style={{ display: "flex", flexDirection: "column", width: "250px", maxWidth: "90%", alignItems: "stretch" }}>
         <Button variant="danger" size="lg" className="mb-2" onClick={() => {

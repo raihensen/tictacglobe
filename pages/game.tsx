@@ -7,7 +7,7 @@ import { useTranslation } from 'next-i18next';
 import { serverSideTranslations } from 'next-i18next/serverSideTranslations';
 import React, { useEffect, useRef, useState } from 'react';
 
-import { ApiRequestBodyTurn, ApiResponse, Category, Country, Game, ApiRequestBodyBase, Settings, autoRefreshInterval, defaultLanguage, defaultSettings, settingsChanged, PlayerColor } from "@/src/game.types";
+import { ApiRequestBodyTurn, ApiResponse, Category, Country, Game, ApiRequestBodyBase, Settings, autoRefreshInterval, defaultLanguage, defaultSettings, settingsChanged, PlayerColor, ApiRequestBodyUpdateSettings, ApiRequestBodyRefreshSession, isIngameAction, ApiRequestBody } from "@/src/game.types";
 import { GET, capitalize, getLocalStorage, readReadme, setLocalStorage, useAutoRefresh } from "@/src/util";
 var fs = require('fs').promises;
 
@@ -120,30 +120,24 @@ const GamePage: React.FC<PageProps & GamePageProps> = ({
 
   async function apiRequest(
     url: string,
-    params: ApiRequestBodyBase
+    req: Omit<ApiRequestBody, "user" | "turn">,
   ) {
-    const { action, settings: newSettings } = params
     if (!user) {
       return false
     }
     clearAutoRefresh()
 
-    if (action != "RefreshSession") {
-      setLoadingText(action == "MakeGuess" ? "Submitting guess" : "Loading")
+    if (req.action != "RefreshSession") {
+      setLoadingText(req.action == "MakeGuess" ? "Submitting guess" : "Loading")
       if (timerRef.current) {
         (timerRef.current as any).stop()
       }
     }
 
-    const reqData: ApiRequestBodyTurn = {
-      action: action,
-      user: user.id,
-    }
-    if (game) {
-      reqData.turn = game?.turnCounter
-    }
-    if (newSettings) {
-      reqData.settings = newSettings
+    const reqData = {
+      ...req,
+      turn: game?.turnCounter,
+      user: user.id
     }
     if (!url.startsWith("/")) url = "/" + url
     const res = await fetch(url, {
@@ -431,7 +425,7 @@ const GamePage: React.FC<PageProps & GamePageProps> = ({
 
     <MarkdownModal show={showGameInformation} setShow={setShowGameInformation}>{gameInformationMarkdown}</MarkdownModal>
     {game && (
-      <SettingsModal settings={settings} setSettings={setSettings} game={game} show={showSettings} setShow={setShowSettings} apiRequest={apiRequest} />
+      <SettingsModal settings={settings} setSettings={setSettings} show={showSettings} setShow={setShowSettings} apiRequest={apiRequest} />
     )}
 
     <DonationModal show={showDonationModal} setShow={setShowDonationModal} href={process.env.NEXT_PUBLIC_PAYPAL_DONATE_LINK as string} />
