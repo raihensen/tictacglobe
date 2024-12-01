@@ -17,7 +17,11 @@ CATEGORY_SOLUTION_DIFFICULTY_WEIGHTS = {
     "offset": 1.5,  # here: category difficulty
 }
 CELL_SOLUTION_DIFFICULTY_WEIGHTS = {"median": 3, "size_sqrt": -2, "min": 5}
-CELL_DIFFICULTY_WEIGHTS = {"row_col_difficulty": 1, "solution_difficulty": 1}
+CELL_DIFFICULTY_WEIGHTS = {
+    "row_col_difficulty": 1,
+    "solution_difficulty": 1,
+    "min_solution_difficulty": 2,
+}
 GAME_DIFFICULTY_WEIGHTS = {
     "avg_cell_difficulty": 3,
     "max_cell_difficulty": 1,
@@ -165,9 +169,27 @@ class DifficultyEstimator:
         cell_info["solution_difficulty"] = self.compute_solution_difficulties(
             content_difficulties, CELL_SOLUTION_DIFFICULTY_WEIGHTS
         )
+        cell_info["min_solution_difficulty"] = content_difficulties.apply(min)
         cell_info["difficulty"] = normalized_combination(
             cell_info, CELL_DIFFICULTY_WEIGHTS, scale=10
         )
+
+        # difficulty_order: "This game is harder than x% of all games."
+        cell_info["difficulty_order"] = pd.qcut(
+            cell_info["difficulty"], q=100, labels=False
+        )
+        ix_easy = (cell_info["min_solution_difficulty"] < 5) & (
+            cell_info["difficulty_order"] <= 40
+        )
+        hard_bound = cell_info[~ix_easy]["difficulty_order"].median()
+        ix_medium = ~ix_easy & (cell_info["difficulty_order"] <= hard_bound)
+        ix_hard = ~ix_easy & ~ix_medium
+
+        cell_info["level"] = 0
+        cell_info.loc[ix_easy, "level"] = DifficultyLevel.EASY
+        cell_info.loc[ix_medium, "level"] = DifficultyLevel.MEDIUM
+        cell_info.loc[ix_hard, "level"] = DifficultyLevel.HARD
+
         return cell_info
 
     @staticmethod
@@ -222,10 +244,10 @@ class DifficultyEstimator:
         )
         # difficulty_order: "This game is harder than x% of all games."
         game_info["difficulty_order"] = pd.qcut(
-            game_info["avg_cell_difficulty"], q=100, labels=False
+            game_info["difficulty"], q=100, labels=False
         )
         ix_easy = (
-            (game_info["max_cell_difficulty"] < 6)
+            (game_info["max_cell_difficulty"] < 5)
             & (game_info["num_unique"] <= 2)
             & (game_info["difficulty_order"] <= 40)
         )
