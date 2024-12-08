@@ -175,7 +175,8 @@ const GamePage: React.FC<PageProps & GamePageProps> = ({
     // })
 
     if (data.session.playingMode == PlayingMode.Online) {
-      const hasHadTurn = userIndex == game?.turn
+      // const hasHadTurn = userIndex == game?.turn
+      const hasHadTurn = hasTurn
       const willHaveTurn = userIndex == data.game.turn
       console.log({ hasHadTurn, willHaveTurn })
 
@@ -378,7 +379,7 @@ const GamePage: React.FC<PageProps & GamePageProps> = ({
               </div>
             </div>
             {game.setup.cols.map((col, j) => (
-              <TableHeading key={j} orient="col" active={activeField[1] == j} setActive={(active: boolean) => {
+              <TableHeading key={j} orient="col" active={activeField[1] == j} setActive={active => {
                 if (!isSearching) {
                   setActiveField(field => active ? [field[0], j] : [-1, -1])
                 }
@@ -387,7 +388,7 @@ const GamePage: React.FC<PageProps & GamePageProps> = ({
           </div>
           {game.setup.solutions.map((row: string[][], i: number) => (
             <div className="tableRow" key={i}>
-              <TableHeading key={i} orient="row" active={activeField[0] == i} setActive={(active: boolean) => {
+              <TableHeading key={i} orient="row" active={activeField[0] == i} setActive={active => {
                 if (!isSearching) {
                   setActiveField(field => active ? [i, field[1]] : [-1, -1])
                 }

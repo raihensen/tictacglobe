@@ -1,6 +1,6 @@
 
 import { ApiHandler, CategoryValue, Country, FieldSettings, Game } from "@/src/game.types";
-import { ReactNode, forwardRef, useEffect, useId, useMemo, useState } from 'react';
+import { ReactNode, forwardRef, memo, useEffect, useId, useMemo, useState } from 'react';
 import styled from "styled-components";
 
 import { MarkingBackground, TableCellInner } from "@/components/styles";
@@ -16,11 +16,8 @@ import { FaMountain } from "react-icons/fa6";
 import CountryAutoComplete from "./Autocomplete";
 import { ContinentIcon, getCategoryInfo, translateCategory } from "./TableHeading";
 
-enum FieldMode {
-  INITIAL = 0,
-  SEARCH = 1,
-  FILLED = 2
-}
+type FieldMode = "initial" | "search" | "filled"
+
 type FieldState = {
   guess: Country | null;
   // exampleSolution: Country;
@@ -29,7 +26,18 @@ type FieldState = {
   mode: FieldMode;
 }
 
-const Field = ({ pos, setActive, setIsSearching, game, row, col, apiRequest, canControlGame, notifyDecided, settings }: {
+const Field = memo(({
+  pos,
+  setActive,
+  setIsSearching,
+  game,
+  row,
+  col,
+  apiRequest,
+  canControlGame,
+  notifyDecided,
+  settings
+}: {
   pos: number[],
   active: boolean,
   setActive: (active: boolean) => void,
@@ -56,7 +64,7 @@ const Field = ({ pos, setActive, setIsSearching, game, row, col, apiRequest, can
     // exampleSolution: randomChoice(solutions),
     markedBy: game.marking[i][j] ?? -1,
     isWinning: game.winCoords !== null && game.winCoords.some(([x1, y1]) => x1 == x && y1 == y),
-    mode: (countries.find(c => c.iso == game.guesses[i][j]) || game.state == GameState.Ended) ? FieldMode.FILLED : FieldMode.INITIAL
+    mode: (countries.find(c => c.iso == game.guesses[i][j]) || game.state == GameState.Ended) ? "filled" : "initial"
   } as FieldState)
 
   const getCountry = (game: Game, fieldState: FieldState) => {
@@ -88,7 +96,7 @@ const Field = ({ pos, setActive, setIsSearching, game, row, col, apiRequest, can
     }))
   }
   useEffect(() => {
-    if (fieldState.mode == FieldMode.SEARCH) {
+    if (fieldState.mode == "search") {
       setActive(true)
       setIsSearching(true)
     }
@@ -120,7 +128,7 @@ const Field = ({ pos, setActive, setIsSearching, game, row, col, apiRequest, can
       style={canShowFieldInfo ? { cursor: "pointer" } : undefined}
     >
       {/* <span>{mode}</span> */}
-      {fieldState.mode == FieldMode.INITIAL && <>
+      {fieldState.mode == "initial" && <>
         {/* Field is still free */}
         {!notifyDecided && <>
           {canControlGame && <><div className="field-center-50">
@@ -129,7 +137,7 @@ const Field = ({ pos, setActive, setIsSearching, game, row, col, apiRequest, can
               style={{ cursor: "pointer", opacity: .5 }}
               color="var(--bs-secondary)"
               onClick={() => {
-                setMode(FieldMode.SEARCH)
+                setMode("search")
               }}
             />
           </div></>}
@@ -143,7 +151,7 @@ const Field = ({ pos, setActive, setIsSearching, game, row, col, apiRequest, can
           />
         )}
       </>}
-      {(fieldState.mode == FieldMode.SEARCH && canControlGame) && (
+      {(fieldState.mode == "search" && canControlGame) && (
         <>
           <div className="field-flex">
             <div style={{ width: "100%" }}>
@@ -151,7 +159,7 @@ const Field = ({ pos, setActive, setIsSearching, game, row, col, apiRequest, can
                 makeGuess={makeGuess}
                 onBlur={() => {
                   setIsSearching(false)
-                  setMode(FieldMode.INITIAL)
+                  setMode("initial")
                 }}
               />
             </div>
@@ -159,7 +167,7 @@ const Field = ({ pos, setActive, setIsSearching, game, row, col, apiRequest, can
           {settings.showNumSolutionsHint && <NumSolutions game={game} fieldState={fieldState} settings={settings} solutions={solutions} alternativeSolutions={alternativeSolutions} />}
         </>
       )}
-      {(fieldState.mode == FieldMode.FILLED && getCountry(game, fieldState)) && (
+      {(fieldState.mode == "filled" && getCountry(game, fieldState)) && (
         <>
           <MarkingBackground
             $color={[0, 1].includes(fieldState.markedBy) ? game.getPlayerColor(fieldState.markedBy) : undefined}
@@ -277,7 +285,11 @@ const Field = ({ pos, setActive, setIsSearching, game, row, col, apiRequest, can
     </Modal>
   </>)
 
-}
+}, (prev, next) => {
+  const { apiRequest, setActive, setIsSearching, ...prevRest } = prev
+  const { apiRequest: _apiRequest, setActive: _setActive, setIsSearching: _setIsSearching, ...nextRest } = next
+  return _.isEqual(prevRest, nextRest)
+})
 
 export default Field;
 
@@ -353,7 +365,7 @@ const NumSolutions: React.FC<{
           <NumSolutionsBadge bg={solutions.length == 1 ? "danger" : "secondary"}>{badgeContent}</NumSolutionsBadge>
         </OverlayTrigger>
       )}
-      {(!game.isDecided() && ((fieldState.mode == FieldMode.FILLED && settings.showNumSolutions) || (fieldState.mode != FieldMode.FILLED && settings.showNumSolutionsHint))) && (<>
+      {(!game.isDecided() && ((fieldState.mode == "filled" && settings.showNumSolutions) || (fieldState.mode != "filled" && settings.showNumSolutionsHint))) && (<>
         {alternativeSolutions.length != 0 && (
           <OverlayTrigger placement="top" overlay={tooltipInfo}>
             <NumSolutionsBadge bg="secondary">{badgeContent}</NumSolutionsBadge>
