@@ -49,7 +49,7 @@ model Game {
   markings           Marking[]
   winner             Int?
   turnCounter        Int       @default(0)
-  turnStartTimestamp DateTime  @default(now())
+  turnStartTimestamp DateTime?
   createdAt          DateTime  @default(now())
   updatedAt          DateTime  @default(now())
   finishedAt         DateTime?

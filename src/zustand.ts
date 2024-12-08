@@ -12,6 +12,7 @@ export type State = {
   game: Game | null
   countries: Country[] | null
   categories: Category[] | null
+  latency: number
 
 } & PageState
 
@@ -26,6 +27,7 @@ const useTtgStoreBase = create<Store>((set) => withSetters<State, Action>(set, {
   game: null,
   countries: null,
   categories: null,
+  latency: 20,
   ...initialPageState,
 }))
 

@@ -1,6 +1,6 @@
 
 import { useAutoRefresh } from '@/src/util'
-import { forwardRef, useEffect, useImperativeHandle, useState } from 'react'
+import { forwardRef, useCallback, useEffect, useImperativeHandle, useState } from 'react'
 import styled from "styled-components"
 
 
@@ -19,10 +19,10 @@ const RemoteTimerComponent = forwardRef(({
   onElapsed,
   className
 }: RemoteTimerProps, ref) => {
-  
+
   const [time, setTime] = useState<number>(initialTime)
   const [running, setRunning] = useState<boolean>(true)
-  
+
   const timeStep = 200
   const dangerThreshold = 5000
 
@@ -38,14 +38,14 @@ const RemoteTimerComponent = forwardRef(({
     }
   }))
 
-  const refresh = () => {
+  const refresh = useCallback(() => {
     if (running) {
       setTime(initialTime - (Date.now() - initialTimestamp))
       scheduleAutoRefresh()
     } else {
       clearAutoRefresh()
     }
-  }
+  }, [running, initialTime, initialTimestamp])
 
   const { scheduleAutoRefresh, clearAutoRefresh } = useAutoRefresh(() => {
     refresh()
@@ -58,7 +58,7 @@ const RemoteTimerComponent = forwardRef(({
       clearAutoRefresh()
     }
   }, [initialTimestamp, initialTime, running])
-  
+
   useEffect(() => {
     if (time <= 0) {
 

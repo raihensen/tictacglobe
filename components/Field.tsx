@@ -42,7 +42,7 @@ const Field = ({ pos, setActive, setIsSearching, game, row, col, apiRequest, can
   notifyDecided: boolean,
   settings: FieldSettings,
 }) => {
-  const { t, i18n } = useTranslation('common')
+  const { t, i18n } = useTranslation("common")
   const [i, j] = pos
   const { x, y } = game.getXY(i, j)
   const countries = useTtgStore.use.countries() ?? []

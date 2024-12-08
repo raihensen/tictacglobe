@@ -1,8 +1,8 @@
-import { error, gameIncludeIngameData, sessionIncludeCurrentGame, switchTurnsAndUpdateState } from "@/src/api.utils";
+import { error, gameIncludeIngameData, sessionIncludeCurrentGame } from "@/src/api.utils";
 import { getCountryData } from "@/src/backend.util";
 import { db } from "@/src/db";
-import { Session } from "@/src/db.types";
-import { ApiRequestBodyTurn, Game } from "@/src/game.types";
+import { Game as DbGame, Session } from "@/src/db.types";
+import { ApiRequestBodyTurn, Game, RequestAction } from "@/src/game.types";
 import { GameState } from "@prisma/client";
 import _ from "lodash";
 import { NextRequest, NextResponse } from "next/server";
@@ -11,6 +11,7 @@ export async function POST(
   req: NextRequest,
   { params }: { params: Promise<{ game: string }> }
 ) {
+  const serverReceivedAt = Date.now()
   const gameId = Number.parseInt((await params).game)
   if (!gameId) return error("Invalid request: No game ID specified")
 
@@ -18,6 +19,9 @@ export async function POST(
     action,
     user: userId,
     turn: turnCounter,
+    turnStartTimestamp: clientTurnStartTimestamp,
+    clientSentAt,
+    latency,
   } = (await req.json()) as unknown as ApiRequestBodyTurn
 
   if (!action) return error("Invalid request: No action specified")
@@ -25,6 +29,14 @@ export async function POST(
 
   const searchParams = req.nextUrl.searchParams
   if (!turnCounter && turnCounter !== 0) return error("Invalid request: No turn counter specified")
+
+  console.log({
+    latency,
+    serverReceivedAt,
+    clientSentAt,
+    clientToServerDelay: serverReceivedAt - clientSentAt
+  })
+  const clientTimeToServerTime = (t: number) => t + (serverReceivedAt - clientSentAt) - latency
 
   let game = await db.game.findUnique({
     where: {
@@ -63,12 +75,20 @@ export async function POST(
       if (game.session.users[game.turn].id != userId) return error("It's not your turn", 403)
     const playerIndex = game.turn
 
-    const guess = searchParams.get("guess")
-    if (!guess) return error("No guess specified", 400)
+    if (action == "StartTimer") {
+      if (!clientTurnStartTimestamp) return error("No turn start timestamp specified", 400)
+      await db.game.update({
+        where: {
+          id: game.id
+        },
+        data: {
+          turnStartTimestamp: new Date(clientTimeToServerTime(clientTurnStartTimestamp))
+        }
+      })
+    } else if (action == "MakeGuess") {
+      const guess = searchParams.get("guess")
+      if (!guess) return error("No guess specified", 400)
 
-    if (guess == "SKIP") {
-
-    } else {
 
       const countryId = guess
 
@@ -136,6 +156,12 @@ export async function POST(
         console.log(`Wrong guess ((${x}|${y}), ${country.name})`)
       }
 
+    } else {
+      if (action == "EndTurn" || action == "TimeElapsed") {
+
+      } else {
+        return error(`Invalid action "${action}"`, 400)
+      }
     }
 
   }
@@ -150,6 +176,9 @@ export async function POST(
   return NextResponse.json({
     session: session,
     game: game,
+    serverReceivedAt,  // TODO remove
+    serverRespondedAt: Date.now(),  // TODO remove
+    serverProcessingTime: Date.now() - serverReceivedAt,
     success: true
   })
 
@@ -256,3 +285,34 @@ async function checkWinner(game: Game) {
   return null
 }
 
+export async function switchTurnsAndUpdateState(
+  game: DbGame,
+  action: RequestAction,
+  state: GameState,
+  changeUpdatedAt: boolean
+) {
+  const currentTimestamp = new Date()
+  const switchTurns = state != GameState.Finished && state != GameState.Ended && (["MakeGuess", "EndTurn", "TimeElapsed"].includes(action))
+  const updateTurnStartTimestamp = false
+  // const updateTurnStartTimestamp = switchTurns || action == "PlayOn"
+  // TODO client should set turnStartTimestamp. Need extra route for that
+
+  return db.game.update({
+    where: {
+      id: game.id
+    },
+    data: {
+      ...(switchTurns ? {
+        turn: 1 - game.turn,
+        turnCounter: {
+          increment: 1
+        },
+      } : {}),
+      // turnStartTimestamp: updateTurnStartTimestamp ? currentTimestamp : undefined,
+      turnStartTimestamp: null,
+      updatedAt: changeUpdatedAt ? currentTimestamp : undefined,
+      state: state
+    },
+    include: gameIncludeIngameData
+  })
+}

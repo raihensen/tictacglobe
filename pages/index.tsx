@@ -196,13 +196,14 @@ const IndexPage: React.FC<PageProps & IndexPageProps> = ({
     )
     return true
   }
+  const dev = process.env.NODE_ENV === "development"
 
   return (<>
 
     <h1>
-      {!user && <>Welcome!</>}
+      {(!user || (!user.name && !dev)) && <>Welcome!</>}
       {!!user?.name && <>Welcome, {user.name}!</>}
-      {(user && !user.name) && <>Welcome, <span className="text-muted small">{user.id}</span>!</>}
+      {(user && !user.name && dev) && <>Welcome, <span className="text-muted small">{user.id}</span>!</>}
     </h1>
 
     {state == PageState.Init && (<>

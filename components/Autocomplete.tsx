@@ -21,7 +21,7 @@ type AutoCompleteItem = {
 }
 
 const CountryAutoComplete = ({ makeGuess, onBlur }: CountryAutoCompleteProps) => {
-  const { t, i18n } = useTranslation('common')
+  const { t, i18n } = useTranslation("common")
   const countries = useTtgStore.use.countries() ?? []
 
   const [searchValue, setSearchValue] = useState("")

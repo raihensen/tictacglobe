@@ -67,6 +67,7 @@ export const defaultLanguage = Language.English
 
 export type RequestAction = "ExistingOrNewGame" |
   "NewGame" |
+  "StartTimer" |
   "MakeGuess" |
   "EndTurn" |
   "EndGame" |
@@ -81,7 +82,7 @@ export type RequestAction = "ExistingOrNewGame" |
   "UpdateSettings"
 
 export function isIngameAction(action: RequestAction) {
-  return action == "MakeGuess" || action == "EndTurn" || action == "TimeElapsed" || action == "RefreshSession" || action == "EndGame"
+  return action == "StartTimer" || action == "MakeGuess" || action == "EndTurn" || action == "TimeElapsed" || action == "RefreshSession" || action == "EndGame"
 }
 export function isGameInitAction(action: RequestAction) {
   return action == "NewGame" || action == "ExistingOrNewGame"
@@ -113,6 +114,8 @@ export type ApiHandler = (url: string, req: Omit<ApiRequestBody, "user" | "turn"
 
 export type ApiRequestBodyBase = {
   action: RequestAction
+  clientSentAt: number
+  latency: number
 }
 
 export type ApiRequestBodyWithUser = ApiRequestBodyBase & {
@@ -120,15 +123,19 @@ export type ApiRequestBodyWithUser = ApiRequestBodyBase & {
 }
 
 export type ApiRequestBodyTurn = ApiRequestBodyWithUser & {
-  action: "MakeGuess" | "EndTurn" | "EndGame" | "TimeElapsed" | "PlayOn" | "NewGame" | "ExistingOrNewGame"
+  action: "StartTimer" | "MakeGuess" | "EndTurn" | "EndGame" | "TimeElapsed" | "PlayOn" | "NewGame" | "ExistingOrNewGame"
   turn?: number
+  turnStartTimestamp?: number
 }
 
 export type ApiRequestBodyCreateSession = ApiRequestBodyWithUser & {
   language: Language
 }
 
-export type ApiRequestBodyRefreshSession = ApiRequestBodyWithUser & { action: "RefreshSession" }
+export type ApiRequestBodyRefreshSession = ApiRequestBodyWithUser & {
+  action: "RefreshSession"
+  // clientSentAt: number
+}
 
 export type ApiRequestBodyUpdateSettings = ApiRequestBodyWithUser & {
   action: "UpdateSettings"
@@ -224,7 +231,7 @@ export class Game {
   winCoords: number[][] | null;  // coords of the winning formation
   winner: (PlayerIndex | NoPlayer) | null;
   turnCounter: number;
-  turnStartTimestamp: Date
+  turnStartTimestamp: Date | null
   createdAt: Date
   finishedAt: Date | null
 
@@ -252,7 +259,7 @@ export class Game {
     this.winner = game.winner as (PlayerIndex | NoPlayer) | null
     this.turnCounter = game.turnCounter
 
-    this.turnStartTimestamp = new Date(game.turnStartTimestamp)
+    this.turnStartTimestamp = game.turnStartTimestamp ? new Date(game.turnStartTimestamp) : null
     this.createdAt = new Date(game.createdAt)
     this.finishedAt = game.finishedAt ? new Date(game.finishedAt) : null
   }

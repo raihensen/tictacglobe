@@ -1,11 +1,9 @@
 
 import { db } from "@/src/db";
-import { GameState, Prisma, Session, User } from "@prisma/client";
+import { Prisma, Session, User } from "@prisma/client";
 import { DefaultArgs } from "@prisma/client/runtime/library";
 import _ from "lodash";
 import { NextResponse } from "next/server";
-import { Game } from "./db.types";
-import { RequestAction } from "./game.types";
 
 
 export function error(msg: string, status: number = 400) {
@@ -15,29 +13,6 @@ export function error(msg: string, status: number = 400) {
     success: false
   }, {
     status: status
-  })
-}
-
-export async function switchTurnsAndUpdateState(game: Game, action: RequestAction, state: GameState, changeUpdatedAt: boolean) {
-  const currentTimestamp = new Date()
-  const switchTurns = state != GameState.Finished && state != GameState.Ended && action != "PlayOn" && action != "EndGame"
-  const updateTurnStartTimestamp = switchTurns || action == "PlayOn"
-  return db.game.update({
-    where: {
-      id: game.id
-    },
-    data: {
-      ...(switchTurns ? {
-        turn: 1 - game.turn,
-        turnCounter: {
-          increment: 1
-        },
-      } : {}),
-      turnStartTimestamp: updateTurnStartTimestamp ? currentTimestamp : undefined,
-      updatedAt: changeUpdatedAt ? currentTimestamp : undefined,
-      state: state
-    },
-    include: gameIncludeIngameData
   })
 }
 

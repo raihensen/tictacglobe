@@ -49,7 +49,7 @@ const CategoryBadgeSimple = ({ label, labelFormatter, icon, ...props }: React.Co
   labelFormatter?: (s: string) => string,
   icon: JSX.Element
 }) => {
-  const { t } = useTranslation('common')
+  const { t } = useTranslation("common")
   return (
     <CategoryBadge {...props}>
       {icon}
@@ -79,7 +79,7 @@ const CategoryBadgeLetters = ({ letter, isCapital, isStartsWith, isEndsWith, ...
   isStartsWith: boolean,
   isEndsWith: boolean
 }) => {
-  const { t } = useTranslation('common')
+  const { t } = useTranslation("common")
   return (
     <CategoryBadge {...props}>
       {isCapital && <FaBuildingColumns />}
@@ -178,7 +178,7 @@ export const TableHeading = ({ category, value, orient, active, setActive }: Cat
   setActive: (active: boolean) => void
 }) => {
 
-  const { t } = useTranslation('common')
+  const { t } = useTranslation("common")
   let { description, badge } = getCategoryInfo({
     category: category,
     value: value,
