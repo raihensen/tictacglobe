@@ -285,7 +285,7 @@ async function checkWinner(game: Game) {
   return null
 }
 
-export async function switchTurnsAndUpdateState(
+async function switchTurnsAndUpdateState(
   game: DbGame,
   action: RequestAction,
   state: GameState,
