@@ -112,10 +112,27 @@ const Field = memo(({
     return correct
   }
 
+  const dev = process.env.NODE_ENV == "development"
   const relevantColumns = [row, col].map(({ category: key }) => categories.find(cat => cat.key == key)?.columnDependencies || []).flat(1)
   const isRelevant = (key: string) => relevantColumns.includes(key)
   const isRelevantAndHasAltValue = (key: string, country: Country) => isRelevant(key) && key in country.alternativeValues
   const getAllValues = (key: string, country: Country) => [country[key], ..._.get(country.alternativeValues, key, [])]
+
+  const orderSolutions = (countries: Country[]) => {
+    // First create orderings of countries based on relevant column data
+    const orders: string[][] = []  // lists of ISO-based country orderings
+    if (isRelevant("maxElev")) orders.push(_.orderBy(countries, "maxElev", "desc").map(c => c.iso))
+    if (isRelevant("population")) orders.push(_.orderBy(countries, "population", "desc").map(c => c.iso))
+    if (isRelevant("areaKm2")) orders.push(_.orderBy(countries, "areaKm2", "desc").map(c => c.iso))
+
+    // Combine these orderings by getting minimum and maximum index across all levels
+    const sorted = _.orderBy(countries, (c, i) => [
+      _.min(orders.map(order => order.indexOf(c.iso))) ?? 0,
+      _.max(orders.map(order => order.indexOf(c.iso))) ?? 0,
+      c.name
+    ], ["asc", "asc", "asc"])
+    return sorted
+  }
 
   const tooltipCountryInfoIds = [useId(), useId()]
   const canShowFieldInfo = game.hasEnded()
@@ -230,13 +247,17 @@ const Field = memo(({
           <li>{t(...(translateCategory(categoryDescriptions[0], t) ?? [""]))}</li>
           <li>{t(...(translateCategory(categoryDescriptions[1], t) ?? [""]))}</li>
         </ul>
+        {dev && (<>
+          <h5>Relevant Columns</h5>
+          <p>{relevantColumns.join(", ")}</p>
+        </>)}
         {[
           { sectionTitle: "fieldInfo.solutions", countries: solutions },
           { sectionTitle: "fieldInfo.alternativeSolutions", countries: alternativeSolutions, alternative: true }
         ].map(({ sectionTitle, countries, alternative = false }, k) => (<>
           {countries.length != 0 && (<div key={k}>
             <h5 key={`${k}a`}>{t(sectionTitle)}</h5>
-            <ColumnList key={`${k}b`} contents={_.sortBy(countries, country => country.name).map((country, i) => (
+            <ColumnList key={`${k}b`} contents={orderSolutions(countries).map((country, i) => (
               <SolutionInfoItem key={i}>
                 <CountryFlag country={country} size={25} />
                 <span>{country.name}</span>
@@ -304,9 +325,13 @@ const SolutionInfoItem = styled.div`
   }
   span {
     line-height: 1rem;
-    &.continent {
+    &.continent, &.maxElev {
       display: flex;
       gap: .125rem;
+      align-items: center;
+    }
+    svg {
+      flex-shrink: 0;
     }
   }
 `
@@ -315,7 +340,7 @@ export const ColumnList: React.FC<Omit<RowProps, "children"> & { contents: React
   let chunks: ReactNode[] = [], colProps: ColProps = {}
 
   if (contents.length >= 8) {
-    chunks = _.chunk(contents, contents.length / 2)
+    chunks = _.chunk(contents, Math.ceil(contents.length / 2))
     colProps = { md: 6 }
   } else {
     chunks = [contents]
