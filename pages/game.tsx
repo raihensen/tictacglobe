@@ -5,10 +5,10 @@ import Button from "react-bootstrap/Button";
 import 'bootstrap/dist/css/bootstrap.min.css';
 import { useTranslation } from 'next-i18next';
 import { serverSideTranslations } from 'next-i18next/serverSideTranslations';
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 
-import { ApiRequestBodyTurn, ApiResponse, Category, Country, Game, ApiRequestBodyBase, Settings, autoRefreshInterval, defaultLanguage, defaultSettings, settingsChanged, PlayerColor, ApiRequestBodyUpdateSettings, ApiRequestBodyRefreshSession, isIngameAction, ApiRequestBody } from "@/src/game.types";
-import { GET, capitalize, getLocalStorage, readReadme, setLocalStorage, useAutoRefresh } from "@/src/util";
+import { ApiRequestBody, ApiRequestBodyTurn, ApiResponse, Category, Country, Game, PlayerColor, Settings, autoRefreshInterval, defaultLanguage, defaultSettings, settingsChanged } from "@/src/game.types";
+import { GET, capitalize, readReadme, useAutoRefresh } from "@/src/util";
 var fs = require('fs').promises;
 
 import Field from "@/components/Field";
@@ -23,13 +23,13 @@ import { ButtonToolbar, GameTable, IconButton, PlayerBadge } from "@/components/
 import { Session } from "@/src/db.types";
 import { useTtgStore } from "@/src/zustand";
 import { GameState, PlayingMode, User } from "@prisma/client";
+import _ from 'lodash';
 import type { GetServerSideProps } from 'next';
 import { useRouter } from "next/router";
 import { FaArrowsRotate, FaEllipsis, FaPersonCircleXmark, FaXmark } from "react-icons/fa6";
 import styled from "styled-components";
 import useSWR from "swr";
 import { PageProps } from "./_app";
-import _ from 'lodash';
 
 const GamePage: React.FC<PageProps & GamePageProps> = ({
   isClient,
@@ -43,6 +43,7 @@ const GamePage: React.FC<PageProps & GamePageProps> = ({
   const { session, setSession } = useTtgStore.useState.session()
   const { game, setGame } = useTtgStore.useState.game()
   const { latency, setLatency } = useTtgStore.useState.latency()
+  const { clientTimeOffset, setClientTimeOffset } = useTtgStore.useState.clientTimeOffset()
 
   const dev = process.env.NODE_ENV === "development"
 
@@ -53,7 +54,7 @@ const GamePage: React.FC<PageProps & GamePageProps> = ({
 
     async function loadGame() {
       if (!user) return
-      console.log(`First client-side init (GamePage) - userId ${user.id}`)
+      console.log(`First client-side init (GamePage) - userId ${user.id}, session ${session?.id}`)
       apiRequest(`api/user/${user.id}/game`, { action: "ExistingOrNewGame" })
     }
   }, [user, game, session])
@@ -77,11 +78,34 @@ const GamePage: React.FC<PageProps & GamePageProps> = ({
   // const [notifyDecided, setNotifyDecided] = useState<boolean>(false)
   const notifyDecided = game?.state == GameState.Decided
 
-  const userIndex = session?.users.findIndex(u => u.id == user?.id)
+  const getUserIndex = (user: User | null) => user ? session?.users.findIndex(u => u.id == user?.id) : undefined
+  const userIndex = getUserIndex(user)
   const isSessionAdmin = userIndex === 0 || session?.playingMode == PlayingMode.Offline
   const hasTurn = userIndex == game?.turn || session?.playingMode == PlayingMode.Offline
   // const [hasTurn, setHasTurn] = useState<boolean>(session?.playingMode == PlayingMode.Offline)
   const [turnStartTimestamp, setTurnStartTimestamp] = useState<number | null>(null)
+
+  const {
+    data: sessionData,
+    mutate: mutateSession,
+    error: sessionError,
+    isLoading: isLoadingSession
+  } = useSWR<{
+    session: Session
+    game: any
+    countries: Country[]
+  }>(() => session ? `/api/session/${session?.id}` : null, GET, { refreshInterval: 2000 })
+  useEffect(() => {
+    console.log({ sessionData, isLoadingSession })
+    // setCategories(categoriesData ?? null)
+    if (!sessionData) return
+    setSession(sessionData.session ?? null)
+    if (sessionData.game) {
+      const newGameInstance = new Game(sessionData.game, sessionData.session)
+      setGame(newGameInstance)
+    }
+    setCountries(sessionData.countries ?? [])
+  }, [sessionData])
 
   // TODO countries SWR?
   const { countries, setCountries } = useTtgStore.useState.countries()
@@ -96,25 +120,42 @@ const GamePage: React.FC<PageProps & GamePageProps> = ({
     setCategories(categoriesData ?? null)
   }, [categoriesData])
 
-  const { scheduleAutoRefresh, clearAutoRefresh } = useAutoRefresh((session: Session) => {
+  const { scheduleAutoRefresh, clearAutoRefresh } = useAutoRefresh(() => {
     if (!session) return
-    refresh(session)
+    console.log(`Auto-refreshing disabled, using SWR now!`)
+    // refresh()
   }, autoRefreshInterval)
 
-  const refresh = (session: Session) => {
+  useEffect(() => {
+    if (!game) return
+    if (hasTurn && settings.timeLimit && !turnStartTimestamp) {
+      setTurnStartTimestamp(Date.now())
+      apiRequest(`api/game/${game.id}/turn`, {
+        action: "StartTimer",
+        turn: game.turnCounter,
+        turnStartTimestamp: Date.now(),
+      } as ApiRequestBodyTurn)
+    }
+    if (!hasTurn && settings.timeLimit && game.turnStartTimestamp) {
+      setTurnStartTimestamp(game.turnStartTimestamp.getTime() + clientTimeOffset)
+    }
+  }, [game, session, hasTurn, settings, clientTimeOffset])
+
+  const refresh = useCallback(() => {
+    if (!session) {
+      console.error(`session is null during refresh`)
+      return
+    }
     apiRequest(`api/session/${session.id}/refresh`, {
       action: "RefreshSession",
     })
-  }
+  }, [session])
 
-  useEffect(() => {
-    console.log(`settings after update: ${JSON.stringify(settings)}`)
-  }, [settings])
-
-  async function apiRequest(
+  // const apiRequest = useCallback(async (
+  const apiRequest = useCallback(async (
     url: string,
     req: Omit<ApiRequestBody, "user" | "turn">,
-  ) {
+  ) => {
     if (!user) {
       return false
     }
@@ -126,13 +167,13 @@ const GamePage: React.FC<PageProps & GamePageProps> = ({
         (timerRef.current as any).stop()
       }
     }
-    // const latency = 20  // TODO measure latency
+
     const reqData = {
-      ...req,
       turn: game?.turnCounter,
       user: user.id,
       clientSentAt: Date.now(),
-      latency
+      latency,
+      ...req,
     }
     if (!url.startsWith("/")) url = "/" + url
     const res = await fetch(url, {
@@ -141,15 +182,20 @@ const GamePage: React.FC<PageProps & GamePageProps> = ({
     })
     const clientReceivedAt = Date.now()
     const data = await res.json() as ApiResponse
+    const serverReceivedAt = _.get(data, "serverReceivedAt", 0) as number
     const serverProcessingTime = _.get(data, "serverProcessingTime", 0)
     const latencyEstimate = (clientReceivedAt - reqData.clientSentAt - serverProcessingTime) / 2
+    setLatency(lat0 => Math.round(.75 * lat0 + .25 * latencyEstimate))  // smoothen latency estimation
+    if (serverReceivedAt) {
+      const clientTimeOffsetEstimate = serverReceivedAt - reqData.clientSentAt - latencyEstimate
+      setClientTimeOffset(dt0 => Math.round(.75 * dt0 + .25 * clientTimeOffsetEstimate))  // smoothen client time offset estimation
+    }
     // console.log({
     //   clientReceivedAt,
     //   clientSentAt: reqData.clientSentAt,
     //   serverProcessingTime,
     //   latencyEstimate,
     // })
-    setLatency(lat0 => Math.round(.75 * lat0 + .25 * latencyEstimate))  // smoothen latency estimation
 
     if ("error" in data || !data.session || !data.game) {
       setErrorMessage("error" in data ? data.error : "Error loading the game.")
@@ -161,9 +207,6 @@ const GamePage: React.FC<PageProps & GamePageProps> = ({
 
     const newGameInstance = new Game(data.game, data.session)
     const gameHadBeenDecided = game?.isDecided() ?? false
-    const gameSetup = newGameInstance.setup
-    setSession(data.session)
-    setGame(newGameInstance)
 
     // setTurnStartTimestamp(oldValue => {
     //   const newValue = newGameInstance.turnStartTimestamp?.getTime() || null
@@ -175,19 +218,11 @@ const GamePage: React.FC<PageProps & GamePageProps> = ({
     // })
 
     if (data.session.playingMode == PlayingMode.Online) {
-      // const hasHadTurn = userIndex == game?.turn
-      const hasHadTurn = hasTurn
-      const willHaveTurn = userIndex == data.game.turn
-      console.log({ hasHadTurn, willHaveTurn })
 
-      if (!hasHadTurn && willHaveTurn) {
-        setTurnStartTimestamp(Date.now())
-        apiRequest(`api/game/${game?.id}/turn`, {
-          action: "StartTimer",
-          turnStartTimestamp: Date.now(),
-        } as ApiRequestBodyTurn)
-        return
-      }
+      // const isNewTurn = game?.turnCounter != newGameInstance.turnCounter
+      // const hasHadTurn = userIndex == game?.turn
+      const willHaveTurn = userIndex == data.game.turn
+      // console.log({ wasTurn: game?.turn, willBeTurn: data.game.turn, userIndex, userIndex1: getUserIndex(user), uid: user?.id, hasHadTurn, willHaveTurn })
 
       // synchronize language
       if (router.locale != newGameInstance.language.toString()) {
@@ -199,14 +234,16 @@ const GamePage: React.FC<PageProps & GamePageProps> = ({
         (newGameInstance.isRunning() && !willHaveTurn) ||
         ((newGameInstance.hasEnded() || newGameInstance.state == GameState.Decided) && !isSessionAdmin)
       ) {
-        scheduleAutoRefresh(data.session)
+        scheduleAutoRefresh()
       }
 
     }
+    setSession(data.session)
+    setGame(newGameInstance)
 
-    if (data.countries) {
-      setCountries(data.countries)
-    }
+    // if (data.countries) {
+    //   setCountries(data.countries)
+    // }
     setSettings(settings => {
       const sessionSettings = JSON.parse(data.session.settings) as Settings
       if (settingsChanged(settings, sessionSettings)) {
@@ -225,7 +262,8 @@ const GamePage: React.FC<PageProps & GamePageProps> = ({
 
     return true
 
-  }
+    // }
+  }, [userIndex, game, session, hasTurn, user, latency])
 
   function getPlayerColor(player: number | null): PlayerColor | null {
     if (player === null) return null
@@ -266,7 +304,7 @@ const GamePage: React.FC<PageProps & GamePageProps> = ({
 
   return (<>
     <Header
-      isGame={true} game={game}
+      isGame={true}
       darkMode={darkMode} toggleDarkMode={toggleDarkMode}
       triggerShowGameInformation={() => setShowGameInformation(true)}
       triggerShowSettings={triggerShowSettings}
@@ -274,21 +312,27 @@ const GamePage: React.FC<PageProps & GamePageProps> = ({
       apiRequest={apiRequest}
       isSessionAdmin={isSessionAdmin}
     />
+    <p>Session {sessionData?.session.id}</p>
     {!!session && (
       <p className="d-flex align-items-center gap-2">
         <UserAvatar user={user} color={userIndex == 0 ? session.color1 : session.color2} />
-        {/* @{userIndex} */}
+        @{userIndex}
         <SessionScore perspective={user} />
         <UserAvatar user={opponentUser} color={userIndex == 0 ? session.color2 : session.color1} />
         {dev && <span>Latency: {latency}ms</span>}
+        {dev && <span>Offset: {clientTimeOffset}ms</span>}
       </p>
     )}
     {(hasError && errorMessage) && <Alert variant="danger">Error: {errorMessage}</Alert>}
     {hasError && (<>
       <p>
         <Button variant="secondary" onClick={() => {
-          router.push("/")
-        }}>Enter new game</Button>
+          leaveSession()
+          async function leaveSession() {
+            if (session) await fetch(`/api/session/${session.id}/leave`, { method: "POST" })
+            router.push("/")
+          }
+        }}>Leave session</Button>
       </p>
     </>)}
 
@@ -366,11 +410,13 @@ const GamePage: React.FC<PageProps & GamePageProps> = ({
                       // remainingTime={game.}
                       onElapsed={() => {
                         if (hasTurn) {
-                          apiRequest(`api/game/${game?.id}/turn?guess=SKIP`, {
-                            action: "TimeElapsed",
-                          })
+                          console.log("Time elapsed!")
+                          // apiRequest(`api/game/${game?.id}/turn?guess=SKIP`, {
+                          //   action: "TimeElapsed",
+                          // })
                         } else {
-                          setTimeout(() => refresh(session), 500)
+                          console.log("Time elapsed, but it's not your turn. Need extra refresh?")
+                          // setTimeout(() => refresh(), 500)
                         }
                       }}
                     />}

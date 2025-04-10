@@ -13,6 +13,7 @@ export type State = {
   countries: Country[] | null
   categories: Category[] | null
   latency: number
+  clientTimeOffset: number
 
 } & PageState
 
@@ -28,6 +29,7 @@ const useTtgStoreBase = create<Store>((set) => withSetters<State, Action>(set, {
   countries: null,
   categories: null,
   latency: 20,
+  clientTimeOffset: 0,
   ...initialPageState,
 }))
 

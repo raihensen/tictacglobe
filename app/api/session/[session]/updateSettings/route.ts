@@ -23,6 +23,7 @@ export async function POST(
     include: sessionIncludeCurrentGame
   })
   if (!session) return error("Session not found", 404)
+  if (!session.isAlive) return error("Session has ended", 404)
   if (!userId) return error("Invalid request", 400)
   if (!session.users.map(u => u.id).includes(userId)) return error("User not part of the session", 403)
   try {
@@ -38,6 +39,7 @@ export async function POST(
   }
 
   if (!session) return error("Session not found", 404)
+  if (!session.isAlive) return error("Session has ended", 404)
 
   return NextResponse.json({
     session: session,

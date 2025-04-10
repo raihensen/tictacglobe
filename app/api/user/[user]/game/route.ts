@@ -10,7 +10,7 @@ import { NextRequest, NextResponse } from "next/server";
  */
 export async function POST(
   req: NextRequest,
-  { params }: { params: Promise<{ session: string, user: string }> }
+  { params }: { params: Promise<{ user: string }> }
 ) {
 
   // const sessionId = Number.parseInt((await params).session)
@@ -30,6 +30,7 @@ export async function POST(
   // })
   if (!session) return error("Session not found", 404)
   if (!session.users.some(u => u.id == userId)) return error("User not part of the session", 403)
+  if (!session.isAlive) return error("Session has ended", 404)
   const sessionId = session.id
 
   const searchParams = req.nextUrl.searchParams

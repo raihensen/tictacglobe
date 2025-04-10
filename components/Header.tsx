@@ -13,11 +13,11 @@ import { useRouter } from "next/router";
 import { FaBars, FaCircleInfo, FaGear, FaMoon, FaXmark } from "react-icons/fa6";
 import { useConfirmation } from './common/Confirmation';
 import ThemeSwitch from './common/ThemeSwitch';
+import { useTtgStore } from '@/src/zustand';
 
 
 const Header: React.FC<{
   isGame: boolean,
-  game?: Game | null,
   darkMode: boolean,
   toggleDarkMode: () => void,
   triggerShowGameInformation: () => void,
@@ -25,11 +25,13 @@ const Header: React.FC<{
   shareButtonProps: ShareButtonProps,
   isSessionAdmin: boolean,
   apiRequest: ApiHandler,
-}> = ({ isGame, game, darkMode, toggleDarkMode, triggerShowGameInformation, triggerShowSettings, shareButtonProps, isSessionAdmin, apiRequest }) => {
+}> = ({ isGame, darkMode, toggleDarkMode, triggerShowGameInformation, triggerShowSettings, shareButtonProps, isSessionAdmin, apiRequest }) => {
   const { t, i18n } = useTranslation("common")
   const router = useRouter()
   const confirm = useConfirmation()
 
+  const session = useTtgStore.use.session()
+  const game = useTtgStore.use.game()
   const [expanded, setExpanded] = useState<boolean>(false)
 
   return (
@@ -47,6 +49,7 @@ const Header: React.FC<{
             confirmText: t("leaveSession.action"),
             cancelText: t("cancel")
           })) {
+            if (session) await fetch(`/api/session/${session?.id}/leave`, { method: "POST" })
             router.push("/")
           }
         }}

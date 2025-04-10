@@ -158,10 +158,7 @@ export function useAutoRefresh<T extends any[]>(action: (...args: T) => void, in
     })
   }
 
-  return {
-    scheduleAutoRefresh: scheduleAutoRefresh,
-    clearAutoRefresh: clearAutoRefresh
-  }
+  return { scheduleAutoRefresh, clearAutoRefresh }
 
 }
 
@@ -181,4 +178,13 @@ export function useIsClient(): boolean {
     setIsClient(true)
   }, [])
   return isClient
+}
+
+// from https://blog.logrocket.com/accessing-previous-props-state-react-hooks/#custom-hook-with-useprevious-hook
+export function usePrevious<T>(value: T | undefined) {
+  const ref = useRef<T>()
+  useEffect(() => {
+    ref.current = value // assign the value of ref to the argument
+  }, [value]) // this code will run when the value of 'value' changes
+  return ref.current // in the end, return the current ref value.
 }

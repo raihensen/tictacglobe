@@ -23,6 +23,7 @@ export async function POST(
     include: sessionIncludeCurrentGame
   })
   if (!session) return error("Session not found", 404)
+  if (!session.isAlive) return error("Session has ended", 404)
 
   return NextResponse.json({
     session: session,

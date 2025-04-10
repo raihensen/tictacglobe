@@ -26,6 +26,7 @@ export async function POST(
 
   if (!action) return error("Invalid request: No action specified")
   if (!userId) return error("Invalid request: No user ID specified")
+  if (!latency) return error("Invalid request: No latency estimate specified")
 
   const searchParams = req.nextUrl.searchParams
   if (!turnCounter && turnCounter !== 0) return error("Invalid request: No turn counter specified")
@@ -46,7 +47,7 @@ export async function POST(
   })
 
   if (!game) return error("Game not found", 404)
-  if (game.turnCounter != turnCounter) return error("Invalid turn counter", 420)
+  if (game.turnCounter !== turnCounter) return error("Invalid turn counter", 400)
 
   let session = await db.session.findUnique({
     where: { id: game.session.id },
@@ -54,6 +55,7 @@ export async function POST(
   })
 
   if (!session) return error("Session not found", 404)
+  if (!session.isAlive) return error("Session has ended", 404)
 
   let g = new Game(game, session as unknown as Session)
   if (g.state == GameState.Finished || g.state == GameState.Ended) return error("Game has finished", 400)

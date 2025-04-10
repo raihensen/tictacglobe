@@ -1,6 +1,7 @@
 
 import { useAutoRefresh } from '@/src/util'
-import { forwardRef, useCallback, useEffect, useImperativeHandle, useState } from 'react'
+import _ from 'lodash'
+import { forwardRef, memo, useCallback, useEffect, useImperativeHandle, useState } from 'react'
 import styled from "styled-components"
 
 
@@ -8,23 +9,24 @@ type BaseTimerProps = {
   onElapsed: () => any,
   className?: string,
   initialTime: number,
+  tickDuration?: number
+  dangerThreshold?: number
 }
 type RemoteTimerProps = BaseTimerProps & {
   initialTimestamp: number
 }
 
-const RemoteTimerComponent = forwardRef(({
+const RemoteTimerComponent = memo(forwardRef(({
   initialTime,
   initialTimestamp,
   onElapsed,
-  className
+  tickDuration = 200,
+  dangerThreshold = 5000,
+  className,
 }: RemoteTimerProps, ref) => {
 
   const [time, setTime] = useState<number>(initialTime)
   const [running, setRunning] = useState<boolean>(true)
-
-  const timeStep = 200
-  const dangerThreshold = 5000
 
   // Methods offered to parent component
   useImperativeHandle(ref, () => ({
@@ -49,7 +51,7 @@ const RemoteTimerComponent = forwardRef(({
 
   const { scheduleAutoRefresh, clearAutoRefresh } = useAutoRefresh(() => {
     refresh()
-  }, timeStep)
+  }, tickDuration)
 
   useEffect(() => {
     // console.log(`Timer: running or initialTimestamp changed. running = ${running}, initialTimestamp = ${initialTimestamp}`)
@@ -81,6 +83,11 @@ const RemoteTimerComponent = forwardRef(({
       <span className="seconds">{padZeros(Math.max(0, Math.ceil((time % 60000) / 1000)))}</span>
     </div>
   </>)
+}), (prevProps, nextProps) => {
+  // TODO: is memo applicable here?
+  const { onElapsed, ...prevRest } = prevProps
+  const { onElapsed: _onElapsed, ...nextRest } = nextProps
+  return _.isEqual(prevRest, nextRest)
 })
 
 const RemoteTimer = styled(RemoteTimerComponent)`

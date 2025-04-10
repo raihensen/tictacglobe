@@ -57,7 +57,7 @@ const Field = memo(({
   const categories = useTtgStore.use.categories() ?? []
   const solutions = countries.filter(c => game.setup.solutions[i][j].includes(c.iso))
   const exampleSolutionSeed = useMemo(() => Math.floor(_.random(0, 1000)), [])
-  const exampleSolution = useMemo(() => _.sortBy(solutions, "iso")[exampleSolutionSeed % solutions.length] as Country, [solutions])
+  const exampleSolution = useMemo(() => _.sortBy(solutions, "iso")[exampleSolutionSeed % solutions.length] as Country, [solutions, exampleSolutionSeed])
   const alternativeSolutions = countries.filter(c => game.setup.alternativeSolutions[i][j].includes(c.iso))
   const initFieldState = (game: Game) => ({
     guess: countries?.find(c => c.iso == game.guesses[i][j]) ?? null,
