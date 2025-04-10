@@ -2,6 +2,9 @@
 
 src/generated
 
+# Needed to move DB URL to schema.prisma
+prisma/schema.prisma
+
 # dependencies
 /node_modules
 /.pnp
