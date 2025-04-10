@@ -1,7 +1,7 @@
 import { defaultLanguage } from "@/src/game.types";
 import { Mutex } from "async-mutex";
 import path from "path";
-import { useEffect, useRef, useState } from "react";
+import React from "react";
 
 
 export function randomChoice<T>(arr: Array<T>): T | undefined {
@@ -57,9 +57,9 @@ export function setLocalStorage<T>(key: string, value: T) {
  * @param {any[]} dependencies
  */
 export function useUpdateEffect(effect: () => any, dependencies: any[] = []) {
-  const isInitialMount = useRef(true);
+  const isInitialMount = React.useRef(true);
 
-  useEffect(() => {
+  React.useEffect(() => {
     if (isInitialMount.current) {
       isInitialMount.current = false;
     } else {
@@ -74,9 +74,9 @@ export function useUpdateEffect(effect: () => any, dependencies: any[] = []) {
  * @param {any[]} dependencies
  */
 export function useInitEffect(effect: () => any, dependencies: any[] = []) {
-  const isInitialMount = useRef(true)
+  const isInitialMount = React.useRef(true)
 
-  useEffect(() => {
+  React.useEffect(() => {
     if (isInitialMount.current) {
       isInitialMount.current = false
       return effect()
@@ -87,7 +87,7 @@ export function useInitEffect(effect: () => any, dependencies: any[] = []) {
 
 export function useDarkMode(initialValue: boolean = false): [boolean, () => void] {
 
-  const [darkMode, setDarkMode] = useState(initialValue);
+  const [darkMode, setDarkMode] = React.useState(initialValue);
 
   // manually toggle the dark mode (called by a button), saving an individual preference
   const toggleDarkMode = () => {
@@ -102,7 +102,7 @@ export function useDarkMode(initialValue: boolean = false): [boolean, () => void
   }, [darkMode]);
 
   // Get initial value
-  useEffect(() => {
+  React.useEffect(() => {
     // Get individual preference from localStorage
     const storedDarkMode = getLocalStorage<boolean | null>('darkMode', null)
     if (storedDarkMode !== null) {
@@ -132,9 +132,9 @@ export function useDarkMode(initialValue: boolean = false): [boolean, () => void
 export function useAutoRefresh<T extends any[]>(action: (...args: T) => void, interval: number) {
 
   const autoRefreshIntervalMutex = new Mutex()
-  const [autoRefreshIntervalHandle, setAutoRefreshIntervalHandle] = useState<NodeJS.Timeout>()
+  const [autoRefreshIntervalHandle, setAutoRefreshIntervalHandle] = React.useState<NodeJS.Timeout>()
 
-  useEffect(() => {
+  React.useEffect(() => {
     // clear the autoRefresh interval when the component unmounts
     return () => clearAutoRefresh()
   }, [])
@@ -173,8 +173,8 @@ export function addClassName(passedClassName: string | undefined, extraClassName
 }
 
 export function useIsClient(): boolean {
-  const [isClient, setIsClient] = useState<boolean>(false)
-  useEffect(() => {
+  const [isClient, setIsClient] = React.useState<boolean>(false)
+  React.useEffect(() => {
     setIsClient(true)
   }, [])
   return isClient
@@ -182,8 +182,8 @@ export function useIsClient(): boolean {
 
 // from https://blog.logrocket.com/accessing-previous-props-state-react-hooks/#custom-hook-with-useprevious-hook
 export function usePrevious<T>(value: T | undefined) {
-  const ref = useRef<T>()
-  useEffect(() => {
+  const ref = React.useRef<T>()
+  React.useEffect(() => {
     ref.current = value // assign the value of ref to the argument
   }, [value]) // this code will run when the value of 'value' changes
   return ref.current // in the end, return the current ref value.

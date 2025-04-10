@@ -1,8 +1,8 @@
 
-import { useAutoRefresh } from '@/src/util'
-import _ from 'lodash'
-import { forwardRef, memo, useCallback, useEffect, useImperativeHandle, useState } from 'react'
-import styled from "styled-components"
+import { useAutoRefresh } from '@/src/util';
+import _ from 'lodash';
+import React from "react";
+import styled from "styled-components";
 
 
 type BaseTimerProps = {
@@ -16,7 +16,7 @@ type RemoteTimerProps = BaseTimerProps & {
   initialTimestamp: number
 }
 
-const RemoteTimerComponent = memo(forwardRef(({
+const RemoteTimerComponent = React.memo(React.forwardRef(({
   initialTime,
   initialTimestamp,
   onElapsed,
@@ -25,11 +25,11 @@ const RemoteTimerComponent = memo(forwardRef(({
   className,
 }: RemoteTimerProps, ref) => {
 
-  const [time, setTime] = useState<number>(initialTime)
-  const [running, setRunning] = useState<boolean>(true)
+  const [time, setTime] = React.useState<number>(initialTime)
+  const [running, setRunning] = React.useState<boolean>(true)
 
   // Methods offered to parent component
-  useImperativeHandle(ref, () => ({
+  React.useImperativeHandle(ref, () => ({
     restart() {
       // should be called to re-start the timer after updating initialTimestamp
       setRunning(true)
@@ -40,7 +40,7 @@ const RemoteTimerComponent = memo(forwardRef(({
     }
   }))
 
-  const refresh = useCallback(() => {
+  const refresh = React.useCallback(() => {
     if (running) {
       setTime(initialTime - (Date.now() - initialTimestamp))
       scheduleAutoRefresh()
@@ -53,7 +53,7 @@ const RemoteTimerComponent = memo(forwardRef(({
     refresh()
   }, tickDuration)
 
-  useEffect(() => {
+  React.useEffect(() => {
     // console.log(`Timer: running or initialTimestamp changed. running = ${running}, initialTimestamp = ${initialTimestamp}`)
     refresh()
     return () => {
@@ -61,7 +61,7 @@ const RemoteTimerComponent = memo(forwardRef(({
     }
   }, [initialTimestamp, initialTime, running])
 
-  useEffect(() => {
+  React.useEffect(() => {
     if (time <= 0) {
 
       clearAutoRefresh()  // probably not needed

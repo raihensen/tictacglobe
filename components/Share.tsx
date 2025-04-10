@@ -1,6 +1,6 @@
 
 import { useTranslation } from "next-i18next";
-import { Dispatch, SetStateAction, forwardRef, useEffect, useId, useRef, useState } from "react";
+import React from "react";
 import { Modal, OverlayTrigger, Tooltip } from "react-bootstrap";
 import { Placement } from "react-bootstrap/types";
 import { FaArrowUpFromBracket, FaPaypal } from "react-icons/fa6";
@@ -8,7 +8,7 @@ import styled from "styled-components";
 import donationModalHeroBackgroundImage from "../public/world-map-hero-bg.jpg";
 import { IconButton } from "./styles";
 
-const IconButtonWithRef = forwardRef<HTMLButtonElement, React.ComponentProps<typeof IconButton>>(({ children, ...props }, ref) => (
+const IconButtonWithRef = React.forwardRef<HTMLButtonElement, React.ComponentProps<typeof IconButton>>(({ children, ...props }, ref) => (
   <IconButton ref={ref} {...props}>
     {children}
   </IconButton>
@@ -24,26 +24,26 @@ export const ShareButton: React.FC<ShareButtonProps> = ({ onShare, tooltipPlacem
   // const router = useRouter()
   const { t } = useTranslation("common")
 
-  const [showClipboardInfo, setShowClipboardInfo] = useState<boolean>(false)
-  const [showClipboardInfoTimeout, setShowClipboardInfoTimeout] = useState<NodeJS.Timeout>()
-  const target = useRef(null)
-  const tooltipId = useId()
+  const [showClipboardInfo, setShowClipboardInfo] = React.useState<boolean>(false)
+  const [showClipboardInfoTimeout, setShowClipboardInfoTimeout] = React.useState<NodeJS.Timeout>()
+  const target = React.useRef(null)
+  const tooltipId = React.useId()
 
-  const [data, setData] = useState<ShareData>({...props})
+  const [data, setData] = React.useState<ShareData>({ ...props })
 
   tooltipPlacement ??= "top"
 
-  useEffect(() => {
+  React.useEffect(() => {
     // client-side only
     console.log(`Window changed, ${window.location.href}`)
     if (!data.url) {
-      setData(({url, ...rest}) => ({ url: window.location.href, ...rest }))
+      setData(({ url, ...rest }) => ({ url: window.location.href, ...rest }))
     }
   }, [])
 
   const shareViaClipboard = () => {
 
-    navigator.clipboard.writeText(t("info.shareText", { url: data.url}))
+    navigator.clipboard.writeText(t("info.shareText", { url: data.url }))
 
     if (showClipboardInfoTimeout) {
       clearTimeout(showClipboardInfoTimeout)
@@ -79,7 +79,7 @@ export const ShareButton: React.FC<ShareButtonProps> = ({ onShare, tooltipPlacem
       <div style={{ display: "flex" }}>
         <IconButton
           label="Share"
-          labelProps={{ className: "d-none d-sm-block"}}
+          labelProps={{ className: "d-none d-sm-block" }}
           onClick={async () => {
             const success = await share()
             if (success && onShare) {
@@ -100,7 +100,7 @@ export default ShareButton;
 
 export const DonationModal: React.FC<{
   show: boolean,
-  setShow: Dispatch<SetStateAction<boolean>>,
+  setShow: React.Dispatch<React.SetStateAction<boolean>>,
   href: string
 }> = ({ show, setShow, href, ...props }) => {
   const { t } = useTranslation("common")

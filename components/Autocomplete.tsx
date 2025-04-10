@@ -2,7 +2,7 @@ import { Country } from "@/src/game.types";
 import { useTtgStore } from "@/src/zustand";
 import _ from "lodash";
 import { useTranslation } from "next-i18next";
-import { useEffect, useState } from 'react';
+import React from "react";
 import Select from "react-select";
 const NodeCache = require("node-cache");
 
@@ -24,8 +24,8 @@ const CountryAutoComplete = ({ makeGuess, onBlur }: CountryAutoCompleteProps) =>
   const { t, i18n } = useTranslation("common")
   const countries = useTtgStore.use.countries() ?? []
 
-  const [searchValue, setSearchValue] = useState("")
-  const [searchCache, setSearchCache] = useState(new NodeCache())
+  const [searchValue, setSearchValue] = React.useState("")
+  const [searchCache, setSearchCache] = React.useState(new NodeCache())
 
   // Init regexes to replace equivalent words
   const equivalentWordCategories = ["saint", "and"]
@@ -114,7 +114,7 @@ const CountryAutoComplete = ({ makeGuess, onBlur }: CountryAutoCompleteProps) =>
     key: `${c.iso}-${i}`
   }))).flat(1) as AutoCompleteItem[]
 
-  useEffect(() => {
+  React.useEffect(() => {
     setSearchCache(new NodeCache())
   }, [])
 
@@ -128,8 +128,8 @@ const CountryAutoComplete = ({ makeGuess, onBlur }: CountryAutoCompleteProps) =>
     return results
   }
 
-  const [isDisabled, setIsDisabled] = useState(false)
-  const [isLoading, setIsLoading] = useState(false)
+  const [isDisabled, setIsDisabled] = React.useState(false)
+  const [isLoading, setIsLoading] = React.useState(false)
 
   type Option = { label: string, value: string, data: AutoCompleteItem }
 

@@ -1,15 +1,14 @@
 import _ from "lodash";
-import { Dispatch, SetStateAction } from "react";
 import { StoreApi, UseBoundStore } from "zustand";
 
 
 type CapitalizeStr<S extends string> = S extends `${infer First}${infer Rest}` ? `${Uppercase<First>}${Rest}` : S
 type NonUndefined<T> = T extends undefined ? never : T
 export type DispatchStateSetters<T> = {
-  [K in keyof T as `set${CapitalizeStr<string & K>}`]: Dispatch<T[K]>
+  [K in keyof T as `set${CapitalizeStr<string & K>}`]: React.Dispatch<T[K]>
 }
 export type DispatchSetStateActionStateSetters<T> = {
-  [K in keyof T as `set${CapitalizeStr<string & K>}`]: Dispatch<SetStateAction<T[K]>>
+  [K in keyof T as `set${CapitalizeStr<string & K>}`]: React.Dispatch<React.SetStateAction<T[K]>>
 }
 // type DispatchSetStateActionStateSetter<K, T> = DispatchSetStateActionStateSetters<{ [P in K]: T }>
 type StoreSetter<S> = (partial: (state: S) => any) => void
@@ -21,7 +20,7 @@ export function updaterSetter<T, Store>(k: string, set: StoreSetter<Store>) {
   return (updater: (prev: T) => T) => set(state => Object.fromEntries([[k, updater(_.get(state, k) as T)]]))
 }
 export function valueOrUpdaterSetter<T, Store>(k: string, set: StoreSetter<Store>) {
-  return (valueOrUpdater: SetStateAction<T>) => {
+  return (valueOrUpdater: React.SetStateAction<T>) => {
     if (typeof valueOrUpdater === 'function') {
       return set(state => Object.fromEntries([[k, (valueOrUpdater as (prev: T) => T)(_.get(state, k) as T)]]))
     }
@@ -74,12 +73,12 @@ type WithStateSelectors<S> = S extends { getState: () => infer T }
   ? S & { useState: { [K in keyof T]: () => ({ [P in K]: T[K] } & DispatchSetStateActionStateSetters<{ [P in K]: T[K] }>) } }
   : never
 
-  /**
-   * To an existing zustand store, adds useState-like selectors.
-   * To be used like `const { count, setCount } = store.useState.count()`
-   * @param _store 
-   * @returns The manipulated store
-   */
+/**
+ * To an existing zustand store, adds useState-like selectors.
+ * To be used like `const { count, setCount } = store.useState.count()`
+ * @param _store 
+ * @returns The manipulated store
+ */
 export const createStateSelectors = <S extends UseBoundStore<StoreApi<object>>, State extends object>(
   _store: S,
 ) => {

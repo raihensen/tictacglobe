@@ -1,5 +1,5 @@
 /* eslint-disable react-hooks/exhaustive-deps */
-import { useState, useEffect } from "react"
+import React from "react";
 import { useTheme } from "next-themes"
 import { FaCircleHalfStroke, FaMoon, FaSun } from "react-icons/fa6"
 import classNames from "classnames"
@@ -10,11 +10,11 @@ const ThemeSwitch = ({
   ...props
   // }: Omit<React.HTMLProps<HTMLButtonElement>, "onClick" | "type">) => {
 }: Omit<ButtonProps, "onClick">) => {
-  const [mounted, setMounted] = useState(false)
+  const [mounted, setMounted] = React.useState(false)
   const { theme, setTheme } = useTheme()
   const modeOrder = ["system", "dark", "light"]
 
-  useEffect(() => {
+  React.useEffect(() => {
     setMounted(true)
   }, [])
 

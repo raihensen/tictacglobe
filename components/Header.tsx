@@ -1,7 +1,7 @@
 
 import 'bootstrap/dist/css/bootstrap.min.css';
 import { useTranslation } from 'next-i18next';
-import { useState } from 'react';
+import React from "react";
 
 import { ApiHandler, Game, defaultLanguage } from "@/src/game.types";
 
@@ -32,7 +32,7 @@ const Header: React.FC<{
 
   const session = useTtgStore.use.session()
   const game = useTtgStore.use.game()
-  const [expanded, setExpanded] = useState<boolean>(false)
+  const [expanded, setExpanded] = React.useState<boolean>(false)
 
   return (
     <HeaderStyle>

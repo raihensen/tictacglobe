@@ -3,7 +3,7 @@ import { capitalize } from '@/src/util';
 import { useTranslation } from 'next-i18next';
 import Slider from 'rc-slider';
 import 'rc-slider/assets/index.css';
-import { useState } from 'react';
+import React from "react";
 import { Button } from 'react-bootstrap';
 import Form from 'react-bootstrap/Form';
 import Modal from 'react-bootstrap/Modal';
@@ -18,12 +18,12 @@ import { CircleFlag } from "react-circle-flags";
 
 
 export function useSettings(defaultSettings: Settings): [Settings, (value: Settings) => void] {
-  const [settings, setSettings] = useState<Settings>(defaultSettings)
+  const [settings, setSettings] = React.useState<Settings>(defaultSettings)
   return [settings, setSettings]
 }
 
 // TODO Two settings objects/states: Active + Apply for next game
-// const [nextGameSettings, setNextGameSettings] = useState<Settings>(defaultSettings)
+// const [nextGameSettings, setNextGameSettings] = React.useState<Settings>(defaultSettings)
 
 type SettingsValues = { id: "settingsTimeLimit", value: number | false }
 // | { id: "settingsLanguage", value: Language }
@@ -62,8 +62,8 @@ export const SettingsModal: React.FC<{
     setSettings(newSettings)
   }
 
-  const [timeLimitSliderValue, setTimeLimitSliderValue] = useState(settings.timeLimit !== false ? settings.timeLimit : defaultTimeLimitSliderValue)
-  const [showTimeLimitSlider, setShowTimeLimitSlider] = useState<boolean>(settings.timeLimit !== false)
+  const [timeLimitSliderValue, setTimeLimitSliderValue] = React.useState(settings.timeLimit !== false ? settings.timeLimit : defaultTimeLimitSliderValue)
+  const [showTimeLimitSlider, setShowTimeLimitSlider] = React.useState<boolean>(settings.timeLimit !== false)
 
   return (
     <Modal show={show} onHide={() => setShow(false)}>

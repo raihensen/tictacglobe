@@ -1,4 +1,4 @@
-import React, { useCallback, useContext, useState } from 'react';
+import React, { useCallback, useContext, useState } from "react";
 import Button from 'react-bootstrap/Button';
 import Modal from 'react-bootstrap/Modal';
 
@@ -17,14 +17,14 @@ export const useConfirmation = () => useContext(ConfirmationContext);
 const ConfirmationModalProvider: React.FC<{
   children: React.ReactNode
 }> = ({ children }) => {
-  const [show, setShow] = useState(false);
-  const [resolveReject, setResolveReject] = useState<[(value: boolean) => void, (reason: any) => void] | [undefined, undefined]>([undefined, undefined]);
-  const [message, setMessage] = useState("");
-  const [title, setTitle] = useState<string | null>(null);
-  const [confirmText, setConfirmText] = useState("Confirm");
-  const [cancelText, setCancelText] = useState("Cancel");
+  const [show, setShow] = React.useState(false);
+  const [resolveReject, setResolveReject] = React.useState<[(value: boolean) => void, (reason: any) => void] | [undefined, undefined]>([undefined, undefined]);
+  const [message, setMessage] = React.useState("");
+  const [title, setTitle] = React.useState<string | null>(null);
+  const [confirmText, setConfirmText] = React.useState("Confirm");
+  const [cancelText, setCancelText] = React.useState("Cancel");
 
-  const confirm = useCallback((msg: string, options?: ConfirmationOptions) => {
+  const confirm = React.useCallback((msg: string, options?: ConfirmationOptions) => {
     setMessage(msg);
     if (options?.title) setTitle(options.title)
     if (options?.confirmText) setConfirmText(options.confirmText)

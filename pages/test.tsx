@@ -1,5 +1,5 @@
 import RemoteTimer from "@/components/Timer";
-import { useEffect, useState } from "react";
+import React from "react"
 import { Button } from "react-bootstrap";
 import { PageProps } from "./_app";
 
@@ -13,8 +13,8 @@ const TestPage: React.FC<PageProps> = ({
   isLoading, setLoadingText
 }) => {
 
-  const [turnStartTimestamp, setTurnStartTimeStamp] = useState<number>(Date.now())
-  useEffect(() => {
+  const [turnStartTimestamp, setTurnStartTimeStamp] = React.useState<number>(Date.now())
+  React.useEffect(() => {
     setLoadingText(false)
   })
   return (

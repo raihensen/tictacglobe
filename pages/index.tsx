@@ -4,10 +4,10 @@ import { useTranslation } from 'next-i18next';
 import { serverSideTranslations } from "next-i18next/serverSideTranslations";
 import { useSearchParams } from 'next/navigation';
 import { NextRouter, useRouter } from "next/router";
-import { useCallback, useEffect, useRef, useState } from 'react';
+import React from "react";
 
-import { PlayerColor, playerColors, RequestAction, autoRefreshInterval, defaultLanguage } from "@/src/game.types";
-import { readReadme, setLocalStorage, useAutoRefresh } from "@/src/util";
+import { autoRefreshInterval, defaultLanguage, PlayerColor, playerColors, RequestAction } from "@/src/game.types";
+import { readReadme, useAutoRefresh } from "@/src/util";
 import type { GetServerSideProps } from 'next';
 import { PageProps } from "./_app";
 var fs = require('fs').promises;
@@ -16,6 +16,7 @@ import { MarkdownModal } from "@/components/MarkdownModal";
 import ShareButton, { DonationModal, ShareButtonProps } from "@/components/Share";
 import { ButtonToolbar, IconButton } from "@/components/styles";
 import { Session } from "@/src/db.types";
+import { randomChoice } from '@/src/util';
 import { useTtgStore } from "@/src/zustand";
 import { PlayingMode, User } from "@prisma/client";
 import 'bootstrap/dist/css/bootstrap.min.css';
@@ -23,7 +24,6 @@ import Button from "react-bootstrap/Button";
 import Form from 'react-bootstrap/Form';
 import InputGroup from 'react-bootstrap/InputGroup';
 import { FaCircleInfo } from "react-icons/fa6";
-import { randomChoice } from '@/src/util';
 
 export type ApiResponse = {
   session: Session
@@ -50,27 +50,27 @@ const IndexPage: React.FC<PageProps & IndexPageProps> = ({
   const { user, setUser } = useTtgStore.useState.user()
   const { session, setSession } = useTtgStore.useState.session()
 
-  const [state, setState] = useState<PageState>(PageState.Init)
-  const [userColor, setUserColor] = useState<PlayerColor>(randomChoice(playerColors) as PlayerColor)
+  const [state, setState] = React.useState<PageState>(PageState.Init)
+  const [userColor, setUserColor] = React.useState<PlayerColor>(randomChoice(playerColors) as PlayerColor)
 
-  const [showGameInformation, setShowGameInformation] = useState<boolean>(false)
-  const [showDonationModal, setShowDonationModal] = useState<boolean>(false)
+  const [showGameInformation, setShowGameInformation] = React.useState<boolean>(false)
+  const [showDonationModal, setShowDonationModal] = React.useState<boolean>(false)
   const shareButtonProps: ShareButtonProps = {
     title: "TicTacGlobe",
     text: "Play TicTacGlobe, it's awesome!",
     onShare: () => setShowDonationModal(true)
   }
 
-  const [isWaiting, setIsWaiting] = useState<boolean>(false)
-  useEffect(() => {
+  const [isWaiting, setIsWaiting] = React.useState<boolean>(false)
+  React.useEffect(() => {
     setLoadingText(isWaiting ? "Loading" : false)
   }, [isWaiting])
 
-  useEffect(() => {
+  React.useEffect(() => {
     // First client-side init
     setLoadingText(false)
   }, [])
-  useEffect(() => {
+  React.useEffect(() => {
     const invitationCode = searchParams?.get("invitationCode") ?? null
     if (invitationCode && !isWaiting) {
       console.log(`Trying to join session with invitation code ${invitationCode} ...`)
@@ -78,7 +78,7 @@ const IndexPage: React.FC<PageProps & IndexPageProps> = ({
     }
   }, [searchParams])
 
-  const execAutoRefresh = useCallback(() => {
+  const execAutoRefresh = React.useCallback(() => {
     apiRequest(async () => {
       if (!session?.id) return false
       if (!user?.id) return false
@@ -158,11 +158,11 @@ const IndexPage: React.FC<PageProps & IndexPageProps> = ({
     return true
   }
 
-  const invitationCodeInputRef = useRef<HTMLInputElement | null>(null)
-  const [invitationCodeInputInitialized, setInvitationCodeInputInitialized] = useState(false)
-  const [invitationCodeInputValue, setInvitationCodeInputValue] = useState<string>("")
+  const invitationCodeInputRef = React.useRef<HTMLInputElement | null>(null)
+  const [invitationCodeInputInitialized, setInvitationCodeInputInitialized] = React.useState(false)
+  const [invitationCodeInputValue, setInvitationCodeInputValue] = React.useState<string>("")
 
-  useEffect(() => {
+  React.useEffect(() => {
     if (invitationCodeInputRef.current && !invitationCodeInputInitialized) {
       invitationCodeInputRef.current.focus()
       setInvitationCodeInputInitialized(true)

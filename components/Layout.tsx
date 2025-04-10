@@ -2,7 +2,7 @@ import '@/app/globals.css'
 import { Ripple } from "@/components/common/Loading";
 // import { useTtgStore } from "@/src/zustand";
 import Head from 'next/head';
-import { ReactNode } from "react";
+import React from "react";
 import Container from "react-bootstrap/Container";
 import { ThemeProvider } from "next-themes"
 

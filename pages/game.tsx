@@ -5,7 +5,7 @@ import Button from "react-bootstrap/Button";
 import 'bootstrap/dist/css/bootstrap.min.css';
 import { useTranslation } from 'next-i18next';
 import { serverSideTranslations } from 'next-i18next/serverSideTranslations';
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import React from "react";
 
 import { ApiRequestBody, ApiRequestBodyTurn, ApiResponse, Category, Country, Game, PlayerColor, Settings, autoRefreshInterval, defaultLanguage, defaultSettings, settingsChanged } from "@/src/game.types";
 import { GET, capitalize, readReadme, useAutoRefresh } from "@/src/util";
@@ -47,7 +47,7 @@ const GamePage: React.FC<PageProps & GamePageProps> = ({
 
   const dev = process.env.NODE_ENV === "development"
 
-  useEffect(() => {
+  React.useEffect(() => {
     if (!user) return
     if (game) return
     loadGame()
@@ -62,11 +62,11 @@ const GamePage: React.FC<PageProps & GamePageProps> = ({
   const router = useRouter()
   const { t, i18n } = useTranslation("common")
 
-  const [settings, setSettings] = useState<Settings>(defaultSettings)
-  const [showSettings, setShowSettings] = useState(false)
+  const [settings, setSettings] = React.useState<Settings>(defaultSettings)
+  const [showSettings, setShowSettings] = React.useState(false)
   const triggerShowSettings = () => { if (game) setShowSettings(true) }
-  const [showGameInformation, setShowGameInformation] = useState<boolean>(false)
-  const [showDonationModal, setShowDonationModal] = useState<boolean>(false)
+  const [showGameInformation, setShowGameInformation] = React.useState<boolean>(false)
+  const [showDonationModal, setShowDonationModal] = React.useState<boolean>(false)
   const shareButtonProps: ShareButtonProps = {
     title: "TicTacGlobe",
     text: "Play TicTacGlobe, it's awesome!",
@@ -75,15 +75,15 @@ const GamePage: React.FC<PageProps & GamePageProps> = ({
 
   const opponentUser = session?.users.filter(u => u.id != user?.id)[0] ?? null
 
-  // const [notifyDecided, setNotifyDecided] = useState<boolean>(false)
+  // const [notifyDecided, setNotifyDecided] = React.useState<boolean>(false)
   const notifyDecided = game?.state == GameState.Decided
 
   const getUserIndex = (user: User | null) => user ? session?.users.findIndex(u => u.id == user?.id) : undefined
   const userIndex = getUserIndex(user)
   const isSessionAdmin = userIndex === 0 || session?.playingMode == PlayingMode.Offline
   const hasTurn = userIndex == game?.turn || session?.playingMode == PlayingMode.Offline
-  // const [hasTurn, setHasTurn] = useState<boolean>(session?.playingMode == PlayingMode.Offline)
-  const [turnStartTimestamp, setTurnStartTimestamp] = useState<number | null>(null)
+  // const [hasTurn, setHasTurn] = React.useState<boolean>(session?.playingMode == PlayingMode.Offline)
+  const [turnStartTimestamp, setTurnStartTimestamp] = React.useState<number | null>(null)
 
   const {
     data: sessionData,
@@ -95,7 +95,7 @@ const GamePage: React.FC<PageProps & GamePageProps> = ({
     game: any
     countries: Country[]
   }>(() => session ? `/api/session/${session?.id}` : null, GET, { refreshInterval: 2000 })
-  useEffect(() => {
+  React.useEffect(() => {
     console.log({ sessionData, isLoadingSession })
     // setCategories(categoriesData ?? null)
     if (!sessionData) return
@@ -116,7 +116,7 @@ const GamePage: React.FC<PageProps & GamePageProps> = ({
     error: categoriesError,
     isLoading: isLoadingCategories
   } = useSWR<Category[]>(`/api/categories?language=${router.locale}`, GET)
-  useEffect(() => {
+  React.useEffect(() => {
     setCategories(categoriesData ?? null)
   }, [categoriesData])
 
@@ -126,7 +126,7 @@ const GamePage: React.FC<PageProps & GamePageProps> = ({
     // refresh()
   }, autoRefreshInterval)
 
-  useEffect(() => {
+  React.useEffect(() => {
     if (!game) return
     if (hasTurn && settings.timeLimit && !turnStartTimestamp) {
       setTurnStartTimestamp(Date.now())
@@ -141,7 +141,7 @@ const GamePage: React.FC<PageProps & GamePageProps> = ({
     }
   }, [game, session, hasTurn, settings, clientTimeOffset])
 
-  const refresh = useCallback(() => {
+  const refresh = React.useCallback(() => {
     if (!session) {
       console.error(`session is null during refresh`)
       return
@@ -151,8 +151,8 @@ const GamePage: React.FC<PageProps & GamePageProps> = ({
     })
   }, [session])
 
-  // const apiRequest = useCallback(async (
-  const apiRequest = useCallback(async (
+  // const apiRequest = React.useCallback(async (
+  const apiRequest = React.useCallback(async (
     url: string,
     req: Omit<ApiRequestBody, "user" | "turn">,
   ) => {
@@ -277,8 +277,8 @@ const GamePage: React.FC<PageProps & GamePageProps> = ({
     return getPlayerColor(game?.turn ?? null)
   }
 
-  const [showTurnInfo, setShowTurnInfo] = useState(false)
-  useEffect(() => {
+  const [showTurnInfo, setShowTurnInfo] = React.useState(false)
+  React.useEffect(() => {
     if (!game) {
       setShowTurnInfo(false)
     } else {
@@ -292,9 +292,9 @@ const GamePage: React.FC<PageProps & GamePageProps> = ({
     }
   }, [game, notifyDecided])
 
-  const timerRef = useRef()
-  const [activeField, setActiveField] = useState<number[]>([-1, -1])
-  const [isSearching, setIsSearching] = useState<boolean>(false)
+  const timerRef = React.useRef()
+  const [activeField, setActiveField] = React.useState<number[]>([-1, -1])
+  const [isSearching, setIsSearching] = React.useState<boolean>(false)
 
   const canControlGame = !!game && (hasTurn && !notifyDecided && !game.hasEnded())
   const canEndTurn = canControlGame

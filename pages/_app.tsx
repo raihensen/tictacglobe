@@ -7,7 +7,7 @@ import { useTtgStore } from '@/src/zustand'
 import { appWithTranslation } from 'next-i18next'
 import type { AppProps } from 'next/app'
 import { useSearchParams } from 'next/navigation'
-import { useEffect, useState } from 'react'
+import React from "react";
 
 type InitialPageProps = {
   [x: string]: any;
@@ -60,18 +60,18 @@ const MyApp: React.FC<AppProps<InitialPageProps>> = ({ Component, pageProps }) =
   }, [user])
 
   const [darkMode, toggleDarkMode] = useDarkMode()
-  const [errorMessage, setErrorMessage] = useState<string | false>(false)
-  const [hasError, setHasError] = useState<boolean>(false)
-  useEffect(() => {
+  const [errorMessage, setErrorMessage] = React.useState<string | false>(false)
+  const [hasError, setHasError] = React.useState<boolean>(false)
+  React.useEffect(() => {
     setHasError(!!errorMessage)
     if (!!errorMessage) {
       setLoadingText(false)
     }
   }, [errorMessage])
 
-  const [isLoading, setIsLoading] = useState<boolean>(true)
-  const [loadingText, setLoadingText] = useState<string | false>("Loading")
-  useEffect(() => {
+  const [isLoading, setIsLoading] = React.useState<boolean>(true)
+  const [loadingText, setLoadingText] = React.useState<string | false>("Loading")
+  React.useEffect(() => {
     setIsLoading(!!loadingText)
   }, [loadingText])
 

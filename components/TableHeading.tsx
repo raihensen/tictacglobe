@@ -1,7 +1,7 @@
 
 import { CategoryValue } from "@/src/game.types";
 import { TFunction, useTranslation } from "next-i18next";
-import { forwardRef, useId } from "react";
+import React from "react";
 import { OverlayTrigger, Tooltip } from "react-bootstrap";
 import { FaBuildingColumns, FaCircle, FaCity, FaEarthAfrica, FaEarthAmericas, FaEarthAsia, FaEarthEurope, FaEarthOceania, FaFlag, FaMaximize, FaMinimize, FaMountain, FaUsers, FaWater } from "react-icons/fa6";
 import styled from "styled-components";
@@ -187,7 +187,7 @@ export const TableHeading = ({ category, value, orient, active, setActive }: Cat
   })
   description = translateCategory(description, t)
 
-  const tooltipId = useId()
+  const tooltipId = React.useId()
   const tooltip = description ? (<Tooltip id={`categoryTooltip-${tooltipId}`}>{t(...description)}</Tooltip>) : undefined
 
   return (
@@ -248,7 +248,7 @@ const CategoryBadgeInner = styled.span`
 
   }
 `
-const CategoryBadge = forwardRef<HTMLSpanElement, React.HTMLProps<HTMLSpanElement>>(({ className, ...props }, ref) => (
+const CategoryBadge = React.forwardRef<HTMLSpanElement, React.HTMLProps<HTMLSpanElement>>(({ className, ...props }, ref) => (
   <CategoryBadgeInner ref={ref} className={addClassName(className, "categoryBadge")} {...props} />
 ))
 

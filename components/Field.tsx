@@ -1,6 +1,6 @@
 
 import { ApiHandler, CategoryValue, Country, FieldSettings, Game } from "@/src/game.types";
-import { ReactNode, forwardRef, memo, useEffect, useId, useMemo, useState } from 'react';
+import React from "react";
 import styled from "styled-components";
 
 import { MarkingBackground, TableCellInner } from "@/components/styles";
@@ -26,7 +26,7 @@ type FieldState = {
   mode: FieldMode;
 }
 
-const Field = memo(({
+const Field = React.memo(({
   pos,
   setActive,
   setIsSearching,
@@ -56,8 +56,8 @@ const Field = memo(({
   const countries = useTtgStore.use.countries() ?? []
   const categories = useTtgStore.use.categories() ?? []
   const solutions = countries.filter(c => game.setup.solutions[i][j].includes(c.iso))
-  const exampleSolutionSeed = useMemo(() => Math.floor(_.random(0, 1000)), [])
-  const exampleSolution = useMemo(() => _.sortBy(solutions, "iso")[exampleSolutionSeed % solutions.length] as Country, [solutions, exampleSolutionSeed])
+  const exampleSolutionSeed = React.useMemo(() => Math.floor(_.random(0, 1000)), [])
+  const exampleSolution = React.useMemo(() => _.sortBy(solutions, "iso")[exampleSolutionSeed % solutions.length] as Country, [solutions, exampleSolutionSeed])
   const alternativeSolutions = countries.filter(c => game.setup.alternativeSolutions[i][j].includes(c.iso))
   const initFieldState = (game: Game) => ({
     guess: countries?.find(c => c.iso == game.guesses[i][j]) ?? null,
@@ -77,12 +77,12 @@ const Field = memo(({
     return null
   }
 
-  const [fieldState, setFieldState] = useState<FieldState>(initFieldState(game))
-  useEffect(() => {
+  const [fieldState, setFieldState] = React.useState<FieldState>(initFieldState(game))
+  React.useEffect(() => {
     setFieldState(initFieldState(game))
   }, [game])
 
-  const [showFieldInfoModal, setShowFieldInfoModal] = useState<boolean>(false)
+  const [showFieldInfoModal, setShowFieldInfoModal] = React.useState<boolean>(false)
   const closeFieldInfoModal = () => setShowFieldInfoModal(false)
   const openFieldInfoModal = () => setShowFieldInfoModal(true)
 
@@ -95,7 +95,7 @@ const Field = memo(({
       mode: mode
     }))
   }
-  useEffect(() => {
+  React.useEffect(() => {
     if (fieldState.mode == "search") {
       setActive(true)
       setIsSearching(true)
@@ -134,7 +134,7 @@ const Field = memo(({
     return sorted
   }
 
-  const tooltipCountryInfoIds = [useId(), useId()]
+  const tooltipCountryInfoIds = [React.useId(), React.useId()]
   const canShowFieldInfo = game.hasEnded()
 
   return (<>
@@ -336,8 +336,8 @@ const SolutionInfoItem = styled.div`
   }
 `
 
-export const ColumnList: React.FC<Omit<RowProps, "children"> & { contents: ReactNode[] }> = ({ contents }) => {
-  let chunks: ReactNode[] = [], colProps: ColProps = {}
+export const ColumnList: React.FC<Omit<RowProps, "children"> & { contents: React.ReactNode[] }> = ({ contents }) => {
+  let chunks: React.ReactNode[] = [], colProps: ColProps = {}
 
   if (contents.length >= 8) {
     chunks = _.chunk(contents, Math.ceil(contents.length / 2))
@@ -365,7 +365,7 @@ const NumSolutions: React.FC<{
 }> = ({ game, fieldState, settings, solutions, alternativeSolutions }) => {
   const { t } = useTranslation("common")
   const tooltipSolutions = (
-    <TextTooltip id={`tooltipNumSolutions-${useId()}`}>
+    <TextTooltip id={`tooltipNumSolutions-${React.useId()}`}>
       {/* <p>{t("numSolutions.solutions", { count: solutions.length, values: solutions.map(c => c.name).slice(0, 3).join(", "), omitted: solutions.length - 3 })}</p> */}
       <p>{t("numSolutions.solutions", { count: solutions.length, values: solutions.map(c => c.name).join(", ") })}</p>
       {alternativeSolutions.length != 0 && (<>
@@ -374,7 +374,7 @@ const NumSolutions: React.FC<{
     </TextTooltip>
   );
   const tooltipInfo = (
-    <TextTooltip id={`tooltipNumSolutions-${useId()}`}>
+    <TextTooltip id={`tooltipNumSolutions-${React.useId()}`}>
       {alternativeSolutions.length != 0 && (<>
         {t("numSolutions.numSolutionsTooltip", { count: solutions.length })}
         {alternativeSolutions.length && t("numSolutions.numAlternativeSolutionsTooltip", { count: alternativeSolutions.length })}
@@ -436,12 +436,12 @@ const TextTooltip = styled(Tooltip)`
   }
 `
 
-const TooltipTriggerDiv = forwardRef<HTMLDivElement, React.HTMLProps<HTMLDivElement>>(({ children, ...props }, ref: any) => (
+const TooltipTriggerDiv = React.forwardRef<HTMLDivElement, React.HTMLProps<HTMLDivElement>>(({ children, ...props }, ref: any) => (
   <div ref={ref} {...props}>
     {children}
   </div>
 ))
-const TooltipTriggerSpan = forwardRef<HTMLSpanElement, React.HTMLProps<HTMLSpanElement>>(({ children, ...props }, ref: any) => (
+const TooltipTriggerSpan = React.forwardRef<HTMLSpanElement, React.HTMLProps<HTMLSpanElement>>(({ children, ...props }, ref: any) => (
   <span ref={ref} {...props}>
     {children}
   </span>
@@ -453,6 +453,6 @@ const ResponsiveBadge = styled(Badge)`
     font-size: .75em;
   }
 `
-const NumSolutionsBadge = forwardRef<typeof Badge, BadgeProps & { children?: any }>(({ children, ...props }, ref: any) => (
+const NumSolutionsBadge = React.forwardRef<typeof Badge, BadgeProps & { children?: any }>(({ children, ...props }, ref: any) => (
   <ResponsiveBadge ref={ref} {...props}>{children}</ResponsiveBadge>
 ))
