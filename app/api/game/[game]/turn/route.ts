@@ -3,7 +3,7 @@ import { getCountryData } from "@/src/backend.util";
 import { db } from "@/src/db";
 import { Game as DbGame, Session } from "@/src/db.types";
 import { ApiRequestBodyTurn, Game, RequestAction } from "@/src/game.types";
-import { GameState } from "@prisma/client";
+import { GameState } from "@/src/generated/prisma/client";
 import _ from "lodash";
 import { NextRequest, NextResponse } from "next/server";
 

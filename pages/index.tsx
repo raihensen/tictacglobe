@@ -18,7 +18,7 @@ import { ButtonToolbar, IconButton } from "@/components/styles";
 import { Session } from "@/src/db.types";
 import { randomChoice } from '@/src/util';
 import { useTtgStore } from "@/src/zustand";
-import { PlayingMode, User } from "@prisma/client";
+import { PlayingMode, User } from "@/src/generated/prisma/client";
 import 'bootstrap/dist/css/bootstrap.min.css';
 import Button from "react-bootstrap/Button";
 import Form from 'react-bootstrap/Form';

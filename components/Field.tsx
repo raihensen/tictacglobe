@@ -5,7 +5,7 @@ import styled from "styled-components";
 
 import { MarkingBackground, TableCellInner } from "@/components/styles";
 import { useTtgStore } from "@/src/zustand";
-import { GameState } from "@prisma/client";
+import { GameState } from "@/src/generated/prisma/client";
 import _ from "lodash";
 import { useTranslation } from "next-i18next";
 import { Button, Col, ColProps, Modal, OverlayTrigger, Row, RowProps, Tooltip } from "react-bootstrap";

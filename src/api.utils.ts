@@ -1,7 +1,7 @@
 
 import { db } from "@/src/db";
-import { Prisma, Session, User } from "@prisma/client";
-import { DefaultArgs } from "@prisma/client/runtime/library";
+import { Prisma, Session, User } from "@/src/generated/prisma/client";
+import { DefaultArgs } from "@/src/generated/prisma/client/runtime/library";
 import _ from "lodash";
 import { NextResponse } from "next/server";
 

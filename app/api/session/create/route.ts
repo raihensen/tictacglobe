@@ -1,7 +1,7 @@
 import { error, findSessionWithCurrentGame, generateInvitationCode, invitationCodeAlive, joinSession } from "@/src/api.utils";
 import { db } from "@/src/db";
 import { ApiRequestBodyCreateSession, defaultSettings } from "@/src/game.types";
-import { PlayingMode, PrismaClient } from '@prisma/client';
+import { PlayingMode, PrismaClient } from '@/src/generated/prisma/client';
 import { NextRequest, NextResponse } from "next/server";
 
 

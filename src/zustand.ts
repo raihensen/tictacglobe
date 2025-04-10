@@ -1,5 +1,5 @@
 import { initialPageState, PageState } from "@/components/Layout";
-import { User } from "@prisma/client";
+import { User } from "@/src/generated/prisma/client";
 import { create } from "zustand";
 import { Session } from "./db.types";
 import { Category, Country, Game } from "./game.types";

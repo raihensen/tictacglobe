@@ -1,4 +1,4 @@
-import { Prisma } from "@prisma/client"
+import { Prisma } from "@/src/generated/prisma/client"
 
 
 const sessionWithCurrentGame = Prisma.validator<Prisma.SessionDefaultArgs>()({

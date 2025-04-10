@@ -22,7 +22,7 @@ import { useConfirmation } from "@/components/common/Confirmation";
 import { ButtonToolbar, GameTable, IconButton, PlayerBadge } from "@/components/styles";
 import { Session } from "@/src/db.types";
 import { useTtgStore } from "@/src/zustand";
-import { GameState, PlayingMode, User } from "@prisma/client";
+import { GameState, PlayingMode, User } from "@/src/generated/prisma/client";
 import _ from 'lodash';
 import type { GetServerSideProps } from 'next';
 import { useRouter } from "next/router";

@@ -1,6 +1,6 @@
 
 import { Game as DbGame, Session } from "@/src/db.types";
-import { GameState, PlayingMode, User } from "@prisma/client";
+import { GameState, PlayingMode, User } from "@/src/generated/prisma/client";
 import _ from "lodash";
 
 export const autoRefreshInterval = 1500  // interval [ms] for auto refresh
